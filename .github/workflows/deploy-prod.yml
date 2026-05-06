@@ -1,0 +1,60 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-prod:
+    name: Deploy -> agshopro.com
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate release ID
+        id: release
+        run: echo "id=$(date +%Y%m%d_%H%M%S)_${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Copy code to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "/tmp/agshopro-release"
+          rm: true
+
+      - name: Run deploy script on EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            bash /var/www/agshopro/scripts/deploy.sh ${{ steps.release.outputs.id }}
+
+      - name: Healthcheck production
+        run: |
+          echo "Waiting for process to come up..."
+          sleep 10
+          curl --fail --retry 5 --retry-delay 5 --max-time 15 \
+            https://agshopro.com/api/health
+
+      - name: Rollback on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Healthcheck failed — initiating rollback..."
+            bash /var/www/agshopro/scripts/rollback.sh
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "::error::Prod deploy FAILED and was rolled back. Release: ${{ steps.release.outputs.id }}"

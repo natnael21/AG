@@ -1,0 +1,42 @@
+module.exports = {
+  apps: [
+    {
+      name: 'ag-api',
+      script: './api/server.js',
+      cwd: '/var/www/agshopro/current',
+      instances: 1,
+      exec_mode: 'fork',
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 3000,
+      },
+      max_memory_restart: '512M',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      error_file: '/var/www/agshopro/shared/logs/api-error.log',
+      out_file: '/var/www/agshopro/shared/logs/api-out.log',
+      merge_logs: true,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s',
+    },
+    {
+      name: 'ag-api-preprod',
+      script: './api/server.js',
+      cwd: '/var/www/agshopro-preprod/current',
+      instances: 1,
+      exec_mode: 'fork',
+      env_staging: {
+        NODE_ENV: 'staging',
+        PORT: 3001,
+      },
+      max_memory_restart: '512M',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      error_file: '/var/www/agshopro-preprod/shared/logs/api-error.log',
+      out_file: '/var/www/agshopro-preprod/shared/logs/api-out.log',
+      merge_logs: true,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s',
+    },
+  ],
+};

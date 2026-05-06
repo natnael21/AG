@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AG Shop Pro — Reset Password</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:#0a1628;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
+.card{background:#111f35;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:40px;width:100%;max-width:400px;position:relative}
+.logo{display:flex;align-items:center;gap:8px;margin-bottom:32px}
+.logo-icon{width:28px;height:28px;background:#e94560;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff}
+.logo-text{font-family:'DM Serif Display',serif;font-size:.95rem;color:#fff}
+.logo-text span{color:#e94560}
+h2{font-family:'DM Serif Display',serif;font-size:1.5rem;color:#fff;margin-bottom:6px}
+.sub{font-size:.78rem;color:rgba(255,255,255,.4);margin-bottom:28px;line-height:1.5}
+.flbl{display:block;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:6px;margin-top:14px}
+.flbl:first-of-type{margin-top:0}
+.finput{width:100%;padding:11px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:#fff;font-size:.88rem;font-family:'DM Sans',sans-serif;transition:border-color .2s}
+.finput:focus{outline:none;border-color:#e94560}
+.finput::placeholder{color:rgba(255,255,255,.2)}
+.strength{display:flex;gap:4px;margin-top:8px}
+.strength-bar{flex:1;height:4px;background:rgba(255,255,255,.1);border-radius:2px;transition:background .3s}
+.strength-bar.weak{background:#e53e3e}
+.strength-bar.ok{background:#d4a017}
+.strength-bar.good{background:#38a169}
+.strength-bar.strong{background:#2f855a}
+.strength-label{font-size:.65rem;color:rgba(255,255,255,.3);margin-top:4px}
+.msg{font-size:.75rem;border-radius:7px;padding:9px 12px;margin-bottom:12px;display:none;margin-top:4px}
+.msg.show{display:block}
+.msg-error{background:rgba(252,129,129,.1);border:1px solid rgba(252,129,129,.25);color:#fc8181}
+.msg-success{background:rgba(104,211,145,.1);border:1px solid rgba(104,211,145,.25);color:#68d391}
+.btn-main{width:100%;padding:12px;background:#e94560;color:#fff;border:none;border-radius:9px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:16px;transition:background .2s}
+.btn-main:hover{background:#c73550}
+.btn-main:disabled{background:#5a1e2b;cursor:not-allowed;color:rgba(255,255,255,.4)}
+.invalid-box{text-align:center;padding:12px 0}
+.invalid-icon{font-size:40px;margin-bottom:16px}
+.back-link{display:block;text-align:center;margin-top:16px;color:rgba(255,255,255,.4);font-size:.78rem;text-decoration:none;cursor:pointer}
+.back-link:hover{color:rgba(255,255,255,.7)}
+.req-list{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+.req{font-size:.68rem;color:rgba(255,255,255,.3);display:flex;align-items:center;gap:5px}
+.req.met{color:#68d391}
+.req-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0}
+.req.met .req-dot{background:#68d391}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">AG</div>
+    <div class="logo-text">Shop <span>Pro</span></div>
+  </div>
+
+  <!-- VALID TOKEN VIEW -->
+  <div id="reset-form">
+    <h2>Set new password</h2>
+    <div class="sub">Choose a strong password for your account.<br>You'll be signed in automatically after resetting.</div>
+    <div class="msg msg-error" id="reset-error"></div>
+    <label class="flbl">New password</label>
+    <input class="finput" id="new-pw" type="password" placeholder="Min 8 characters" oninput="checkStrength(this.value)" onkeydown="if(event.key==='Enter')doReset()"/>
+    <div class="strength" id="strength-bars">
+      <div class="strength-bar" id="sb1"></div>
+      <div class="strength-bar" id="sb2"></div>
+      <div class="strength-bar" id="sb3"></div>
+      <div class="strength-bar" id="sb4"></div>
+    </div>
+    <div class="strength-label" id="strength-label">Enter a password</div>
+    <div class="req-list">
+      <div class="req" id="req-len"><div class="req-dot"></div>At least 8 characters</div>
+      <div class="req" id="req-upper"><div class="req-dot"></div>One uppercase letter</div>
+      <div class="req" id="req-num"><div class="req-dot"></div>One number</div>
+    </div>
+    <label class="flbl">Confirm password</label>
+    <input class="finput" id="confirm-pw" type="password" placeholder="Repeat your new password" onkeydown="if(event.key==='Enter')doReset()"/>
+    <button class="btn-main" id="reset-btn" onclick="doReset()">Set new password →</button>
+    <a class="back-link" onclick="window.location.replace('login.html')">← Back to sign in</a>
+  </div>
+
+  <!-- INVALID TOKEN VIEW -->
+  <div id="invalid-view" style="display:none">
+    <div class="invalid-box">
+      <div class="invalid-icon">⏰</div>
+      <h2 style="margin-bottom:8px">Link expired</h2>
+      <div class="sub">This password reset link has expired or already been used. Reset links are valid for 1 hour.</div>
+      <button class="btn-main" onclick="window.location.replace('login.html?forgot=1')">Request a new link →</button>
+    </div>
+  </div>
+
+  <!-- SUCCESS VIEW -->
+  <div id="success-view" style="display:none">
+    <div class="invalid-box">
+      <div class="invalid-icon">✅</div>
+      <h2 style="margin-bottom:8px">Password updated</h2>
+      <div class="sub">Your password has been changed successfully. Signing you in now...</div>
+    </div>
+  </div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+const token = new URLSearchParams(window.location.search).get('token');
+
+(function init(){
+  if(!token){
+    document.getElementById('reset-form').style.display = 'none';
+    document.getElementById('invalid-view').style.display = 'block';
+    return;
+  }
+  const t = AUTH.validateResetToken(token);
+  if(!t){
+    document.getElementById('reset-form').style.display = 'none';
+    document.getElementById('invalid-view').style.display = 'block';
+  }
+})();
+
+function checkStrength(pw){
+  const bars = [document.getElementById('sb1'),document.getElementById('sb2'),document.getElementById('sb3'),document.getElementById('sb4')];
+  const lbl = document.getElementById('strength-label');
+  bars.forEach(b => { b.className = 'strength-bar'; });
+  document.getElementById('req-len').classList.toggle('met', pw.length >= 8);
+  document.getElementById('req-upper').classList.toggle('met', /[A-Z]/.test(pw));
+  document.getElementById('req-num').classList.toggle('met', /[0-9]/.test(pw));
+  let score = 0;
+  if(pw.length >= 8) score++;
+  if(/[A-Z]/.test(pw)) score++;
+  if(/[0-9]/.test(pw)) score++;
+  if(/[^A-Za-z0-9]/.test(pw) && pw.length >= 10) score++;
+  const levels = ['','weak','ok','good','strong'];
+  const labels = ['','Weak','Fair','Good','Strong'];
+  for(let i=0; i<score; i++) bars[i].classList.add(levels[score]);
+  lbl.textContent = score > 0 ? labels[score] : 'Enter a password';
+}
+
+function doReset(){
+  const err = document.getElementById('reset-error');
+  err.classList.remove('show');
+  const pw = document.getElementById('new-pw').value;
+  const confirm = document.getElementById('confirm-pw').value;
+  const btn = document.getElementById('reset-btn');
+  if(!pw){ err.textContent='Please enter a new password.'; err.classList.add('show'); return; }
+  if(pw !== confirm){ err.textContent='Passwords do not match.'; err.classList.add('show'); return; }
+  if(pw.length < 8){ err.textContent='Password must be at least 8 characters.'; err.classList.add('show'); return; }
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+  setTimeout(() => {
+    const r = AUTH.resetPassword(token, pw);
+    if(r.ok){
+      document.getElementById('reset-form').style.display = 'none';
+      document.getElementById('success-view').style.display = 'block';
+      setTimeout(() => window.location.replace('login.html'), 2000);
+    } else {
+      btn.textContent = 'Set new password →';
+      btn.disabled = false;
+      err.textContent = r.error;
+      err.classList.add('show');
+    }
+  }, 600);
+}
+</script>
+</body>
+</html>

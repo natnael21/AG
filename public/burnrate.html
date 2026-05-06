@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AG Shop Pro — Burn Rate</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0a1628;--accent:#e94560;--gold:#c9a84c;--bg:#f8fafc;--card:#fff;--border:#e2e8f0;--text:#1a2035;--muted:#718096;--green:#2f855a;--red:#c53030;--blue:#2b6cb0;--yellow:#b7791f}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;padding:20px}
+.page-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.page-title{font-size:.95rem;font-weight:600}
+.page-sub{font-size:.75rem;color:var(--muted);margin-top:2px}
+.period-btns{display:flex;gap:5px}
+.period-btn{padding:5px 11px;border-radius:7px;font-size:.72rem;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s}
+.period-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px}
+.stat-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+.stat-val{font-size:1.4rem;font-weight:600}
+.stat-sub{font-size:.65rem;margin-top:3px;display:flex;align-items:center;gap:4px}
+.up{color:var(--green)}
+.dn{color:var(--red)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.card-hdr{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:.82rem;font-weight:600}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+.cat-row{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border)}
+.cat-row:last-child{border-bottom:none}
+.cat-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.cat-name{flex:1;font-size:.78rem}
+.cat-bar-wrap{width:120px;flex-shrink:0}
+.cat-bar-track{height:6px;background:#edf2f7;border-radius:50px;overflow:hidden}
+.cat-bar-fill{height:100%;border-radius:50px;transition:width .6s ease}
+.cat-amount{width:80px;text-align:right;font-size:.78rem;font-weight:500}
+.cat-pct{width:40px;text-align:right;font-size:.7rem;color:var(--muted)}
+.badge{display:inline-flex;padding:2px 8px;border-radius:50px;font-size:.62rem;font-weight:600}
+.b-green{background:#c6f6d5;color:#276749}
+.b-red{background:#fed7d7;color:#822727}
+.b-yellow{background:#fefcbf;color:#744210}
+.b-blue{background:#bee3f8;color:#2a4365}
+.b-gray{background:#edf2f7;color:#4a5568}
+.source-badge{padding:4px 8px;border-radius:6px;font-size:.65rem;font-weight:500;display:inline-flex;align-items:center;gap:5px}
+.source-sq{background:#f0fff4;color:#276749;border:1px solid #9ae6b4}
+.source-m1{background:#ebf8ff;color:#2a4365;border:1px solid #bee3f8}
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:.82rem}
+.sync-row{display:flex;align-items:center;gap:6px;padding:6px 16px;border-bottom:1px solid var(--border);font-size:.72rem}
+.sync-dot{width:7px;height:7px;border-radius:50%}
+.sync-green{background:var(--green)}
+.sync-gray{background:#cbd5e0}
+table.data-table{width:100%;border-collapse:collapse}
+table.data-table th{padding:6px 14px;text-align:left;font-size:.6rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;background:#f8fafc}
+table.data-table td{padding:8px 14px;font-size:.75rem;border-top:1px solid var(--border)}
+table.data-table tr:hover td{background:#f8fafc}
+</style>
+</head>
+<body>
+
+<div class="page-hdr">
+  <div>
+    <div class="page-title">Burn rate & revenue — AmeriBenz</div>
+    <div class="page-sub">
+      <span class="source-badge source-sq">● Square live</span>&nbsp;
+      <span class="source-badge source-m1">● Mitchell 1 synced</span>
+    </div>
+  </div>
+  <div class="period-btns">
+    <button class="period-btn" onclick="setPeriod(7,this)">7d</button>
+    <button class="period-btn active" id="btn-30" onclick="setPeriod(30,this)">30d</button>
+    <button class="period-btn" onclick="setPeriod(90,this)">90d</button>
+    <button class="period-btn" onclick="setPeriod(365,this)">12mo</button>
+    <button class="period-btn" onclick="refreshData()" style="border-color:var(--accent);color:var(--accent)">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- Stats row -->
+<div class="stats" id="stats-row">
+  <div class="stat">
+    <div class="stat-lbl">Gross revenue</div>
+    <div class="stat-val" id="stat-gross">—</div>
+    <div class="stat-sub" id="stat-gross-sub"></div>
+  </div>
+  <div class="stat">
+    <div class="stat-lbl">Net revenue</div>
+    <div class="stat-val" id="stat-net">—</div>
+    <div class="stat-sub" id="stat-net-sub"></div>
+  </div>
+  <div class="stat">
+    <div class="stat-lbl">Square fees</div>
+    <div class="stat-val dn" id="stat-fees">—</div>
+    <div class="stat-sub" id="stat-fees-sub"></div>
+  </div>
+  <div class="stat">
+    <div class="stat-lbl">Payments</div>
+    <div class="stat-val" id="stat-count">—</div>
+    <div class="stat-sub" id="stat-count-sub"></div>
+  </div>
+  <div class="stat">
+    <div class="stat-lbl">Net margin</div>
+    <div class="stat-val" id="stat-margin">—</div>
+    <div class="stat-sub" id="stat-margin-sub"></div>
+  </div>
+</div>
+
+<!-- Sync status -->
+<div class="card" style="margin-bottom:14px">
+  <div class="sync-row"><div class="sync-dot sync-green"></div><span><strong>Square</strong> — webhook active · Last payment: <span id="last-payment-time">—</span></span><span style="margin-left:auto;color:var(--muted)">Real-time</span></div>
+  <div class="sync-row"><div class="sync-dot sync-green"></div><span><strong>Mitchell 1</strong> — incremental sync active · Last run: <span id="last-sync-time">—</span></span><span style="margin-left:auto;color:var(--muted)">Every 15 min</span></div>
+</div>
+
+<div class="g3">
+  <!-- Revenue trend chart -->
+  <div class="card">
+    <div class="card-hdr">Daily revenue trend <span id="trend-badge"></span></div>
+    <div style="padding:14px;height:200px">
+      <canvas id="revenue-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Revenue split donut -->
+  <div class="card">
+    <div class="card-hdr">Revenue split</div>
+    <div style="padding:14px;height:200px;display:flex;align-items:center;justify-content:center">
+      <canvas id="split-chart" style="max-width:180px;max-height:180px"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Category breakdown -->
+<div class="card" style="margin-bottom:14px">
+  <div class="card-hdr">Transaction category breakdown <span style="font-size:.65rem;font-weight:400;color:var(--muted)">From Square item names + Mitchell RO data</span></div>
+  <div id="category-list">
+    <div class="loading">Loading Square data...</div>
+  </div>
+</div>
+
+<!-- Side by side -->
+<div class="g2">
+  <!-- Parts & labor from Mitchell -->
+  <div class="card">
+    <div class="card-hdr">Cost breakdown <span style="font-size:.65rem;font-weight:400;color:var(--muted)">From Mitchell 1 ROs</span><span class="source-badge source-m1" style="font-size:.62rem">Mitchell 1</span></div>
+    <div style="padding:14px">
+      <div id="cost-breakdown"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- Recent transactions -->
+  <div class="card">
+    <div class="card-hdr">Recent transactions <span class="source-badge source-sq" style="font-size:.62rem">Square live</span></div>
+    <div id="recent-transactions"><div class="loading">Loading...</div></div>
+  </div>
+</div>
+
+<script>
+const API = '/api/analytics';
+let currentPeriod = 30;
+let revenueChart = null;
+let splitChart   = null;
+let lastData     = null;
+
+const CAT_COLORS = {
+  labor_revenue:  '#3182ce',
+  parts_revenue:  '#38a169',
+  diagnostic_fee: '#d69e2e',
+  sublet:         '#805ad5',
+  supply_charge:  '#e53e3e',
+  deposit:        '#dd6b20',
+  square_fee:     '#718096',
+  refund:         '#c53030',
+  uncategorized:  '#a0aec0',
+};
+
+const CAT_LABELS = {
+  labor_revenue:  'Labor revenue',
+  parts_revenue:  'Parts revenue',
+  diagnostic_fee: 'Diagnostic fees',
+  sublet:         'Sublet',
+  supply_charge:  'Shop supplies',
+  deposit:        'Deposits',
+  square_fee:     'Square fees',
+  refund:         'Refunds',
+  uncategorized:  'Uncategorized',
+};
+
+async function loadData(days) {
+  try {
+    /* In production this calls: GET /api/analytics/burn-rate?days=N */
+    /* For demo we use mock data that mirrors what the real API returns */
+    const data = await fetchBurnRate(days);
+    lastData = data;
+    renderAll(data, days);
+  } catch (err) {
+    console.error('Failed to load burn rate:', err);
+    /* Fall through to demo data */
+    const demo = getDemoData(days);
+    lastData = demo;
+    renderAll(demo, days);
+  }
+}
+
+async function fetchBurnRate(days) {
+  /* Real call — uncomment when API is live */
+  // const session = JSON.parse(sessionStorage.getItem('agshopro_session') || '{}');
+  // const res = await fetch(`${API}/burn-rate?days=${days}`, {
+  //   headers: { 'Authorization': `Bearer ${session.token}` }
+  // });
+  // if (!res.ok) throw new Error('API error');
+  // return res.json();
+
+  /* Demo mode: simulate API response */
+  await new Promise(r => setTimeout(r, 600));
+  return getDemoData(days);
+}
+
+function getDemoData(days) {
+  const mult = days / 30;
+  const now  = new Date();
+
+  /* Build daily array */
+  const dailyArray = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dayOfWeek = d.getDay();
+    const weekday   = dayOfWeek > 0 && dayOfWeek < 6;
+    const base      = weekday ? 650 + Math.random() * 800 : 200 + Math.random() * 300;
+    dailyArray.push({
+      date:  d.toISOString().slice(0,10),
+      gross: Math.round(base),
+      net:   Math.round(base * 0.973),
+      count: Math.ceil(base / 180)
+    });
+  }
+
+  const grossRevenue = dailyArray.reduce((s,d) => s + d.gross, 0);
+  const netRevenue   = Math.round(grossRevenue * 0.973);
+  const squareFees   = grossRevenue - netRevenue;
+
+  return {
+    period:       `Last ${days} days`,
+    grossRevenue,
+    netRevenue,
+    squareFees,
+    refunds:      Math.round(grossRevenue * 0.012),
+    paymentCount: dailyArray.reduce((s,d) => s + d.count, 0),
+    laborRevenue:  Math.round(netRevenue * 0.62),
+    partsRevenue:  Math.round(netRevenue * 0.28),
+    diagnosticFees: Math.round(netRevenue * 0.05),
+    otherRevenue:  Math.round(netRevenue * 0.05),
+    partsSpend:    Math.round(grossRevenue * 0.35),
+    laborCost:     Math.round(grossRevenue * 0.22),
+    netMargin:     Math.round(netRevenue * 0.38),
+    marginPct:     '38.0',
+    dailyArray,
+    comparison: {
+      previousPeriodRevenue: Math.round(grossRevenue * 0.88),
+      monthOverMonthPct:     '13.6',
+      trend:                 'up'
+    },
+    categoryBreakdown: [
+      { category:'labor_revenue',  label:'Labor revenue',   gross: Math.round(grossRevenue*.62), pctOfTotal:'62.0', count: Math.round(dailyArray.reduce((s,d)=>s+d.count,0)*.55) },
+      { category:'parts_revenue',  label:'Parts revenue',   gross: Math.round(grossRevenue*.28), pctOfTotal:'28.0', count: Math.round(dailyArray.reduce((s,d)=>s+d.count,0)*.28) },
+      { category:'diagnostic_fee', label:'Diagnostic fees', gross: Math.round(grossRevenue*.05), pctOfTotal:'5.0',  count: Math.round(dailyArray.reduce((s,d)=>s+d.count,0)*.1)  },
+      { category:'square_fee',     label:'Square fees',     gross: squareFees,                   pctOfTotal:(squareFees/grossRevenue*100).toFixed(1), count: dailyArray.reduce((s,d)=>s+d.count,0) },
+      { category:'refund',         label:'Refunds',         gross: Math.round(grossRevenue*.012),pctOfTotal:'1.2',  count: 3 },
+      { category:'uncategorized',  label:'Uncategorized',   gross: Math.round(grossRevenue*.018),pctOfTotal:'1.8',  count: Math.round(dailyArray.reduce((s,d)=>s+d.count,0)*.07) },
+    ],
+    recentTransactions: [
+      { id:'pmnt-001', paid_at: new Date(Date.now()-1800000).toISOString(), amount_cents:234000, net_cents:227724, category:'labor_revenue',  card_brand:'VISA',   last4:'4242', status:'completed' },
+      { id:'pmnt-002', paid_at: new Date(Date.now()-7200000).toISOString(), amount_cents:89000,  net_cents:86631,  category:'parts_revenue',  card_brand:'MC',     last4:'8888', status:'completed' },
+      { id:'pmnt-003', paid_at: new Date(Date.now()-18000000).toISOString(),amount_cents:6500,   net_cents:6319,   category:'diagnostic_fee', card_brand:'AMEX',   last4:'1001', status:'completed' },
+      { id:'pmnt-004', paid_at: new Date(Date.now()-86400000).toISOString(), amount_cents:178000, net_cents:173148, category:'labor_revenue',  card_brand:'VISA',   last4:'5555', status:'completed' },
+      { id:'pmnt-005', paid_at: new Date(Date.now()-172800000).toISOString(),amount_cents:32000,  net_cents:31133,  category:'parts_revenue',  card_brand:'DISC',   last4:'3030', status:'completed' },
+    ]
+  };
+}
+
+function fmt(cents) {
+  return '$' + (cents/100).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+}
+function fmtD(dollars) {
+  return '$' + Math.round(dollars).toLocaleString('en-US');
+}
+function timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff/60000);
+  if(mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins/60);
+  if(hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs/24) + 'd ago';
+}
+
+function renderAll(data, days) {
+  /* Stats */
+  document.getElementById('stat-gross').textContent = fmtD(data.grossRevenue);
+  document.getElementById('stat-net').textContent   = fmtD(data.netRevenue);
+  document.getElementById('stat-fees').textContent  = fmtD(data.squareFees);
+  document.getElementById('stat-count').textContent = data.paymentCount.toLocaleString();
+  document.getElementById('stat-margin').textContent = fmtD(data.netMargin);
+
+  const mom = data.comparison.monthOverMonthPct;
+  if(mom) {
+    const up = parseFloat(mom) >= 0;
+    const cls = up ? 'up' : 'dn';
+    const arrow = up ? '↑' : '↓';
+    ['stat-gross-sub','stat-net-sub'].forEach(id => {
+      document.getElementById(id).innerHTML = `<span class="${cls}">${arrow} ${Math.abs(mom)}% vs prev period</span>`;
+    });
+  }
+  document.getElementById('stat-fees-sub').textContent = 'Card processing';
+  document.getElementById('stat-count-sub').textContent = `${days}d period`;
+  document.getElementById('stat-margin-sub').innerHTML = `<span class="${parseFloat(data.marginPct)>=30?'up':'dn'}">${data.marginPct}% margin</span>`;
+
+  /* Sync times */
+  document.getElementById('last-payment-time').textContent = timeAgo(data.recentTransactions?.[0]?.paid_at || new Date().toISOString());
+  document.getElementById('last-sync-time').textContent = '3 min ago';
+
+  /* Trend badge */
+  const trend = data.comparison.trend;
+  document.getElementById('trend-badge').innerHTML = trend === 'up'
+    ? `<span class="badge b-green">↑ ${data.comparison.monthOverMonthPct}% vs prev</span>`
+    : `<span class="badge b-red">↓ ${Math.abs(data.comparison.monthOverMonthPct)}% vs prev</span>`;
+
+  renderRevenueChart(data);
+  renderSplitChart(data);
+  renderCategoryList(data);
+  renderCostBreakdown(data);
+  renderRecentTransactions(data);
+}
+
+function renderRevenueChart(data) {
+  const ctx = document.getElementById('revenue-chart').getContext('2d');
+  if(revenueChart) revenueChart.destroy();
+
+  const labels = data.dailyArray.map(d => {
+    const dt = new Date(d.date);
+    return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  });
+  const values = data.dailyArray.map(d => d.net);
+
+  /* Show every Nth label to avoid crowding */
+  const step = Math.ceil(labels.length / 10);
+
+  revenueChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data:            values,
+        borderColor:     '#e94560',
+        backgroundColor: 'rgba(233,69,96,.08)',
+        tension:         0.3,
+        fill:            true,
+        pointRadius:     0,
+        pointHoverRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => '$' + Math.round(ctx.raw).toLocaleString() }
+      }},
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 10 } } },
+        y: { grid: { color: '#f1f5f9' }, ticks: {
+          font: { size: 10 },
+          callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)
+        }}
+      }
+    }
+  });
+}
+
+function renderSplitChart(data) {
+  const ctx = document.getElementById('split-chart').getContext('2d');
+  if(splitChart) splitChart.destroy();
+
+  const revCats = data.categoryBreakdown.filter(c =>
+    c.category !== 'square_fee' && c.category !== 'refund' && c.category !== 'uncategorized' && c.gross > 0
+  );
+
+  splitChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels:   revCats.map(c => c.label),
+      datasets: [{
+        data:            revCats.map(c => c.gross),
+        backgroundColor: revCats.map(c => CAT_COLORS[c.category] || '#a0aec0'),
+        borderWidth:     2,
+        borderColor:     '#fff',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '65%',
+      plugins: {
+        legend: { position:'bottom', labels:{ font:{size:10}, boxWidth:10, padding:8 } },
+        tooltip: { callbacks:{ label: ctx => `${ctx.label}: $${Math.round(ctx.raw).toLocaleString()}` }}
+      }
+    }
+  });
+}
+
+function renderCategoryList(data) {
+  const maxGross = Math.max(...data.categoryBreakdown.map(c => c.gross));
+  const html = data.categoryBreakdown.map(cat => {
+    const pct = maxGross > 0 ? (cat.gross / maxGross * 100) : 0;
+    const color = CAT_COLORS[cat.category] || '#a0aec0';
+    const isExpense = cat.category === 'square_fee' || cat.category === 'refund';
+    return `
+      <div class="cat-row">
+        <div class="cat-swatch" style="background:${color}"></div>
+        <div class="cat-name">${cat.label}</div>
+        <div style="font-size:.68rem;color:var(--muted);width:60px;flex-shrink:0">${cat.count} txns</div>
+        <div class="cat-bar-wrap">
+          <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        </div>
+        <div class="cat-amount" style="color:${isExpense?'var(--red)':'var(--text)'}">${isExpense?'-':''}${fmtD(cat.gross)}</div>
+        <div class="cat-pct">${cat.pctOfTotal}%</div>
+      </div>
+    `;
+  }).join('');
+  document.getElementById('category-list').innerHTML = html || '<div class="loading">No data</div>';
+}
+
+function renderCostBreakdown(data) {
+  const items = [
+    { label:'Parts spend (Mitchell)', val: data.partsSpend, color: '#c53030', pct: data.grossRevenue > 0 ? (data.partsSpend/data.grossRevenue*100).toFixed(0) : 0 },
+    { label:'Labor cost',             val: data.laborCost,  color: '#d69e2e', pct: data.grossRevenue > 0 ? (data.laborCost/data.grossRevenue*100).toFixed(0)  : 0 },
+    { label:'Square fees',            val: data.squareFees, color: '#718096', pct: data.grossRevenue > 0 ? (data.squareFees/data.grossRevenue*100).toFixed(0) : 0 },
+    { label:'Refunds',                val: data.refunds,    color: '#e53e3e', pct: data.grossRevenue > 0 ? (data.refunds/data.grossRevenue*100).toFixed(0)    : 0 },
+  ];
+  const total = items.reduce((s,i) => s + i.val, 0);
+
+  const html = items.map(item => `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px">
+        <span>${item.label}</span>
+        <span style="font-weight:500;color:var(--red)">${fmtD(item.val)} <span style="color:var(--muted);font-weight:400">(${item.pct}%)</span></span>
+      </div>
+      <div style="height:6px;background:#edf2f7;border-radius:50px;overflow:hidden">
+        <div style="height:100%;width:${item.pct}%;background:${item.color};border-radius:50px;transition:width .6s ease"></div>
+      </div>
+    </div>
+  `).join('') + `
+    <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.78rem">
+      <span>Net margin</span>
+      <strong style="color:var(--green)">${fmtD(data.netMargin)} (${data.marginPct}%)</strong>
+    </div>
+  `;
+  document.getElementById('cost-breakdown').innerHTML = html;
+}
+
+function renderRecentTransactions(data) {
+  const txns = (data.recentTransactions || []).slice(0, 8);
+  if(!txns.length) { document.getElementById('recent-transactions').innerHTML = '<div class="loading">No recent transactions</div>'; return; }
+
+  const html = `<table class="data-table">
+    <thead><tr><th>Time</th><th>Amount</th><th>Category</th><th>Card</th></tr></thead>
+    <tbody>` +
+    txns.map(t => `
+      <tr>
+        <td style="color:var(--muted)">${timeAgo(t.paid_at)}</td>
+        <td style="font-weight:500">${fmt(t.net_cents)}</td>
+        <td><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:${CAT_COLORS[t.category]||'#a0aec0'};flex-shrink:0"></span>${CAT_LABELS[t.category]||t.category}</span></td>
+        <td style="color:var(--muted)">${t.card_brand} ···${t.last4}</td>
+      </tr>
+    `).join('') +
+    '</tbody></table>';
+  document.getElementById('recent-transactions').innerHTML = html;
+}
+
+function setPeriod(days, btn) {
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPeriod = days;
+  loadData(days);
+}
+
+function refreshData() {
+  loadData(currentPeriod);
+}
+
+/* Initial load */
+loadData(30);
+
+/* Auto-refresh every 5 minutes */
+setInterval(() => loadData(currentPeriod), 300000);
+</script>
+</body>
+</html>

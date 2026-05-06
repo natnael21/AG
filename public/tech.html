@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>AG Shop Pro — Technician</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--navy:#0a1628;--navy2:#111f35;--accent:#e94560;--gold:#c9a84c;--bg:#f0f2f7;--card:#fff;--border:#e2e8f0;--text:#1a2035;--muted:#718096;--green:#2f855a;--yellow:#b7791f;--red:#c53030;--blue:#2b6cb0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--navy);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.brand{font-size:.9rem;font-weight:500;color:#fff}
+.brand span{color:var(--accent)}
+.tech-info{text-align:right}
+.tech-name{font-size:.78rem;font-weight:500;color:#fff}
+.tech-status{font-size:.65rem;color:rgba(255,255,255,.4)}
+.clock-status{font-size:.78rem;font-weight:600;color:#68d391}
+.content{flex:1;padding:12px;padding-bottom:80px}
+.clock-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;display:flex;align-items:center;gap:14px}
+.clock-time{text-align:center;flex-shrink:0}
+.clock-big{font-size:1.8rem;font-weight:600;color:var(--text)}
+.clock-date{font-size:.68rem;color:var(--muted)}
+.clock-btn{flex:1;padding:14px;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn-clk-in{background:var(--green);color:#fff}
+.btn-clk-out{background:var(--red);color:#fff}
+.btn-clk-in:active,.btn-clk-out:active{transform:scale(.97)}
+.section-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:600;margin-bottom:8px;margin-top:6px}
+.ro-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px}
+.ro-card-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ro-number{font-size:.92rem;font-weight:600}
+.ro-customer{font-size:.72rem;color:var(--muted)}
+.ro-vehicle{font-size:.72rem;color:var(--muted);margin-top:1px}
+.ro-complaint{padding:10px 14px;font-size:.78rem;color:var(--muted);border-bottom:1px solid var(--border);line-height:1.5}
+.status-buttons{padding:10px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;border-bottom:1px solid var(--border)}
+.status-big-btn{padding:12px 6px;border-radius:10px;font-size:.75rem;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .2s;text-align:center}
+.status-big-btn:active{transform:scale(.96)}
+.btn-start{background:#bee3f8;color:#2a4365}
+.btn-pause{background:#fefcbf;color:#744210}
+.btn-done{background:#c6f6d5;color:#276749}
+.parts-section{padding:10px 14px;border-bottom:1px solid var(--border)}
+.parts-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin-bottom:6px}
+.part-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:.75rem;border-bottom:1px solid var(--border)}
+.part-row:last-child{border-bottom:none}
+.part-name{color:var(--text)}
+.note-section{padding:10px 14px}
+.note-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:.82rem;font-family:'DM Sans',sans-serif;background:var(--bg);resize:none;min-height:60px;color:var(--text)}
+.note-input:focus{outline:none;border-color:var(--accent)}
+.note-footer{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.note-hint{font-size:.65rem;color:var(--muted)}
+.note-btn{padding:7px 14px;border-radius:8px;font-size:.75rem;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:var(--accent);color:#fff}
+.badge{display:inline-flex;padding:2px 8px;border-radius:50px;font-size:.65rem;font-weight:600}
+.badge-green{background:#c6f6d5;color:#276749}
+.badge-yellow{background:#fefcbf;color:#744210}
+.badge-blue{background:#bee3f8;color:#2a4365}
+.badge-red{background:#fed7d7;color:#822727}
+.badge-gray{background:#edf2f7;color:#4a5568}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:1px solid var(--border);padding:8px 16px 16px;display:flex;justify-content:space-around}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.62rem;color:var(--muted);cursor:pointer;padding:6px 12px;border-radius:8px;transition:all .15s;border:none;background:none;font-family:'DM Sans',sans-serif}
+.nav-btn.active,.nav-btn:hover{color:var(--accent)}
+.nav-icon{font-size:1.1rem}
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-10px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:.78rem;z-index:9999;opacity:0;transition:all .3s;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.page{display:none}
+.page.active{display:block}
+.history-row{padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.history-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.82rem;flex-shrink:0}
+.history-info{flex:1}
+.history-title{font-size:.78rem;font-weight:600}
+.history-sub{font-size:.68rem;color:var(--muted)}
+.profile-section{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px}
+.profile-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin-bottom:10px}
+.profile-row{display:flex;justify-content:space-between;font-size:.78rem;padding:6px 0;border-bottom:1px solid var(--border)}
+.profile-row:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+<script src="auth.js"></script>
+<script>
+(function(){
+  var s = AUTH.requireAuth();
+  if(!s) return;
+  // Update sidebar user info
+  document.addEventListener('DOMContentLoaded', function(){
+    var n = document.getElementById('sidebar-username');
+    var sh = document.getElementById('sidebar-shopname');
+    if(n) n.textContent = s.name || 'User';
+    if(sh) sh.textContent = s.activeWorkspaceName || s.shop || '';
+  });
+})();
+function logout(){ AUTH.logout(); }
+</script>
+
+
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <div>
+    <div class="brand">AG <span>Shop Pro</span></div>
+    <div style="font-size:.62rem;color:rgba(255,255,255,.35)">Technician portal</div>
+  </div>
+  <div class="tech-info">
+    <div class="tech-name">Alex Torres</div>
+    <div id="clock-status" class="clock-status">● Clocked in</div>
+    <div class="tech-status" id="live-time">8:00 AM</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- MY ROs PAGE -->
+  <div class="page active" id="page-ros">
+    <div class="clock-card">
+      <div class="clock-time">
+        <div class="clock-big" id="clock-display">—</div>
+        <div class="clock-date">Apr 27, 2026</div>
+      </div>
+      <button class="clock-btn btn-clk-out" id="main-clock-btn" onclick="toggleClock()">Clock Out</button>
+    </div>
+
+    <div class="section-label">My assigned ROs today</div>
+
+    <!-- RO 1 - ACTIVE -->
+    <div class="ro-card">
+      <div class="ro-card-header">
+        <div>
+          <div class="ro-number">RO-1041</div>
+          <div class="ro-customer">Marcus Johnson</div>
+          <div class="ro-vehicle">2019 BMW 3 Series · Front end collision</div>
+        </div>
+        <span class="badge badge-blue">Active</span>
+      </div>
+      <div class="ro-complaint">Front bumper replacement + hood realignment + headlight assembly. Radiator support additional approved by customer.</div>
+      <div class="status-buttons">
+        <button class="status-big-btn btn-start" onclick="logStatus('Started work on RO-1041')">▶ Start</button>
+        <button class="status-big-btn btn-pause" onclick="logStatus('Paused RO-1041')">⏸ Pause</button>
+        <button class="status-big-btn btn-done" onclick="logStatus('Labor line completed on RO-1041')">✓ Done</button>
+      </div>
+      <div class="parts-section">
+        <div class="parts-label">Parts status</div>
+        <div class="part-row"><span class="part-name">Front bumper cover · 51117370763</span><span class="badge badge-green">Received</span></div>
+        <div class="part-row"><span class="part-name">Headlight assembly · 63117388990</span><span class="badge badge-yellow">Ordered</span></div>
+        <div class="part-row"><span class="part-name">Bumper mounting bracket</span><span class="badge badge-green">Received</span></div>
+      </div>
+      <div class="note-section">
+        <textarea class="note-input" id="note-1041" placeholder="Tech note (auto-timestamped on save)..."></textarea>
+        <div class="note-footer">
+          <span class="note-hint">Enter to save · timestamp auto-added</span>
+          <button class="note-btn" onclick="saveNote('note-1041','RO-1041')">Save note</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RO 2 - PENDING -->
+    <div class="ro-card">
+      <div class="ro-card-header">
+        <div>
+          <div class="ro-number">RO-1039</div>
+          <div class="ro-customer">David Chen</div>
+          <div class="ro-vehicle">2018 Honda Accord · Full service</div>
+        </div>
+        <span class="badge badge-gray">Pending</span>
+      </div>
+      <div class="ro-complaint">Full service oil change (synthetic) + brake inspection + cabin air filter replacement.</div>
+      <div class="status-buttons">
+        <button class="status-big-btn btn-start" style="grid-column:1/-1" onclick="logStatus('Started RO-1039')">▶ Start work on this RO</button>
+      </div>
+      <div class="parts-section">
+        <div class="parts-label">Parts status</div>
+        <div class="part-row"><span class="part-name">Oil filter · FIL-5030A</span><span class="badge badge-green">In stock</span></div>
+        <div class="part-row"><span class="part-name">Cabin air filter · AIR-CF10</span><span class="badge badge-green">In stock</span></div>
+        <div class="part-row"><span class="part-name">Synthetic 5W-30 (5 qts)</span><span class="badge badge-green">In stock</span></div>
+      </div>
+      <div class="note-section">
+        <textarea class="note-input" id="note-1039" placeholder="Tech note..."></textarea>
+        <div class="note-footer">
+          <span class="note-hint">Enter to save</span>
+          <button class="note-btn" onclick="saveNote('note-1039','RO-1039')">Save note</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIME PAGE -->
+  <div class="page" id="page-time">
+    <div class="section-label">Today's time entries</div>
+    <div class="profile-section">
+      <div class="profile-row"><span style="color:var(--muted)">Clock in</span><span style="font-weight:600">7:58 AM</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Clock out</span><span>—</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Hours worked</span><span style="font-weight:600;color:var(--green)">2.4h (ongoing)</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Active on</span><span>RO-1041</span></div>
+    </div>
+    <div class="section-label">This week</div>
+    <div class="profile-section">
+      <div class="profile-row"><span style="color:var(--muted)">Monday</span><span>8.2h · RO-1035, RO-1036</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Tuesday</span><span>7.8h · RO-1038, RO-1039</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Wednesday</span><span>8.0h · RO-1040</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Thursday</span><span style="color:var(--green);font-weight:600">2.4h (today, ongoing)</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Week total</span><span style="font-weight:600">26.4h</span></div>
+    </div>
+    <div class="section-label">Clock in / out</div>
+    <div class="clock-card">
+      <div class="clock-time">
+        <div class="clock-big" id="clock-display2">—</div>
+        <div class="clock-date">Apr 27</div>
+      </div>
+      <button class="clock-btn btn-clk-out" id="time-clock-btn" onclick="toggleClock()">Clock Out</button>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-history">
+    <div class="section-label">My completed ROs this week</div>
+    <div class="profile-section">
+      <div class="history-row"><div class="history-icon" style="background:#c6f6d5;color:#276749">✓</div><div class="history-info"><div class="history-title">RO-1036 · Patricia Moore</div><div class="history-sub">2016 Nissan Altima · Transmission flush · Completed Apr 24</div></div><span style="font-size:.75rem;font-weight:600;color:var(--green)">7.5h</span></div>
+      <div class="history-row"><div class="history-icon" style="background:#c6f6d5;color:#276749">✓</div><div class="history-info"><div class="history-title">RO-1035 · Brian Taylor</div><div class="history-sub">2018 Audi A4 · Full service · Completed Apr 23</div></div><span style="font-size:.75rem;font-weight:600;color:var(--green)">6.2h</span></div>
+      <div class="history-row"><div class="history-icon" style="background:#c6f6d5;color:#276749">✓</div><div class="history-info"><div class="history-title">RO-1034 · Jennifer Wu</div><div class="history-sub">2020 Tesla Model 3 · Brake job · Completed Apr 22</div></div><span style="font-size:.75rem;font-weight:600;color:var(--green)">4.0h</span></div>
+    </div>
+    <div class="section-label">Performance this month</div>
+    <div class="profile-section">
+      <div class="profile-row"><span style="color:var(--muted)">ROs completed</span><span style="font-weight:600">18</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Total hours</span><span style="font-weight:600">72.4h</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Efficiency</span><span style="font-weight:600;color:var(--green)">94%</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Revenue generated</span><span style="font-weight:600">$8,640</span></div>
+    </div>
+  </div>
+
+  <!-- PROFILE PAGE -->
+  <div class="page" id="page-profile">
+    <div style="text-align:center;padding:20px 0">
+      <div style="width:64px;height:64px;border-radius:50%;background:rgba(233,69,96,.15);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:600;color:var(--accent);margin:0 auto 10px">AT</div>
+      <div style="font-size:1.1rem;font-weight:600">Alex Torres</div>
+      <div style="font-size:.75rem;color:var(--muted)">Technician · Capitol Auto Body</div>
+    </div>
+    <div class="profile-section">
+      <div class="profile-label">My info</div>
+      <div class="profile-row"><span style="color:var(--muted)">Shop</span><span>Capitol Auto Body</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Email</span><span>alex.torres@capitolauto.com</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Role</span><span>Senior technician</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Employee since</span><span>March 2023</span></div>
+    </div>
+    <div class="profile-section">
+      <div class="profile-label">Settings</div>
+      <div class="profile-row"><span>Notification sound</span><span style="color:var(--green)">On</span></div>
+      <div class="profile-row"><span>Auto-timestamp notes</span><span style="color:var(--green)">On</span></div>
+    </div>
+    <button style="width:100%;padding:13px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px" onclick="window.location.href='login.html'">Sign out</button>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" id="nav-ros" onclick="showPage('ros',this)"><span class="nav-icon">🔧</span>My ROs</button>
+  <button class="nav-btn" id="nav-time" onclick="showPage('time',this)"><span class="nav-icon">⏱</span>Time</button>
+  <button class="nav-btn" id="nav-history" onclick="showPage('history',this)"><span class="nav-icon">📋</span>History</button>
+  <button class="nav-btn" id="nav-profile" onclick="showPage('profile',this)"><span class="nav-icon">👤</span>Profile</button>
+</div>
+
+<script>
+let clockedIn = true;
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function toggleClock() {
+  clockedIn = !clockedIn;
+  const btns = [document.getElementById('main-clock-btn'), document.getElementById('time-clock-btn')];
+  const statusEl = document.getElementById('clock-status');
+  btns.forEach(btn => {
+    if (btn) {
+      btn.className = 'clock-btn ' + (clockedIn ? 'btn-clk-out' : 'btn-clk-in');
+      btn.textContent = clockedIn ? 'Clock Out' : 'Clock In';
+    }
+  });
+  statusEl.textContent = clockedIn ? '● Clocked in' : '○ Clocked out';
+  statusEl.style.color = clockedIn ? '#68d391' : 'rgba(255,255,255,.4)';
+  toast(clockedIn ? 'Clocked in — ' + now() : 'Clocked out — hours saved: ' + now());
+}
+
+function logStatus(msg) {
+  toast('✓ ' + msg + ' · ' + now());
+}
+
+function saveNote(id, ro) {
+  const inp = document.getElementById(id);
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  toast('Note saved on ' + ro + ' · ' + now());
+}
+
+function now() {
+  return new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+function updateClock() {
+  const t = now();
+  const els = [document.getElementById('clock-display'), document.getElementById('clock-display2'), document.getElementById('live-time')];
+  els.forEach(el => { if (el) el.textContent = t; });
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+updateClock();
+setInterval(updateClock, 30000);
+</script>
+</body>
+</html>

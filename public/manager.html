@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AG Shop Pro — Manager Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0a1628;--navy2:#111f35;--navy3:#1a2f4a;--accent:#e94560;--gold:#c9a84c;--bg:#f0f2f7;--card:#ffffff;--border:#e2e8f0;--text:#1a2035;--muted:#718096;--green:#2f855a;--yellow:#b7791f;--red:#c53030;--blue:#2b6cb0;--purple:#6b46c1}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar-top{padding:18px 14px 12px;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand{display:flex;align-items:center;gap:8px}
+.brand-icon{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff}
+.brand-name{font-family:'DM Serif Display',serif;font-size:.95rem;color:#fff}
+.brand-name span{color:var(--accent)}
+.brand-role{font-size:.62rem;color:rgba(255,255,255,.3);margin-left:36px;margin-top:1px}
+.shop-select{margin:10px 8px;width:calc(100% - 16px);padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.8);font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif}
+.shop-select option{background:var(--navy)}
+.nav-section{padding:10px 12px 3px;font-size:.58rem;color:rgba(255,255,255,.25);letter-spacing:.15em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:1px 6px;border-radius:7px;cursor:pointer;color:rgba(255,255,255,.5);font-size:.78rem;transition:all .15s}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9)}
+.nav-item.active{background:rgba(233,69,96,.15);color:#e94560;font-weight:500}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:.58rem;padding:1px 6px;border-radius:50px;font-weight:600}
+.sidebar-footer{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);font-size:.68rem;color:rgba(255,255,255,.25);display:flex;align-items:center;gap:8px}
+.user-dot{width:24px;height:24px;border-radius:50%;background:rgba(233,69,96,.3);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:600;color:#e94560}
+
+/* MAIN */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-left h1{font-size:.95rem;font-weight:600;color:var(--text)}
+.topbar-left p{font-size:.72rem;color:var(--muted)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.btn{padding:7px 14px;border-radius:8px;font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--border);background:var(--card);color:var(--text);transition:all .15s;font-weight:500}
+.btn:hover{background:var(--bg)}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-accent:hover{background:#c73550}
+.btn-gold{background:var(--gold);color:#0a1628;border-color:var(--gold)}
+.btn-sm{padding:4px 10px;font-size:.7rem}
+.content-area{flex:1;overflow-y:auto;padding:16px 20px}
+
+/* PAGES */
+.page{display:none}
+.page.active{display:block}
+
+/* ALERTS */
+.alert-bar{background:linear-gradient(135deg,#fff5f5,#fed7d7);border:1px solid #fc8181;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:.78rem;color:#822727}
+.alert-bar strong{font-weight:600}
+.alert-btn{margin-left:auto;padding:4px 10px;background:#e53e3e;color:#fff;border:none;border-radius:6px;font-size:.7rem;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+.stat-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:5px}
+.stat-value{font-size:1.6rem;font-weight:600;color:var(--text)}
+.stat-sub{font-size:.68rem;color:var(--muted);margin-top:3px}
+.stat-up{color:var(--green)}
+.stat-down{color:var(--red)}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.card-header{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:.82rem;font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.grid3{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px}
+
+/* TABLES */
+table.data-table{width:100%;border-collapse:collapse}
+table.data-table th{padding:7px 14px;text-align:left;font-size:.62rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;background:#f8fafc}
+table.data-table td{padding:9px 14px;font-size:.78rem;border-top:1px solid var(--border);color:var(--text)}
+table.data-table tr:hover td{background:#f8fafc;cursor:pointer}
+
+/* BADGES */
+.badge{display:inline-flex;padding:2px 8px;border-radius:50px;font-size:.65rem;font-weight:600}
+.badge-green{background:#c6f6d5;color:#276749}
+.badge-yellow{background:#fefcbf;color:#744210}
+.badge-red{background:#fed7d7;color:#822727}
+.badge-blue{background:#bee3f8;color:#2a4365}
+.badge-gray{background:#edf2f7;color:#4a5568}
+.badge-purple{background:#e9d8fd;color:#553c9a}
+.badge-orange{background:#feebc8;color:#7b341e}
+
+/* WORKFLOW */
+.workflow-container{padding:16px;overflow-x:auto}
+.workflow-svg-wrap{min-width:640px}
+.pipeline-node{cursor:pointer}
+.pipeline-node:hover rect{opacity:.85}
+.car-animate{transition:transform 1.2s cubic-bezier(.4,0,.2,1)}
+.road-dashes{stroke-dasharray:10 8;animation:dashMove 1.2s linear infinite}
+@keyframes dashMove{to{stroke-dashoffset:-36}}
+.status-controls{padding:10px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.stage-btn{padding:5px 10px;border-radius:7px;font-size:.72rem;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:'DM Sans',sans-serif;transition:all .15s}
+.stage-btn:hover{background:var(--bg)}
+.stage-btn.current{background:#bee3f8;border-color:#90cdf4;color:#2a4365}
+.stage-btn.blocked-btn{background:#fed7d7;border-color:#fc8181;color:#822727}
+
+/* COMMENTS */
+.comment-feed{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:12px 16px}
+.comment-card{padding:9px 11px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)}
+.comment-meta{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.comment-author{font-size:.75rem;font-weight:600}
+.comment-time{font-size:.65rem;color:var(--muted)}
+.comment-text{font-size:.75rem;line-height:1.5}
+.comment-compose{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center}
+.comment-input{flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif;background:var(--card)}
+.comment-input:focus{outline:none;border-color:var(--accent)}
+
+/* TECH BOARD */
+.tech-card{padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.tech-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:600;flex-shrink:0}
+.tech-name{font-size:.78rem;font-weight:600}
+.tech-sub{font-size:.68rem;color:var(--muted)}
+.tech-card.idle-warning{border-color:#fc8181;background:#fff5f5}
+
+/* BURN RATE */
+.burn-row{margin-bottom:12px}
+.burn-label-row{display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px}
+.burn-track{height:8px;background:#edf2f7;border-radius:50px;overflow:hidden}
+.burn-fill{height:100%;border-radius:50px;transition:width .6s ease}
+
+/* REMINDERS */
+.reminder-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.reminder-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.r-overdue{background:var(--red)}
+.r-soon{background:var(--yellow)}
+.r-ok{background:var(--green)}
+.reminder-title{font-size:.78rem;font-weight:600}
+.reminder-detail{font-size:.68rem;color:var(--muted);margin-top:1px}
+.reminder-time{font-size:.65rem;color:var(--muted);margin-left:auto;flex-shrink:0}
+
+/* CALLS */
+.call-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)}
+.call-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.call-name{font-size:.78rem;font-weight:600}
+.call-detail{font-size:.68rem;color:var(--muted)}
+.call-right{margin-left:auto;text-align:right}
+.call-duration{font-size:.75rem;font-weight:500}
+.call-time{font-size:.65rem;color:var(--muted)}
+
+/* SMS */
+.sms-row{display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--border)}
+.sms-name{font-size:.78rem;font-weight:600;flex:1}
+.sms-detail{font-size:.68rem;color:var(--muted);flex:2}
+.sms-confidence{font-size:.68rem;color:var(--green);flex:1}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:11px 18px;border-radius:10px;font-size:.78rem;z-index:9999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none;max-width:300px}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+<script src="auth.js"></script>
+<script>
+(function(){
+  var s = AUTH.requireAuth();
+  if(!s) return;
+  // Update sidebar user info
+  document.addEventListener('DOMContentLoaded', function(){
+    var n = document.getElementById('sidebar-username');
+    var sh = document.getElementById('sidebar-shopname');
+    if(n) n.textContent = s.name || 'User';
+    if(sh) sh.textContent = s.activeWorkspaceName || s.shop || '';
+  });
+})();
+function logout(){ AUTH.logout(); }
+
+/* Workspace switcher */
+(function initWS(){
+  const s = AUTH.getSession();
+  if(!s) return;
+  const myWS = AUTH.getMyWorkspaces(s);
+  const sel = document.getElementById('ws-switcher');
+  if(!sel) return;
+  sel.innerHTML = myWS.map(w =>
+    `<option value="${w.id}" ${w.id === s.activeWorkspaceId ? 'selected' : ''}>${w.name}</option>`
+  ).join('');
+  // hide switcher if only 1 workspace
+  if(myWS.length <= 1) sel.style.display = 'none';
+})();
+
+function switchWS(wsId){
+  AUTH.switchWorkspace(wsId);
+  const s = AUTH.getSession();
+  const sh = document.getElementById('sidebar-shopname');
+  if(sh) sh.textContent = s.activeWorkspaceName || '';
+  toast('Switched to ' + (s.activeWorkspaceName || wsId));
+}
+</script>
+
+
+<div class="toast" id="toast"></div>
+
+<div class="sidebar">
+  <div class="sidebar-top">
+    <div class="brand">
+      <div class="brand-icon">AG</div>
+      <div>
+        <div class="brand-name">Shop <span>Pro</span></div>
+        <div class="brand-role">Manager portal</div>
+      </div>
+    </div>
+  </div>
+  <select class="shop-select" id="ws-switcher" onchange="switchWS(this.value)">
+    <option>Loading...</option>
+  </select>
+  <div class="nav-section">Main</div>
+  <div class="nav-item active" onclick="showPage('dashboard',this)">▦ Dashboard</div>
+  <div class="nav-item" onclick="showPage('ros',this)">✦ Repair orders</div>
+  <div class="nav-item" onclick="showPage('workflow',this)">⟳ Workflow view</div>
+  <div class="nav-item" onclick="showPage('reminders',this)">🔔 Reminders <span class="nav-badge">3</span></div>
+  <div class="nav-item" onclick="showPage('calls',this)">📞 Call log</div>
+  <div class="nav-section">Finance</div>
+  <div class="nav-item" onclick="showPage('invoices',this)">◆ Invoices</div>
+  <div class="nav-item" onclick="showPage('burnrate',this)">📊 Burn rate</div>
+  <div class="nav-section">Team</div>
+  <div class="nav-item" onclick="showPage('techs',this)">👥 Tech board</div>
+  <div class="nav-item" onclick="showPage('sms',this)">💬 SMS automation</div>
+  <div class="nav-item" onclick="showPage('customers',this)">◎ Customers</div>
+  <div class="sidebar-footer">
+    <div class="user-dot">MG</div>
+    <div style="flex:1;min-width:0"><div style="color:rgba(255,255,255,.6);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="sidebar-username">Maria Gonzalez</div><div id="sidebar-shopname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Capitol Auto Body</div></div>
+    <button onclick="logout()" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:.7rem;flex-shrink:0" title="Sign out">⬡ Out</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1 id="page-title">Dashboard</h1>
+      <p id="page-sub">Monday, April 27, 2026 · Capitol Auto Body</p>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-accent" onclick="showPage('ros',document.querySelectorAll('.nav-item')[1])">+ New RO</button>
+    </div>
+  </div>
+  <div class="content-area">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="alert-bar">⚠️ <strong>Idle alert:</strong> Kevin Lee has been inactive 47 min — no active RO assigned<button class="alert-btn" onclick="toast('RO-1040 assigned to Kevin Lee')">Assign RO →</button></div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Open ROs</div><div class="stat-value">14</div><div class="stat-sub stat-up">↑ 2 today</div></div>
+        <div class="stat-card"><div class="stat-label">April revenue</div><div class="stat-value">$18,420</div><div class="stat-sub stat-up">↑ 12% vs March</div></div>
+        <div class="stat-card"><div class="stat-label">Parts spend</div><div class="stat-value">$6,840</div><div class="stat-sub stat-down">↑ 8% over budget</div></div>
+        <div class="stat-card"><div class="stat-label">Avg RO value</div><div class="stat-value">$1,315</div><div class="stat-sub">14 completed</div></div>
+      </div>
+      <div class="grid3">
+        <div class="card">
+          <div class="card-header">Active repair orders <button class="btn btn-sm" onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])">Workflow view →</button></div>
+          <table class="data-table">
+            <thead><tr><th>RO#</th><th>Customer</th><th>Vehicle</th><th>Tech</th><th>Status</th><th>Total</th></tr></thead>
+            <tbody>
+              <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1041</td><td>Marcus Johnson</td><td>2019 BMW 3</td><td>Alex T.</td><td><span class="badge badge-blue">In progress</span></td><td>$2,340</td></tr>
+              <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1040</td><td>Sarah Kim</td><td>2021 Camry</td><td>James R.</td><td><span class="badge badge-yellow">Estimate</span></td><td>$890</td></tr>
+              <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1038</td><td>Lisa Park</td><td>2020 F-150</td><td>Mike S.</td><td><span class="badge badge-red">Waiting parts</span></td><td>$3,200</td></tr>
+              <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1037</td><td>Tom Williams</td><td>2017 Malibu</td><td>James R.</td><td><span class="badge badge-blue">In progress</span></td><td>$620</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-header">Technician status</div>
+            <div style="padding:8px 10px">
+              <div class="tech-card"><div class="tech-avatar" style="background:#bee3f8;color:#2a4365">AT</div><div style="flex:1"><div class="tech-name">Alex Torres</div><div class="tech-sub">RO-1041 · BMW</div></div><span class="badge badge-green">Active</span></div>
+              <div class="tech-card"><div class="tech-avatar" style="background:#c6f6d5;color:#276749">JR</div><div style="flex:1"><div class="tech-name">James Reed</div><div class="tech-sub">RO-1037 · Malibu</div></div><span class="badge badge-green">Active</span></div>
+              <div class="tech-card"><div class="tech-avatar" style="background:#fefcbf;color:#744210">MS</div><div style="flex:1"><div class="tech-name">Mike Santos</div><div class="tech-sub">Waiting on parts</div></div><span class="badge badge-yellow">Idle</span></div>
+              <div class="tech-card idle-warning"><div class="tech-avatar" style="background:#fed7d7;color:#822727">KL</div><div style="flex:1"><div class="tech-name">Kevin Lee</div><div class="tech-sub" style="color:var(--red)">⚠ Idle 47 min</div></div><span class="badge badge-red">Alert</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Overdue reminders</div>
+            <div class="reminder-row"><div class="reminder-dot r-overdue"></div><div><div class="reminder-title">Parts arrived — Lisa Park</div><div class="reminder-detail">F-150 headlight received</div></div><div class="reminder-time">2h ago</div></div>
+            <div class="reminder-row"><div class="reminder-dot r-soon"></div><div><div class="reminder-title">Estimate expiry — Tom W.</div><div class="reminder-detail">Expires in 2 hours</div></div><div class="reminder-time">Today</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORKFLOW -->
+    <div class="page" id="page-workflow">
+      <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <button class="btn btn-sm" onclick="prevRO()">← Prev RO</button>
+        <span style="font-size:.82rem;font-weight:600" id="ro-label">RO-1041 · Marcus Johnson · 2019 BMW 3 Series</span>
+        <button class="btn btn-sm" onclick="nextRO()">Next RO →</button>
+      </div>
+      <div class="card">
+        <div class="card-header">Pipeline — <span id="stage-label">In Progress</span> <span style="font-size:.65rem;font-weight:400;color:var(--muted)">Click any stage to update</span></div>
+        <div class="workflow-container">
+          <div class="workflow-svg-wrap">
+            <svg width="100%" viewBox="0 0 680 170" role="img"><title>RO workflow pipeline with animated car</title><desc>Animated car driving through repair stages from estimate to paid</desc>
+              <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
+              <!-- Road -->
+              <rect x="20" y="105" width="640" height="16" rx="4" fill="#edf2f7"/>
+              <line x1="20" y1="113" x2="660" y2="113" stroke="#cbd5e0" stroke-width="1.5" class="road-dashes"/>
+              <!-- Stage nodes -->
+              <g class="pipeline-node" onclick="setStage(0,this)">
+                <rect id="sn0" x="20" y="24" width="74" height="36" rx="8" fill="#c6f6d5" stroke="#9ae6b4" stroke-width="1"/>
+                <text x="57" y="46" text-anchor="middle" font-size="10" fill="#276749" font-family="DM Sans,sans-serif" font-weight="600">Estimate</text>
+              </g>
+              <g class="pipeline-node" onclick="setStage(1,this)">
+                <rect id="sn1" x="114" y="24" width="74" height="36" rx="8" fill="#c6f6d5" stroke="#9ae6b4" stroke-width="1"/>
+                <text x="151" y="46" text-anchor="middle" font-size="10" fill="#276749" font-family="DM Sans,sans-serif" font-weight="600">Approved</text>
+              </g>
+              <g class="pipeline-node" onclick="setStage(2,this)">
+                <rect id="sn2" x="208" y="18" width="88" height="48" rx="8" fill="#bee3f8" stroke="#4299e1" stroke-width="2"/>
+                <text x="252" y="38" text-anchor="middle" font-size="10" fill="#2a4365" font-family="DM Sans,sans-serif" font-weight="700">In Progress</text>
+                <text x="252" y="52" text-anchor="middle" font-size="8" fill="#4299e1" font-family="DM Sans,sans-serif">● current stage</text>
+              </g>
+              <g class="pipeline-node" onclick="setStage(3,this)">
+                <rect id="sn3" x="316" y="24" width="84" height="36" rx="8" fill="#edf2f7" stroke="#e2e8f0" stroke-width="1"/>
+                <text x="358" y="46" text-anchor="middle" font-size="10" fill="#4a5568" font-family="DM Sans,sans-serif" font-weight="500">Wait Parts</text>
+              </g>
+              <g class="pipeline-node" onclick="setStage(4,this)">
+                <rect id="sn4" x="420" y="24" width="74" height="36" rx="8" fill="#edf2f7" stroke="#e2e8f0" stroke-width="1"/>
+                <text x="457" y="46" text-anchor="middle" font-size="10" fill="#4a5568" font-family="DM Sans,sans-serif" font-weight="500">Completed</text>
+              </g>
+              <g class="pipeline-node" onclick="setStage(5,this)">
+                <rect id="sn5" x="514" y="24" width="68" height="36" rx="8" fill="#edf2f7" stroke="#e2e8f0" stroke-width="1"/>
+                <text x="548" y="46" text-anchor="middle" font-size="10" fill="#4a5568" font-family="DM Sans,sans-serif" font-weight="500">Invoiced</text>
+              </g>
+              <g class="pipeline-node" onclick="setStage(6,this)">
+                <rect id="sn6" x="602" y="24" width="58" height="36" rx="8" fill="#edf2f7" stroke="#e2e8f0" stroke-width="1"/>
+                <text x="631" y="46" text-anchor="middle" font-size="10" fill="#4a5568" font-family="DM Sans,sans-serif" font-weight="500">Paid ✓</text>
+              </g>
+              <!-- Car -->
+              <g id="car" class="car-animate" style="transform:translateX(200px)">
+                <rect x="0" y="120" width="48" height="22" rx="5" fill="#e94560"/>
+                <rect x="8" y="113" width="32" height="15" rx="3" fill="#e94560" opacity=".9"/>
+                <rect x="10" y="115" width="12" height="10" rx="2" fill="rgba(255,255,255,.4)"/>
+                <rect x="24" y="115" width="12" height="10" rx="2" fill="rgba(255,255,255,.4)"/>
+                <circle cx="12" cy="143" r="5.5" fill="#2d3748"/>
+                <circle cx="12" cy="143" r="2.5" fill="#718096"/>
+                <circle cx="36" cy="143" r="5.5" fill="#2d3748"/>
+                <circle cx="36" cy="143" r="2.5" fill="#718096"/>
+                <rect x="42" y="124" width="5" height="6" rx="1" fill="#fefcbf" opacity=".9"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="status-controls">
+          <span style="font-size:.7rem;color:var(--muted)">Move to:</span>
+          <button class="stage-btn" onclick="setStage(0)">Estimate</button>
+          <button class="stage-btn" onclick="setStage(1)">Approved</button>
+          <button class="stage-btn current" id="sb2" onclick="setStage(2)">In Progress</button>
+          <button class="stage-btn" onclick="setStage(3)">Wait Parts</button>
+          <button class="stage-btn" onclick="setStage(4)">Completed</button>
+          <button class="stage-btn" onclick="setStage(5)">Invoiced</button>
+          <button class="stage-btn" onclick="setStage(6)">Paid ✓</button>
+          <button class="stage-btn blocked-btn" onclick="flagBlocked()">🚫 Flag Blocked</button>
+        </div>
+      </div>
+      <!-- COMMENT THREAD -->
+      <div class="card">
+        <div class="card-header">Comments & history <span style="font-size:.65rem;font-weight:400;color:var(--muted)">Auto-timestamped on post</span></div>
+        <div class="comment-feed" id="comment-feed">
+          <div class="comment-card">
+            <div class="comment-meta">
+              <span class="comment-author">Maria Gonzalez</span>
+              <span class="badge badge-blue" style="font-size:.6rem">status update</span>
+              <span class="comment-time">Apr 27 · 9:14 AM</span>
+            </div>
+            <div class="comment-text">RO moved to <strong>In Progress</strong> — Alex Torres assigned to front bumper replacement.</div>
+          </div>
+          <div class="comment-card">
+            <div class="comment-meta">
+              <span class="comment-author">Alex Torres</span>
+              <span class="badge badge-gray" style="font-size:.6rem">tech note</span>
+              <span class="comment-time">Apr 27 · 10:32 AM</span>
+            </div>
+            <div class="comment-text">Front bumper removed. Secondary damage found on radiator support — needs manager approval before proceeding. Parts ordered: bumper cover + headlight assembly.</div>
+          </div>
+          <div class="comment-card">
+            <div class="comment-meta">
+              <span class="comment-author">Maria Gonzalez</span>
+              <span class="badge badge-purple" style="font-size:.6rem">customer msg</span>
+              <span class="comment-time">Apr 27 · 11:05 AM</span>
+            </div>
+            <div class="comment-text">Called Marcus re: radiator support damage. Customer approved additional repair — verbal authorization confirmed. Updated estimate sent by email.</div>
+          </div>
+        </div>
+        <div class="comment-compose">
+          <input class="comment-input" id="comment-input" placeholder="Add comment, tech note, or status update..." onkeydown="if(event.key==='Enter')addComment()"/>
+          <select style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:.72rem;background:var(--card);color:var(--text);font-family:'DM Sans',sans-serif">
+            <option>Internal note</option><option>Status update</option><option>Tech note</option><option>Customer message</option><option>Parts update</option>
+          </select>
+          <button class="btn btn-accent btn-sm" onclick="addComment()">Post</button>
+        </div>
+      </div>
+      <!-- LABOR & PARTS -->
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header">Labor lines <button class="btn btn-sm btn-accent" onclick="toast('Labor line added')">+ Add</button></div>
+          <table class="data-table">
+            <thead><tr><th>Description</th><th>Tech</th><th>Hrs</th><th>Total</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Front bumper replacement</td><td>Alex T.</td><td>3.5</td><td>$420</td><td><span class="badge badge-blue">Active</span></td></tr>
+              <tr><td>Hood realignment</td><td>Alex T.</td><td>2.0</td><td>$240</td><td><span class="badge badge-yellow">Pending</span></td></tr>
+              <tr><td>Headlight assembly</td><td>Alex T.</td><td>1.5</td><td>$180</td><td><span class="badge badge-yellow">Pending</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header">Parts lines <button class="btn btn-sm btn-accent" onclick="toast('Part added')">+ Add</button></div>
+          <table class="data-table">
+            <thead><tr><th>Part#</th><th>Description</th><th>Status</th><th>Price</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:monospace;font-size:.68rem">51117370763</td><td>Front bumper cover</td><td><span class="badge badge-green">Received</span></td><td>$520</td></tr>
+              <tr><td style="font-family:monospace;font-size:.68rem">63117388990</td><td>Headlight assembly</td><td><span class="badge badge-yellow">Ordered</span></td><td>$410</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RO LIST -->
+    <div class="page" id="page-ros">
+      <div style="margin-bottom:12px;display:flex;gap:8px">
+        <input style="flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif" placeholder="Search ROs by customer, vehicle, VIN..."/>
+        <select style="padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif;background:var(--card)"><option>All status</option><option>Estimate</option><option>In Progress</option><option>Waiting Parts</option><option>Completed</option><option>Paid</option></select>
+        <select style="padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif;background:var(--card)"><option>All techs</option><option>Alex Torres</option><option>James Reed</option><option>Mike Santos</option></select>
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead><tr><th>RO#</th><th>Customer</th><th>Vehicle</th><th>Complaint</th><th>Tech</th><th>Status</th><th>Total</th><th>Created</th></tr></thead>
+          <tbody>
+            <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1041</td><td>Marcus Johnson</td><td>2019 BMW 3 Series</td><td>Front end collision</td><td>Alex T.</td><td><span class="badge badge-blue">In progress</span></td><td>$2,340</td><td style="color:var(--muted)">Apr 23</td></tr>
+            <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1040</td><td>Sarah Kim</td><td>2021 Toyota Camry</td><td>Rear bumper scratch</td><td>James R.</td><td><span class="badge badge-yellow">Estimate</span></td><td>$890</td><td style="color:var(--muted)">Apr 23</td></tr>
+            <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1038</td><td>Lisa Park</td><td>2020 Ford F-150</td><td>Engine knock, CEL</td><td>Mike S.</td><td><span class="badge badge-red">Waiting parts</span></td><td>$3,200</td><td style="color:var(--muted)">Apr 21</td></tr>
+            <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1037</td><td>Tom Williams</td><td>2017 Chevy Malibu</td><td>Brake pads + rotors</td><td>James R.</td><td><span class="badge badge-blue">In progress</span></td><td>$620</td><td style="color:var(--muted)">Apr 21</td></tr>
+            <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1036</td><td>Patricia Moore</td><td>2016 Nissan Altima</td><td>Transmission flush</td><td>Mike S.</td><td><span class="badge badge-green">Completed</span></td><td>$380</td><td style="color:var(--muted)">Apr 20</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REMINDERS -->
+    <div class="page" id="page-reminders">
+      <div class="card">
+        <div class="card-header" style="background:#fff5f5;color:#822727">⚠ Overdue (2)</div>
+        <div class="reminder-row"><div class="reminder-dot r-overdue"></div><div style="flex:1"><div class="reminder-title">Call Lisa Park — parts arrived</div><div class="reminder-detail">F-150 headlight assembly received · RO-1038</div></div><div class="reminder-time">2h ago</div><button class="btn btn-accent btn-sm" style="margin-left:8px" onclick="toast('Calling Lisa Park...')">Call</button></div>
+        <div class="reminder-row"><div class="reminder-dot r-overdue"></div><div style="flex:1"><div class="reminder-title">Payment follow-up — David Chen</div><div class="reminder-detail">INV-2039 sent 5 days ago · $2,890 unpaid</div></div><div class="reminder-time">Yesterday</div><button class="btn btn-sm" style="margin-left:8px" onclick="toast('SMS reminder sent to David Chen')">SMS</button></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Due today (1)</div>
+        <div class="reminder-row"><div class="reminder-dot r-soon"></div><div style="flex:1"><div class="reminder-title">Estimate expiry — Tom Williams</div><div class="reminder-detail">Malibu brake estimate expires at 5pm</div></div><div class="reminder-time">5:00 PM</div><button class="btn btn-sm" style="margin-left:8px" onclick="toast('SMS sent to Tom Williams')">SMS</button></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Upcoming</div>
+        <div class="reminder-row"><div class="reminder-dot r-ok"></div><div style="flex:1"><div class="reminder-title">Appointment reminder — Jennifer Wu</div><div class="reminder-detail">Send SMS reminder · Appt tomorrow 11:30 AM</div></div><div class="reminder-time">Tomorrow 9 AM</div></div>
+        <div class="reminder-row"><div class="reminder-dot r-ok"></div><div style="flex:1"><div class="reminder-title">Lost customer outreach — Robert Davis</div><div class="reminder-detail">No visit in 8 months · ML suggests oil change promo</div></div><div class="reminder-time">Apr 29</div><button class="btn btn-accent btn-sm" style="margin-left:8px" onclick="toast('SMS promo sent to Robert Davis')">Send SMS</button></div>
+      </div>
+    </div>
+
+    <!-- CALL LOG -->
+    <div class="page" id="page-calls">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Calls today</div><div class="stat-value">12</div></div>
+        <div class="stat-card"><div class="stat-label">Answered</div><div class="stat-value">9</div><div class="stat-sub stat-up">75% answer rate</div></div>
+        <div class="stat-card"><div class="stat-label">Avg duration</div><div class="stat-value">3:42</div></div>
+        <div class="stat-card"><div class="stat-label">Missed</div><div class="stat-value">3</div><div class="stat-sub stat-down">Need callback</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Recent calls — Capitol Auto Body (301) 555-0100</div>
+        <div class="call-row"><div class="call-avatar" style="background:#c6f6d5;color:#276749">📞</div><div style="flex:1"><div class="call-name">Marcus Johnson · (240) 555-0142</div><div class="call-detail">RO-1041 parts update · Answered by Maria G.</div></div><div class="call-right"><div class="call-duration">4:12</div><div class="call-time">10:42 AM</div></div></div>
+        <div class="call-row"><div class="call-avatar" style="background:#fed7d7;color:#822727">📵</div><div style="flex:1"><div class="call-name">Unknown · (571) 555-0334</div><div class="call-detail">Missed — no voicemail</div></div><div class="call-right"><div class="call-duration">—</div><div class="call-time">10:18 AM</div></div></div>
+        <div class="call-row"><div class="call-avatar" style="background:#c6f6d5;color:#276749">📞</div><div style="flex:1"><div class="call-name">Lisa Park · (571) 555-0221</div><div class="call-detail">Parts ETA inquiry · Front desk</div></div><div class="call-right"><div class="call-duration">2:33</div><div class="call-time">9:55 AM</div></div></div>
+        <div class="call-row"><div class="call-avatar" style="background:#bee3f8;color:#2a4365">📞</div><div style="flex:1"><div class="call-name">New caller · (202) 555-0881</div><div class="call-detail">Collision repair inquiry · Converted to lead</div></div><div class="call-right"><div class="call-duration">5:47</div><div class="call-time">9:12 AM</div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Transcript — Marcus Johnson · 10:42 AM</div>
+        <div style="padding:14px;font-size:.78rem;line-height:1.9;color:var(--muted)">
+          <div><strong style="color:var(--text)">Maria G.:</strong> Capitol Auto Body, this is Maria, how can I help?</div>
+          <div><strong style="color:var(--text)">Marcus J.:</strong> Hi, this is Marcus Johnson, calling about my BMW on Monday. Just checking status.</div>
+          <div><strong style="color:var(--text)">Maria G.:</strong> Hi Marcus! Pulling up your RO now. Alex has the bumper off — we found secondary damage on the radiator support. I left you a voicemail about that earlier.</div>
+          <div><strong style="color:var(--text)">Marcus J.:</strong> Yeah I saw it. What's the extra cost?</div>
+          <div><strong style="color:var(--text)">Maria G.:</strong> Around $280 additional for the radiator support. Do you want to authorize that?</div>
+          <div><strong style="color:var(--text)">Marcus J.:</strong> Yes, go ahead. When is it done?</div>
+          <div><strong style="color:var(--text)">Maria G.:</strong> Wednesday at the latest — waiting on one part arriving tomorrow.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BURN RATE -->
+    <div class="page" id="page-burnrate">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Revenue (April)</div><div class="stat-value">$18,420</div></div>
+        <div class="stat-card"><div class="stat-label">Parts spend</div><div class="stat-value">$6,840</div><div class="stat-sub stat-down">37% of revenue</div></div>
+        <div class="stat-card"><div class="stat-label">Labor cost</div><div class="stat-value">$4,200</div><div class="stat-sub">23% of revenue</div></div>
+        <div class="stat-card"><div class="stat-label">Net margin</div><div class="stat-value">$7,380</div><div class="stat-sub stat-up">40% margin</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Cash burn breakdown — April 2026</div>
+        <div style="padding:16px">
+          <div class="burn-row"><div class="burn-label-row"><span>Parts & supplies</span><span style="font-weight:600">$6,840 · 37% <span style="color:var(--red)">(over budget by $840)</span></span></div><div class="burn-track"><div class="burn-fill" style="width:37%;background:#e53e3e"></div></div></div>
+          <div class="burn-row"><div class="burn-label-row"><span>Technician labor</span><span style="font-weight:600">$4,200 · 23%</span></div><div class="burn-track"><div class="burn-fill" style="width:23%;background:#d4a017"></div></div></div>
+          <div class="burn-row"><div class="burn-label-row"><span>Overhead (rent, utilities)</span><span style="font-weight:600">$3,200 · 17%</span></div><div class="burn-track"><div class="burn-fill" style="width:17%;background:#3182ce"></div></div></div>
+          <div class="burn-row"><div class="burn-label-row"><span>Software & tools</span><span style="font-weight:600">$800 · 4%</span></div><div class="burn-track"><div class="burn-fill" style="width:4%;background:#6b46c1"></div></div></div>
+          <div style="margin-top:16px;padding:14px;background:#f8fafc;border-radius:10px;font-size:.78rem">
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Parts budget (monthly)</span><span>$6,000</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Actual spend</span><span style="color:var(--red);font-weight:600">$6,840</span></div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">Over budget</span><span style="color:var(--red);font-weight:700">$840 (14%)</span></div>
+          </div>
+          <div style="margin-top:14px;padding:14px;background:#f0fff4;border:1px solid #9ae6b4;border-radius:10px;font-size:.78rem">
+            <div style="font-weight:600;color:#276749;margin-bottom:6px">💡 Cash reserve recommendation</div>
+            <div style="color:var(--muted)">To cover 30 days of operations, maintain at least <strong style="color:var(--text)">$14,240</strong> in your business account (parts + labor + overhead buffer).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVOICES -->
+    <div class="page" id="page-invoices">
+      <div class="card">
+        <div class="card-header">All invoices <button class="btn btn-sm btn-accent" onclick="toast('New invoice created')">+ New invoice</button></div>
+        <table class="data-table">
+          <thead><tr><th>Invoice#</th><th>RO#</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">INV-2041</td><td>RO-1039</td><td>David Chen</td><td>Apr 22</td><td>$1,150</td><td><span class="badge badge-green">Paid</span></td><td><button class="btn btn-sm" onclick="toast('Invoice viewed')">View</button></td></tr>
+            <tr><td style="font-weight:600">INV-2040</td><td>RO-1036</td><td>Patricia Moore</td><td>Apr 20</td><td>$380</td><td><span class="badge badge-blue">Sent</span></td><td><button class="btn btn-sm" onclick="toast('Invoice resent to Patricia Moore')">Resend</button></td></tr>
+            <tr><td style="font-weight:600">INV-2039</td><td>RO-1034</td><td>Jennifer Wu</td><td>Apr 18</td><td>$2,890</td><td><span class="badge badge-green">Paid</span></td><td><button class="btn btn-sm" onclick="toast('Receipt downloaded')">Receipt</button></td></tr>
+            <tr><td style="font-weight:600">INV-2038</td><td>RO-1033</td><td>Carlos Mendez</td><td>Apr 17</td><td>$540</td><td><span class="badge badge-yellow">Draft</span></td><td><button class="btn btn-sm btn-accent" onclick="toast('Invoice sent + Square payment link generated')">Send & close</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TECH BOARD -->
+    <div class="page" id="page-techs">
+      <div class="alert-bar">⚠️ <strong>Kevin Lee</strong> idle 47 minutes — no active RO. Assign or investigate.<button class="alert-btn" onclick="toast('RO-1040 assigned to Kevin Lee')">Assign RO-1040</button></div>
+      <div class="grid2">
+        <div class="card"><div class="card-header">Alex Torres <span class="badge badge-green">Active</span></div><div style="padding:12px 14px"><div style="font-size:.78rem;margin-bottom:6px"><strong>Current RO:</strong> RO-1041 · BMW front end repair</div><div style="font-size:.72rem;color:var(--muted)">Clocked in: 7:58 AM · Hours today: 2.4h</div></div></div>
+        <div class="card"><div class="card-header">James Reed <span class="badge badge-green">Active</span></div><div style="padding:12px 14px"><div style="font-size:.78rem;margin-bottom:6px"><strong>Current RO:</strong> RO-1037 · Chevy brake job</div><div style="font-size:.72rem;color:var(--muted)">Clocked in: 8:02 AM · Hours today: 2.4h</div></div></div>
+        <div class="card"><div class="card-header">Mike Santos <span class="badge badge-yellow">Idle</span></div><div style="padding:12px 14px"><div style="font-size:.78rem;margin-bottom:6px"><strong>Status:</strong> Waiting on parts for RO-1038</div><div style="font-size:.72rem;color:var(--muted)">Parts ETA: tomorrow</div></div></div>
+        <div class="card" style="border-color:#fc8181"><div class="card-header" style="background:#fff5f5;color:#822727">Kevin Lee <span class="badge badge-red">⚠ Idle 47min</span></div><div style="padding:12px 14px"><div style="font-size:.78rem;margin-bottom:6px"><strong>Status:</strong> No active RO — unconfirmed lunch</div><button class="btn btn-accent btn-sm" onclick="toast('RO-1040 assigned to Kevin Lee · SMS sent')">Assign RO-1040</button></div></div>
+      </div>
+    </div>
+
+    <!-- SMS AUTOMATION -->
+    <div class="page" id="page-sms">
+      <div class="card">
+        <div class="card-header">Lost customer outreach — ML suggested <span style="font-size:.65rem;font-weight:400;color:var(--muted)">Based on Mitchell data + service history</span></div>
+        <table class="data-table">
+          <thead><tr><th>Customer</th><th>Last visit</th><th>Last service</th><th>ML suggestion</th><th>Confidence</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">Robert Davis</td><td>8 months ago</td><td>Oil change</td><td>Oil change due</td><td><span style="color:var(--green);font-weight:600">High</span></td><td><button class="btn btn-sm btn-accent" onclick="toast('SMS sent to Robert Davis')">Send SMS</button></td></tr>
+            <tr><td style="font-weight:600">Jennifer Wu</td><td>6 months ago</td><td>Brake inspection</td><td>Brake service due</td><td><span style="color:var(--yellow);font-weight:600">Medium</span></td><td><button class="btn btn-sm btn-accent" onclick="toast('SMS sent to Jennifer Wu')">Send SMS</button></td></tr>
+            <tr><td style="font-weight:600">Carlos Mendez</td><td>5 months ago</td><td>Transmission flush</td><td>General checkup</td><td><span style="color:var(--muted);font-weight:600">Low</span></td><td><button class="btn btn-sm" onclick="toast('Reviewed — will decide later')">Review</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-header">Scheduled SMS queue</div>
+        <table class="data-table">
+          <thead><tr><th>Customer</th><th>Message</th><th>Scheduled</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>Jennifer Wu</td><td>Appointment reminder</td><td>Tomorrow 9:00 AM</td><td><span class="badge badge-blue">Scheduled</span></td><td><button class="btn btn-sm" onclick="toast('SMS cancelled')">Cancel</button></td></tr>
+            <tr><td>Marcus Johnson</td><td>Parts arrived notification</td><td>On parts receipt</td><td><span class="badge badge-yellow">Pending</span></td><td></td></tr>
+            <tr><td>Robert Davis</td><td>Service promo</td><td>Apr 29 10:00 AM</td><td><span class="badge badge-gray">Draft</span></td><td><button class="btn btn-sm btn-accent" onclick="toast('SMS scheduled for Apr 29')">Schedule</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="page" id="page-customers">
+      <div style="margin-bottom:12px"><input style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif" placeholder="Search customers by name, phone, email..."/></div>
+      <div class="card">
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Vehicles</th><th>Total spent</th><th>Last visit</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">Marcus Johnson</td><td>(240) 555-0142</td><td>marcus.j@email.com</td><td>2</td><td>$4,820</td><td style="color:var(--muted)">Apr 23</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td style="font-weight:600">Sarah Kim</td><td>(301) 555-0198</td><td>sarah.kim@email.com</td><td>1</td><td>$1,240</td><td style="color:var(--muted)">Apr 23</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td style="font-weight:600">David Chen</td><td>(202) 555-0173</td><td>d.chen@email.com</td><td>1</td><td>$3,110</td><td style="color:var(--muted)">Apr 22</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td style="font-weight:600">Lisa Park</td><td>(571) 555-0221</td><td>lisa.park@email.com</td><td>3</td><td>$7,650</td><td style="color:var(--muted)">Apr 21</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td style="font-weight:600">Tom Williams</td><td>(443) 555-0187</td><td>tom.w@email.com</td><td>1</td><td>$980</td><td style="color:var(--muted)">Apr 21</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td style="font-weight:600">Robert Davis</td><td>(240) 555-0199</td><td>r.davis@email.com</td><td>1</td><td>$420</td><td style="color:var(--muted);color:var(--red)">8 months ago</td><td><span class="badge badge-red">Lost</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const stagePositions = [8, 102, 196, 304, 406, 502, 590];
+const stageNames = ['Estimate','Approved','In Progress','Waiting Parts','Completed','Invoiced','Paid'];
+let currentStage = 2;
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  const titles = {dashboard:'Dashboard',workflow:'Workflow view',ros:'Repair orders',reminders:'Reminders',calls:'Call log',invoices:'Invoices',burnrate:'Burn rate',techs:'Technician board',sms:'SMS automation',customers:'Customers'};
+  document.getElementById('page-title').textContent = titles[id] || id;
+}
+
+function setStage(n) {
+  currentStage = n;
+  const car = document.getElementById('car');
+  car.style.transform = 'translateX(' + (stagePositions[n] - 4) + 'px)';
+  document.getElementById('stage-label').textContent = stageNames[n];
+  document.querySelectorAll('.stage-btn').forEach((b,i) => {
+    b.classList.toggle('current', i === n);
+    b.classList.remove('blocked-btn');
+  });
+  document.querySelectorAll('.stage-btn')[7].classList.add('blocked-btn');
+  addComment('Status updated to <strong>' + stageNames[n] + '</strong>', 'status update');
+  toast('→ ' + stageNames[n] + ' · Timestamp saved');
+}
+
+function flagBlocked() {
+  toast('⚠ RO flagged as BLOCKED — manager and super admin notified');
+  addComment('🚫 <strong>BLOCKED</strong> — flagged by manager. Awaiting resolution.', 'status update');
+}
+
+function prevRO() { toast('← RO-1040 · Sarah Kim · 2021 Toyota Camry'); }
+function nextRO() { toast('→ RO-1042 · Robert Davis · 2022 Kia Telluride'); }
+
+function addComment(text, type) {
+  if (!text) {
+    const inp = document.getElementById('comment-input');
+    text = inp.value.trim();
+    if (!text) return;
+    inp.value = '';
+    type = 'internal note';
+  }
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  const typeColors = {'status update':'badge-blue','tech note':'badge-gray','customer message':'badge-purple','internal note':'badge-gray','parts update':'badge-orange'};
+  const feed = document.getElementById('comment-feed');
+  const div = document.createElement('div');
+  div.className = 'comment-card';
+  div.innerHTML = `<div class="comment-meta"><span class="comment-author">You</span><span class="badge ${typeColors[type]||'badge-gray'}" style="font-size:.6rem">${type}</span><span class="comment-time">Apr 27 · ${time}</span></div><div class="comment-text">${text}</div>`;
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>

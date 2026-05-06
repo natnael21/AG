@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      has_api: ${{ steps.check.outputs.has_api }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          if [ -f "api/package.json" ]; then
+            echo "has_api=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_api=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  api-ci:
+    needs: detect
+    if: needs.detect.outputs.has_api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint --if-present
+      - name: Test
+        run: npm test --if-present
+      - name: Build
+        run: npm run build --if-present
+
+  frontend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate static frontend folder
+        run: |
+          if [ ! -d "public" ]; then
+            echo "public directory not present yet; skipping static checks."
+            exit 0
+          fi
+          echo "public directory found."

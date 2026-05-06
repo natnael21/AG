@@ -1,0 +1,50 @@
+name: Deploy to Preprod
+
+on:
+  push:
+    branches: [staging]
+
+jobs:
+  deploy-preprod:
+    name: Deploy -> preprod.agshopro.com
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate release ID
+        id: release
+        run: echo "id=$(date +%Y%m%d_%H%M%S)_${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Copy code to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "/tmp/agshopro-release-preprod"
+          rm: true
+
+      - name: Run deploy script on EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            bash /var/www/agshopro-preprod/scripts/deploy.sh ${{ steps.release.outputs.id }}
+
+      - name: Healthcheck preprod
+        run: |
+          # Add PREPROD_BASIC_AUTH secret as "username:password" in GitHub Actions secrets.
+          echo "Waiting for process to come up..."
+          sleep 8
+          curl --fail --retry 5 --retry-delay 5 --max-time 15 \
+            -u "${{ secrets.PREPROD_BASIC_AUTH }}" \
+            https://preprod.agshopro.com/api/health
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "::error::Preprod deploy failed for release ${{ steps.release.outputs.id }}"

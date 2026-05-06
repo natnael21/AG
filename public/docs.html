@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AG Shop Pro — Documentation</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0a1628;--accent:#e94560;--gold:#c9a84c;--bg:#f8fafc;--card:#fff;--border:#e2e8f0;--text:#1a2035;--muted:#718096;--green:#2f855a;--blue:#2b6cb0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
+/* SIDEBAR */
+.sidebar{width:260px;background:var(--navy);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;z-index:100}
+.sb-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sb-brand{font-family:'DM Serif Display',serif;font-size:1rem;color:#fff}
+.sb-brand span{color:var(--accent)}
+.sb-sub{font-size:.65rem;color:rgba(255,255,255,.3);margin-top:2px}
+.sb-search{margin:10px 10px;position:relative}
+.sb-search input{width:100%;padding:8px 12px 8px 32px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-size:.75rem;font-family:'DM Sans',sans-serif}
+.sb-search input::placeholder{color:rgba(255,255,255,.25)}
+.sb-search input:focus{outline:none;border-color:var(--accent)}
+.sb-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.3);font-size:12px}
+.nav-group{padding:8px 0 4px}
+.nav-group-label{padding:6px 18px 3px;font-size:.58rem;color:rgba(255,255,255,.25);letter-spacing:.15em;text-transform:uppercase}
+.nav-link{display:flex;align-items:center;gap:7px;padding:7px 18px;font-size:.75rem;color:rgba(255,255,255,.55);cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+.nav-link:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.04)}
+.nav-link.active{color:#fff;border-left-color:var(--accent);background:rgba(233,69,96,.08)}
+.nav-link .nav-icon{font-size:12px;width:14px;text-align:center;flex-shrink:0}
+/* MAIN */
+.main{margin-left:260px;flex:1;min-height:100vh}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:14px 40px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:.88rem;color:var(--muted)}
+.topbar-title span{color:var(--text);font-weight:500}
+.topbar-right{display:flex;gap:10px;align-items:center}
+.btn-back{padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.btn-back:hover{background:#c73550}
+.content{max-width:820px;margin:0 auto;padding:40px}
+/* PAGE */
+.doc-page{display:none}
+.doc-page.active{display:block}
+.page-header{margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.page-tag{font-size:.65rem;text-transform:uppercase;letter-spacing:.15em;color:var(--accent);margin-bottom:8px;font-weight:500}
+.page-title{font-family:'DM Serif Display',serif;font-size:2.2rem;color:var(--text);margin-bottom:10px;line-height:1.2}
+.page-desc{font-size:.95rem;color:var(--muted);line-height:1.7;max-width:600px}
+/* COMPONENTS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:16px}
+.card-title{font-size:.9rem;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card-body{font-size:.85rem;color:var(--muted);line-height:1.8}
+h2{font-size:1.2rem;font-weight:600;margin:32px 0 12px;color:var(--text)}
+h3{font-size:.95rem;font-weight:600;margin:24px 0 8px;color:var(--text)}
+p{font-size:.88rem;color:var(--muted);line-height:1.8;margin-bottom:12px}
+ul,ol{padding-left:20px;margin-bottom:12px}
+li{font-size:.88rem;color:var(--muted);line-height:1.8;margin-bottom:4px}
+li strong{color:var(--text)}
+.step-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.step-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.step-num{width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#fff;margin-bottom:10px}
+.step-title{font-size:.82rem;font-weight:600;margin-bottom:4px}
+.step-desc{font-size:.75rem;color:var(--muted);line-height:1.5}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.role-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.role-badge{display:inline-flex;padding:3px 10px;border-radius:50px;font-size:.65rem;font-weight:600;margin-bottom:8px}
+.role-title{font-size:.85rem;font-weight:600;margin-bottom:5px}
+.role-desc{font-size:.75rem;color:var(--muted);line-height:1.5}
+.feature-list{list-style:none;padding:0;margin-top:8px}
+.feature-list li{font-size:.72rem;color:var(--muted);padding:3px 0;display:flex;align-items:center;gap:6px}
+.feature-list li::before{content:'✓';color:var(--green);font-weight:600;flex-shrink:0}
+.alert{padding:12px 16px;border-radius:9px;font-size:.82rem;line-height:1.6;margin-bottom:16px;display:flex;gap:10px}
+.alert-info{background:#ebf8ff;border:1px solid #bee3f8;color:#2a4365}
+.alert-warn{background:#fffff0;border:1px solid #faf089;color:#744210}
+.alert-tip{background:#f0fff4;border:1px solid #9ae6b4;color:#276749}
+code{background:#f1f5f9;border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:.8rem;font-family:monospace;color:var(--accent)}
+.code-block{background:#0a1628;border-radius:10px;padding:16px 20px;margin:12px 0;overflow-x:auto}
+.code-block pre{color:#a8b2c3;font-size:.78rem;line-height:1.7;font-family:monospace;white-space:pre-wrap}
+.code-block pre span.key{color:#7ec4ff}
+.code-block pre span.val{color:#a8ff78}
+.toc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:28px}
+.toc-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;font-weight:500}
+.toc-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:4px}
+.toc-list a{font-size:.82rem;color:var(--blue);cursor:pointer;text-decoration:none}
+.toc-list a:hover{text-decoration:underline}
+.badge{display:inline-flex;padding:2px 8px;border-radius:50px;font-size:.65rem;font-weight:600}
+.b-green{background:#c6f6d5;color:#276749}
+.b-blue{background:#bee3f8;color:#2a4365}
+.b-yellow{background:#fefcbf;color:#744210}
+.b-red{background:#fed7d7;color:#822727}
+.b-purple{background:#e9d8fd;color:#553c9a}
+.divider{height:1px;background:var(--border);margin:28px 0}
+table.doc-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:.82rem}
+table.doc-table th{padding:8px 12px;text-align:left;background:#f8fafc;border:1px solid var(--border);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+table.doc-table td{padding:9px 12px;border:1px solid var(--border);color:var(--text);vertical-align:top}
+/* HERO */
+.hero-banner{background:var(--navy);border-radius:14px;padding:32px;margin-bottom:28px;position:relative;overflow:hidden}
+.hero-banner::before{content:'';position:absolute;width:300px;height:300px;background:radial-gradient(circle,rgba(233,69,96,.1),transparent 70%);top:-50px;right:-50px}
+.hero-tag{font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.hero-title{font-family:'DM Serif Display',serif;font-size:1.8rem;color:#fff;margin-bottom:8px}
+.hero-title em{color:var(--accent);font-style:italic}
+.hero-desc{font-size:.85rem;color:rgba(255,255,255,.5);line-height:1.7;max-width:480px}
+.quick-links{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}
+.quick-link{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:12px;text-align:center;cursor:pointer;transition:all .15s}
+.quick-link:hover{background:rgba(255,255,255,.1);border-color:var(--accent)}
+.quick-link-icon{font-size:18px;margin-bottom:5px}
+.quick-link-label{font-size:.7rem;color:rgba(255,255,255,.6);font-weight:500}
+@media(max-width:768px){.sidebar{width:100%;height:auto;position:relative}.main{margin-left:0}.step-grid,.role-grid,.quick-links{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-brand">AG <span>Shop Pro</span></div>
+    <div class="sb-sub">Documentation & Help Center</div>
+  </div>
+  <div class="sb-search">
+    <span class="sb-search-icon">⌕</span>
+    <input placeholder="Search docs..." oninput="searchDocs(this.value)"/>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Getting started</div>
+    <div class="nav-link active" onclick="showDoc('overview',this)"><span class="nav-icon">🏠</span>Overview</div>
+    <div class="nav-link" onclick="showDoc('quickstart',this)"><span class="nav-icon">⚡</span>Quick start guide</div>
+    <div class="nav-link" onclick="showDoc('signup',this)"><span class="nav-icon">✅</span>Signing up</div>
+    <div class="nav-link" onclick="showDoc('workspaces',this)"><span class="nav-icon">🏢</span>Workspaces</div>
+    <div class="nav-link" onclick="showDoc('login',this)"><span class="nav-icon">🔐</span>Login & password reset</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Portals & roles</div>
+    <div class="nav-link" onclick="showDoc('roles',this)"><span class="nav-icon">👤</span>Roles overview</div>
+    <div class="nav-link" onclick="showDoc('superadmin',this)"><span class="nav-icon">🌐</span>Super admin portal</div>
+    <div class="nav-link" onclick="showDoc('manager',this)"><span class="nav-icon">🏢</span>Manager portal</div>
+    <div class="nav-link" onclick="showDoc('service',this)"><span class="nav-icon">🔧</span>Service advisor portal</div>
+    <div class="nav-link" onclick="showDoc('tech',this)"><span class="nav-icon">⚙️</span>Technician portal</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Core features</div>
+    <div class="nav-link" onclick="showDoc('ros',this)"><span class="nav-icon">✦</span>Repair orders</div>
+    <div class="nav-link" onclick="showDoc('workflow',this)"><span class="nav-icon">⟳</span>Workflow pipeline</div>
+    <div class="nav-link" onclick="showDoc('customers',this)"><span class="nav-icon">◎</span>Customers & vehicles</div>
+    <div class="nav-link" onclick="showDoc('invoices',this)"><span class="nav-icon">◆</span>Invoices & payments</div>
+    <div class="nav-link" onclick="showDoc('timeclock',this)"><span class="nav-icon">⏱</span>Time clock</div>
+    <div class="nav-link" onclick="showDoc('reminders',this)"><span class="nav-icon">🔔</span>Reminders</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Integrations</div>
+    <div class="nav-link" onclick="showDoc('ccc',this)"><span class="nav-icon">🔗</span>CCC One</div>
+    <div class="nav-link" onclick="showDoc('square',this)"><span class="nav-icon">💳</span>Square payments</div>
+    <div class="nav-link" onclick="showDoc('twilio',this)"><span class="nav-icon">📞</span>Twilio (SMS & calls)</div>
+    <div class="nav-link" onclick="showDoc('mitchell',this)"><span class="nav-icon">🔩</span>Mitchell Pro</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Data & migration</div>
+    <div class="nav-link" onclick="showDoc('etl',this)"><span class="nav-icon">🔄</span>ETL migration</div>
+    <div class="nav-link" onclick="showDoc('users',this)"><span class="nav-icon">👥</span>Managing users</div>
+    <div class="nav-link" onclick="showDoc('security',this)"><span class="nav-icon">🔒</span>Security</div>
+  </div>
+
+  <div style="padding:16px 18px;margin-top:auto;border-top:1px solid rgba(255,255,255,.07)">
+    <div style="font-size:.68rem;color:rgba(255,255,255,.25);margin-bottom:6px">Need help?</div>
+    <div style="font-size:.72rem;color:rgba(255,255,255,.45)">Email: support@agshopro.com</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">AG Shop Pro Docs / <span id="topbar-section">Overview</span></div>
+    <div class="topbar-right">
+      <a class="btn-back" href="login.html">← Back to app</a>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="doc-page active" id="doc-overview">
+      <div class="hero-banner">
+        <div class="hero-tag">AG Shop Pro documentation</div>
+        <div class="hero-title">Welcome to <em>Shop Pro</em></div>
+        <div class="hero-desc">Everything you need to run your auto shop — repair orders, technician management, customer communications, invoicing, and more.</div>
+        <div class="quick-links">
+          <div class="quick-link" onclick="showDoc('quickstart',document.querySelectorAll('.nav-link')[1])"><div class="quick-link-icon">⚡</div><div class="quick-link-label">Quick start</div></div>
+          <div class="quick-link" onclick="showDoc('ros',document.querySelectorAll('.nav-link')[11])"><div class="quick-link-icon">✦</div><div class="quick-link-label">Repair orders</div></div>
+          <div class="quick-link" onclick="showDoc('workflow',document.querySelectorAll('.nav-link')[12])"><div class="quick-link-icon">⟳</div><div class="quick-link-label">Workflow</div></div>
+          <div class="quick-link" onclick="showDoc('etl',document.querySelectorAll('.nav-link')[21])"><div class="quick-link-icon">🔄</div><div class="quick-link-label">Data migration</div></div>
+        </div>
+      </div>
+
+      <h2>What is AG Shop Pro?</h2>
+      <p>AG Shop Pro is a multi-workspace shop management platform built for auto body shops, mechanics, and quick lube operations. It connects your entire team — from the front desk to the bay — in one real-time system.</p>
+
+      <div class="step-grid">
+        <div class="step-card"><div class="step-num">1</div><div class="step-title">Request access</div><div class="step-desc">Click "Request access" on the login page and fill in your shop details. You'll receive a welcome email within 24 hours.</div></div>
+        <div class="step-card"><div class="step-num">2</div><div class="step-title">Set up your workspace</div><div class="step-desc">Your workspace is your shop. Add your team members, assign roles, and connect your integrations.</div></div>
+        <div class="step-card"><div class="step-num">3</div><div class="step-title">Start managing ROs</div><div class="step-desc">Create repair orders, track progress through the workflow pipeline, and close out invoices — all in one place.</div></div>
+      </div>
+
+      <h2>Platform at a glance</h2>
+      <div class="role-grid">
+        <div class="role-card"><span class="badge b-purple role-badge">Super admin</span><div class="role-title">Full platform control</div><div class="role-desc">Manage all workspaces, users, billing, and integrations. AG Holdings owners only.</div></div>
+        <div class="role-card"><span class="badge b-blue role-badge">Manager</span><div class="role-title">Shop oversight</div><div class="role-desc">Full access to one workspace. Team management, reports, burn rate, SMS automation.</div></div>
+        <div class="role-card"><span class="badge b-green role-badge">Service advisor</span><div class="role-title">RO & customer management</div><div class="role-desc">Create ROs, manage customer communications, schedule appointments, close invoices.</div></div>
+        <div class="role-card"><span class="badge b-green role-badge">Technician</span><div class="role-title">Bay-focused mobile view</div><div class="role-desc">See assigned ROs, clock in/out, update labor status, add timestamped tech notes.</div></div>
+      </div>
+    </div>
+
+    <!-- QUICK START -->
+    <div class="doc-page" id="doc-quickstart">
+      <div class="page-header"><div class="page-tag">Getting started</div><div class="page-title">Quick start guide</div><div class="page-desc">Get your shop up and running in under 30 minutes.</div></div>
+      <div class="toc"><div class="toc-title">On this page</div><ul class="toc-list"><li><a>1. Sign up and activate your workspace</a></li><li><a>2. Add your team</a></li><li><a>3. Create your first repair order</a></li><li><a>4. Connect integrations</a></li><li><a>5. Import existing data</a></li></ul></div>
+      <h2>1. Sign up and activate your workspace</h2>
+      <p>Go to <code>agshopro.com</code> and click <strong>Request access</strong>. Fill in your shop name, email, and shop type. You'll receive a welcome email within 24 hours with your login credentials and a link to set your password.</p>
+      <div class="alert alert-info">💡 Your workspace is your shop's private space. All your ROs, customers, inventory, and team data lives inside your workspace and is completely isolated from other shops.</div>
+      <h2>2. Add your team</h2>
+      <p>From the Super Admin portal, go to <strong>Users → Add user</strong>. Enter their name, email, and phone number, select their role and workspace, then click <strong>Send invite</strong>. They'll receive an email to set their password and get started.</p>
+      <h2>3. Create your first repair order</h2>
+      <p>Log in as a Manager or Service Advisor. Click <strong>+ New RO</strong> in the top right. Follow the 3-step wizard: find or create the customer → select their vehicle → enter the complaint and assign a technician.</p>
+      <h2>4. Connect integrations</h2>
+      <p>Go to <strong>Super Admin → Integrations</strong>. Connect CCC One for estimate imports, Square for payment links, and Twilio to bridge your shop's landline for call logging and SMS.</p>
+      <h2>5. Import existing data</h2>
+      <p>If you're migrating from Mitchell 1, Tekmetric, or ShopWare, go to <strong>Super Admin → ETL Migration</strong>. Export your data as CSV from your existing software, upload it, preview the field mapping, and run the import.</p>
+    </div>
+
+    <!-- SIGNING UP -->
+    <div class="doc-page" id="doc-signup">
+      <div class="page-header"><div class="page-tag">Getting started</div><div class="page-title">Signing up</div><div class="page-desc">How to request access and activate your AG Shop Pro workspace.</div></div>
+      <h2>Requesting access</h2>
+      <p>Click <strong>Request access →</strong> on the login page at <code>agshopro.com</code>. Fill in:</p>
+      <ul><li><strong>First and last name</strong> — your name as the account owner</li><li><strong>Work email</strong> — you'll receive your login credentials here</li><li><strong>Phone number</strong> — used for SMS-based password reset</li><li><strong>Shop name</strong> — your business name, becomes your workspace name</li><li><strong>Shop type</strong> — body shop, mechanic, quick lube, or multi-location</li><li><strong>Team size</strong> — number of technicians</li></ul>
+      <h2>What happens after you submit</h2>
+      <div class="step-grid">
+        <div class="step-card"><div class="step-num">1</div><div class="step-title">Welcome email</div><div class="step-desc">You'll receive a welcome email confirming your request and explaining next steps.</div></div>
+        <div class="step-card"><div class="step-num">2</div><div class="step-title">Workspace created</div><div class="step-desc">The AG Shop Pro team creates your workspace within 24 hours and sends your login credentials.</div></div>
+        <div class="step-card"><div class="step-num">3</div><div class="step-title">Set your password</div><div class="step-desc">Click the link in your credentials email, set a strong password, and sign in to your portal.</div></div>
+      </div>
+      <div class="alert alert-tip">✓ Once activated, you can invite your entire team from the Users page — they'll each get their own invite email to set their password.</div>
+    </div>
+
+    <!-- WORKSPACES -->
+    <div class="doc-page" id="doc-workspaces">
+      <div class="page-header"><div class="page-tag">Getting started</div><div class="page-title">Workspaces</div><div class="page-desc">Each shop is a workspace — a completely isolated environment with its own data, users, and settings.</div></div>
+      <h2>What is a workspace?</h2>
+      <p>A workspace is your shop's private space inside AG Shop Pro. Everything inside a workspace — repair orders, customers, vehicles, inventory, invoices, staff — belongs only to that workspace. Users in one workspace cannot see data from another.</p>
+      <h2>Current workspaces</h2>
+      <table class="doc-table"><thead><tr><th>Workspace</th><th>Type</th><th>Plan</th><th>Status</th></tr></thead><tbody><tr><td><strong>AmeriBenz</strong></td><td>Mechanic</td><td>Pro</td><td><span class="badge b-green">Active</span></td></tr><tr><td><strong>AvantGardeAuto</strong></td><td>Auto body</td><td>Pro</td><td><span class="badge b-green">Active</span></td></tr></tbody></table>
+      <h2>Switching workspaces</h2>
+      <p>If you have access to multiple workspaces (Super Admin or users assigned to multiple shops), you'll see a workspace switcher dropdown at the top of the sidebar. Click it to switch — all data on screen will update to that workspace immediately.</p>
+      <h2>Adding a new workspace</h2>
+      <p>Only Super Admins can create new workspaces. Go to <strong>Super Admin → Onboard shop</strong>, fill in the shop details and select a plan, then click <strong>Create shop & send invite</strong>.</p>
+      <div class="alert alert-warn">⚠ Workspaces on the Starter plan are limited to 3 users. Upgrade to Pro for up to 10 users, or Enterprise for unlimited.</div>
+    </div>
+
+    <!-- LOGIN & RESET -->
+    <div class="doc-page" id="doc-login">
+      <div class="page-header"><div class="page-tag">Getting started</div><div class="page-title">Login & password reset</div><div class="page-desc">How to sign in, switch portals, and reset your password.</div></div>
+      <h2>Signing in</h2>
+      <p>Go to <code>agshopro.com</code> and enter your email and password. The system automatically detects your role and redirects you to the correct portal — Manager, Service Advisor, Technician, or Super Admin.</p>
+      <h2>Forgot your password?</h2>
+      <p>Click <strong>Forgot password?</strong> on the login page and enter your email. You'll receive a reset link valid for <strong>1 hour</strong>. Click the link, set a new password (minimum 8 characters), and you'll be signed in automatically.</p>
+      <h2>SMS password reset</h2>
+      <p>If you have a phone number on file, you can also reset your password via SMS. Your admin can trigger an SMS OTP reset from <strong>Super Admin → Password resets</strong>. You'll receive a 6-digit code valid for 10 minutes.</p>
+      <h2>Admin-initiated reset</h2>
+      <p>Super Admins and Managers can reset any user's password from <strong>Users → Reset</strong>. The user receives an email or SMS with instructions.</p>
+      <div class="alert alert-info">💡 Sessions expire when you close your browser tab. You'll need to sign in again next time. This is by design to keep your shop data secure.</div>
+    </div>
+
+    <!-- ROLES -->
+    <div class="doc-page" id="doc-roles">
+      <div class="page-header"><div class="page-tag">Portals & roles</div><div class="page-title">Roles overview</div><div class="page-desc">AG Shop Pro has four roles — each gets their own portal tailored to their job.</div></div>
+      <div class="role-grid">
+        <div class="role-card"><span class="badge b-purple role-badge">Super admin</span><div class="role-title">AG Holdings owners</div><div class="role-desc">Full platform access. Manage all workspaces, users, billing, integrations, and ETL migration.</div><ul class="feature-list"><li>All workspaces</li><li>User management</li><li>Billing & subscriptions</li><li>Integrations setup</li><li>ETL data migration</li></ul></div>
+        <div class="role-card"><span class="badge b-blue role-badge">Manager</span><div class="role-title">Shop owners & managers</div><div class="role-desc">Full access to their workspace. All ROs, team management, financial reports, burn rate, SMS automation.</div><ul class="feature-list"><li>All ROs in workspace</li><li>Technician board & idle alerts</li><li>Burn rate dashboard</li><li>Call log & transcription</li><li>Lost customer SMS</li><li>Invoice closeout</li></ul></div>
+        <div class="role-card"><span class="badge b-green role-badge">Service advisor</span><div class="role-title">Front desk / advisors</div><div class="role-desc">Create and manage ROs, schedule appointments, communicate with customers, close invoices.</div><ul class="feature-list"><li>Create & manage ROs</li><li>New RO wizard</li><li>Appointment scheduling</li><li>Customer SMS</li><li>Reminder management</li><li>Invoice closeout</li></ul></div>
+        <div class="role-card"><span class="badge b-green role-badge">Technician</span><div class="role-title">Bay technicians</div><div class="role-desc">Mobile-first view. Assigned ROs only, clock in/out, labor status updates, timestamped tech notes.</div><ul class="feature-list"><li>Assigned ROs only</li><li>Start / pause / complete labor</li><li>Clock in & out</li><li>Parts status view</li><li>Timestamped tech notes</li></ul></div>
+      </div>
+      <h2>Permission matrix</h2>
+      <table class="doc-table"><thead><tr><th>Feature</th><th>Super admin</th><th>Manager</th><th>Service advisor</th><th>Technician</th></tr></thead><tbody><tr><td>View all workspaces</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr><tr><td>Create repair orders</td><td>✓</td><td>✓</td><td>✓</td><td>—</td></tr><tr><td>View all ROs</td><td>✓</td><td>✓</td><td>Own only</td><td>Assigned</td></tr><tr><td>View financial data</td><td>✓</td><td>✓</td><td>Invoices only</td><td>—</td></tr><tr><td>Clock in/out</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr><tr><td>Send customer SMS</td><td>✓</td><td>✓</td><td>✓</td><td>—</td></tr><tr><td>Manage users</td><td>✓</td><td>Own workspace</td><td>—</td><td>—</td></tr><tr><td>ETL migration</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr></tbody></table>
+    </div>
+
+    <!-- SUPER ADMIN -->
+    <div class="doc-page" id="doc-superadmin">
+      <div class="page-header"><div class="page-tag">Portals</div><div class="page-title">Super admin portal</div><div class="page-desc">Platform-wide oversight — workspaces, users, billing, and integrations.</div></div>
+      <h2>Dashboard — All workspaces</h2>
+      <p>The overview page shows all active workspaces with their revenue, RO completion rate, and status at a glance. Click any workspace card to drill into its details including team, burn rate, and active alerts.</p>
+      <h2>Alerts</h2>
+      <p>The Alerts page surfaces issues across all workspaces: idle technicians, overdue invoices, parts budget overruns, and pending approvals. Alerts are color-coded — red for urgent, yellow for warning.</p>
+      <h2>User management</h2>
+      <p>Go to <strong>Users → All users</strong> to see everyone on the platform. You can:</p>
+      <ul><li>Click <strong>Edit</strong> to update name, email, phone, role, or workspace assignment</li><li>Click <strong>Reset</strong> to send a password reset email or SMS</li><li>Click <strong>Deactivate</strong> to suspend access without deleting the account</li><li>Click <strong>Delete</strong> to permanently remove a user (requires confirmation)</li></ul>
+      <h2>Adding users</h2>
+      <p>Click <strong>+ Add user</strong>. The 3-step wizard collects their details, lets you select their role and workspace, then previews the invite email before sending.</p>
+      <h2>ETL migration</h2>
+      <p>See the <strong>ETL Migration</strong> doc for a full walkthrough of importing data from Mitchell 1, Tekmetric, or ShopWare.</p>
+    </div>
+
+    <!-- MANAGER -->
+    <div class="doc-page" id="doc-manager">
+      <div class="page-header"><div class="page-tag">Portals</div><div class="page-title">Manager portal</div><div class="page-desc">Full workspace oversight — ROs, team, financials, and customer outreach.</div></div>
+      <h2>Dashboard</h2>
+      <p>The dashboard shows your key metrics at a glance: open ROs, April revenue, parts spend vs budget, average RO value. Idle tech alerts appear at the top when a technician has been inactive for 30+ minutes.</p>
+      <h2>Workflow view</h2>
+      <p>Click any repair order to open the full workflow view. You'll see the animated pipeline at the top showing where the RO is — the car icon drives to the current stage. Click any stage button to move the RO forward. All status changes are auto-timestamped and logged in the comment thread below.</p>
+      <h2>Burn rate</h2>
+      <p>The Burn Rate page breaks down your monthly spend by category — parts, labor, overhead, software. A cash reserve recommendation is shown at the bottom so you know exactly how much to keep in your business account.</p>
+      <h2>Call log</h2>
+      <p>See every inbound and outbound call to your shop's Twilio number — caller ID, duration, who answered, and a full transcript of each call. Missed calls are highlighted in red for callback.</p>
+      <h2>SMS automation</h2>
+      <p>The SMS Automation page shows ML-suggested outreach based on Mitchell data — customers who are overdue for their next service. One click sends a personalized SMS. You can also schedule future messages and view the queue.</p>
+    </div>
+
+    <!-- SERVICE -->
+    <div class="doc-page" id="doc-service">
+      <div class="page-header"><div class="page-tag">Portals</div><div class="page-title">Service advisor portal</div><div class="page-desc">Day-to-day RO creation and customer management.</div></div>
+      <h2>My dashboard</h2>
+      <p>Your dashboard shows only the ROs assigned to you as service advisor, pending customer approvals, and today's appointments. Items needing immediate action are highlighted at the top.</p>
+      <h2>Creating a new RO</h2>
+      <p>Click <strong>+ New RO</strong>. The wizard walks you through three steps:</p>
+      <ol><li><strong>Find or create customer</strong> — search by name, phone, or email. If they're new, click + New customer.</li><li><strong>Select vehicle</strong> — choose from the customer's existing vehicles or add a new one with VIN and mileage.</li><li><strong>Complaint & assignment</strong> — enter the customer's complaint, assign a technician, and select the source (walk-in, appointment, CCC One import, phone).</li></ol>
+      <h2>Reminders</h2>
+      <p>Add reminders to follow up with customers — parts arrivals, estimate expirations, payment follow-ups. Overdue reminders appear in red at the top of your dashboard.</p>
+      <h2>Closing invoices</h2>
+      <p>When an RO is complete, go to <strong>Close out invoices</strong>. Click <strong>Send & close</strong> to generate a Square payment link and email it to the customer. The invoice is marked Sent and updates to Paid automatically when the customer pays.</p>
+    </div>
+
+    <!-- TECH -->
+    <div class="doc-page" id="doc-tech">
+      <div class="page-header"><div class="page-tag">Portals</div><div class="page-title">Technician portal</div><div class="page-desc">Mobile-first bay view — designed for phones and tablets in the shop.</div></div>
+      <h2>Clocking in and out</h2>
+      <p>Tap the large <strong>Clock In</strong> button at the top of the screen when you arrive. Tap <strong>Clock Out</strong> when you leave. Your hours are automatically calculated and saved — managers and super admins can see your time entries.</p>
+      <h2>Your assigned ROs</h2>
+      <p>Only ROs assigned to you appear in your portal. Each card shows the RO number, customer name, vehicle, and complaint. Status buttons let you quickly update progress:</p>
+      <ul><li><strong>▶ Start</strong> — marks labor as in progress and logs a timestamp</li><li><strong>⏸ Pause</strong> — pauses work (e.g. waiting on a part) and logs the time</li><li><strong>✓ Done</strong> — marks the labor line complete with a timestamp</li></ul>
+      <h2>Tech notes</h2>
+      <p>Type a note in the text field below any RO and press Enter. Your note is saved with your name and the exact timestamp — managers and service advisors can see all tech notes in the comment thread.</p>
+      <h2>Parts status</h2>
+      <p>Each RO card shows the parts required and their current status — Received (green) or Ordered (yellow). You'll see when parts arrive so you know when you can continue work.</p>
+    </div>
+
+    <!-- REPAIR ORDERS -->
+    <div class="doc-page" id="doc-ros">
+      <div class="page-header"><div class="page-tag">Core features</div><div class="page-title">Repair orders</div><div class="page-desc">The heart of AG Shop Pro — every job starts with a repair order.</div></div>
+      <h2>RO lifecycle</h2>
+      <p>Every repair order moves through these stages:</p>
+      <table class="doc-table"><thead><tr><th>Stage</th><th>Meaning</th><th>Who acts</th></tr></thead><tbody><tr><td><span class="badge b-yellow">Estimate</span></td><td>Initial assessment created, not yet approved</td><td>Service advisor</td></tr><tr><td><span class="badge b-blue">Approved</span></td><td>Customer has approved the estimate</td><td>Service advisor / customer</td></tr><tr><td><span class="badge b-blue">In progress</span></td><td>Technician is actively working</td><td>Technician</td></tr><tr><td><span class="badge b-yellow">Waiting parts</span></td><td>Work paused pending parts arrival</td><td>Parts department</td></tr><tr><td><span class="badge b-green">Completed</span></td><td>All work done, ready for invoice</td><td>Technician / advisor</td></tr><tr><td><span class="badge b-blue">Invoiced</span></td><td>Invoice sent to customer</td><td>Service advisor</td></tr><tr><td><span class="badge b-green">Paid</span></td><td>Payment received</td><td>Square webhook / advisor</td></tr></tbody></table>
+      <h2>Labor lines</h2>
+      <p>Each RO has labor lines — specific tasks assigned to a technician with estimated hours, actual hours, and rate. Click <strong>+ Add</strong> to add a labor line. Technicians can mark individual labor lines as started, paused, or complete from their portal.</p>
+      <h2>Parts lines</h2>
+      <p>Add parts to an RO with part number, description, quantity, cost, and price. Parts can be ordered directly through Worldpac from the parts line. Status updates automatically when parts are received.</p>
+      <h2>Comment thread</h2>
+      <p>Every RO has a timestamped comment thread showing the full history — status updates, tech notes, customer messages, and parts updates. All comments are auto-timestamped with the author's name. You cannot edit or delete comments — they are a permanent audit trail.</p>
+      <h2>Flagging blocked ROs</h2>
+      <p>If an RO is stuck — waiting on a customer decision, insurance approval, or a back-ordered part — click <strong>🚫 Flag Blocked</strong>. This notifies the manager and super admin and adds a blocked entry to the comment thread.</p>
+    </div>
+
+    <!-- WORKFLOW -->
+    <div class="doc-page" id="doc-workflow">
+      <div class="page-header"><div class="page-tag">Core features</div><div class="page-title">Workflow pipeline</div><div class="page-desc">Visual pipeline showing exactly where every RO is — animated car drives to the current stage.</div></div>
+      <h2>The pipeline</h2>
+      <p>The workflow view shows a 7-stage pipeline at the top of every RO detail page. The red car icon animates to the current stage so you can see at a glance where the job is. Click any stage button below the pipeline to move the RO to that stage.</p>
+      <h2>Stage buttons</h2>
+      <p>The stage buttons are available to Managers and Service Advisors. Each click: moves the car to the new position, adds a timestamped status update to the comment thread, and sends a real-time update to anyone else viewing the same RO.</p>
+      <h2>Blocked flag</h2>
+      <p>The red <strong>🚫 Flag Blocked</strong> button marks the RO as blocked without changing its stage. Use this when work cannot proceed but you're not ready to move to the next stage. The manager receives an alert.</p>
+      <div class="alert alert-info">💡 All stage changes are real-time — if a service advisor moves an RO from Estimate to Approved while a technician is viewing it, the technician's screen updates instantly without a page refresh.</div>
+    </div>
+
+    <!-- INVOICES -->
+    <div class="doc-page" id="doc-invoices">
+      <div class="page-header"><div class="page-tag">Core features</div><div class="page-title">Invoices & payments</div><div class="page-desc">Close out jobs and collect payment via Square.</div></div>
+      <h2>Creating an invoice</h2>
+      <p>When an RO is marked Completed, go to <strong>Invoices → + New invoice</strong> or click <strong>Generate invoice</strong> from within the RO. The invoice pulls all labor and parts totals automatically.</p>
+      <h2>Sending to customer</h2>
+      <p>Click <strong>Send & close</strong>. This generates a Square payment link and emails it to the customer. The invoice status moves to <span class="badge b-blue">Sent</span>.</p>
+      <h2>Payment confirmation</h2>
+      <p>When the customer pays via the Square link, Square sends a webhook to AG Shop Pro. The invoice automatically moves to <span class="badge b-green">Paid</span> and the RO moves to <span class="badge b-green">Paid</span>. The manager's revenue dashboard updates in real time.</p>
+      <h2>Invoice statuses</h2>
+      <table class="doc-table"><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody><tr><td><span class="badge b-yellow">Draft</span></td><td>Created but not sent</td></tr><tr><td><span class="badge b-blue">Sent</span></td><td>Payment link emailed to customer</td></tr><tr><td><span class="badge b-green">Paid</span></td><td>Payment confirmed via Square</td></tr><tr><td><span class="badge b-red">Void</span></td><td>Cancelled — no payment expected</td></tr></tbody></table>
+    </div>
+
+    <!-- TIME CLOCK -->
+    <div class="doc-page" id="doc-timeclock">
+      <div class="page-header"><div class="page-tag">Core features</div><div class="page-title">Time clock</div><div class="page-desc">Track technician hours per RO and per day.</div></div>
+      <h2>How it works</h2>
+      <p>Technicians clock in and out from their mobile portal. Each clock-in can be optionally linked to an RO so managers can see exactly how many hours were spent on each job.</p>
+      <h2>Manager view</h2>
+      <p>Managers see all technician time entries for the day in the <strong>Tech Board</strong> section of the dashboard — who is clocked in, what RO they're working on, and total hours today. Idle alerts fire when a clocked-in technician has no active RO for 30+ minutes.</p>
+      <h2>Weekly reports</h2>
+      <p>Go to <strong>Reports → Technician performance</strong> to see hours worked, ROs completed, and efficiency percentage per technician for any date range.</p>
+    </div>
+
+    <!-- REMINDERS -->
+    <div class="doc-page" id="doc-reminders">
+      <div class="page-header"><div class="page-tag">Core features</div><div class="page-title">Reminders</div><div class="page-desc">Never miss a follow-up — set reminders for customers, estimates, and parts.</div></div>
+      <h2>Creating a reminder</h2>
+      <p>Reminders can be created from the Manager portal (<strong>Reminders → + New reminder</strong>) or the Service Advisor portal (<strong>Reminders → Add reminder</strong>). Select the customer, write the message, and set the due date and time.</p>
+      <h2>Reminder types</h2>
+      <ul><li><strong>Follow-up</strong> — check in with a customer after service</li><li><strong>Estimate expiry</strong> — estimates expire in 30 days by default; get reminded before they do</li><li><strong>Parts arrived</strong> — auto-created when ordered parts are marked as received</li><li><strong>Payment due</strong> — follow up on overdue invoices</li><li><strong>Custom</strong> — anything else</li></ul>
+      <h2>Overdue reminders</h2>
+      <p>Reminders past their due date appear in red at the top of the Manager and Service Advisor dashboards. Super Admins see overdue reminders across all workspaces in the Alerts page.</p>
+    </div>
+
+    <!-- CCC ONE -->
+    <div class="doc-page" id="doc-ccc">
+      <div class="page-header"><div class="page-tag">Integrations</div><div class="page-title">CCC One</div><div class="page-desc">Auto-import collision estimates from CCC One as repair orders.</div></div>
+      <h2>Setup</h2>
+      <p>Go to <strong>Super Admin → Integrations → CCC One → Connect</strong>. Enter your CCC One Shop ID and API key. Click <strong>Test connection</strong> to verify.</p>
+      <h2>How it works</h2>
+      <p>Once connected, every estimate approved in CCC One automatically creates a repair order in AG Shop Pro with the customer info, vehicle details, labor lines, and parts pre-populated. A service advisor gets notified instantly.</p>
+      <div class="alert alert-warn">⚠ CCC One integration requires a CCC One Pro or Enterprise subscription. Contact CCC One to enable API access for your shop.</div>
+    </div>
+
+    <!-- SQUARE -->
+    <div class="doc-page" id="doc-square">
+      <div class="page-header"><div class="page-tag">Integrations</div><div class="page-title">Square payments</div><div class="page-desc">Accept card payments and get real-time revenue data via Square.</div></div>
+      <h2>Setup</h2>
+      <p>Go to <strong>Super Admin → Integrations → Square → Connect</strong>. You'll be redirected to Square's OAuth flow. Sign in to your Square account and authorize AG Shop Pro.</p>
+      <h2>Payment links</h2>
+      <p>When you send an invoice, AG Shop Pro generates a Square payment link automatically. The customer can pay on their phone or at the counter. Payment confirmation is instant via webhook.</p>
+      <h2>Revenue dashboard</h2>
+      <p>The Manager's revenue stats pull live data from Square — revenue today, this week, and this month all update in real time as payments come in.</p>
+    </div>
+
+    <!-- TWILIO -->
+    <div class="doc-page" id="doc-twilio">
+      <div class="page-header"><div class="page-tag">Integrations</div><div class="page-title">Twilio (SMS & calls)</div><div class="page-desc">Connect your shop's landline, log calls, transcribe conversations, and send customer SMS.</div></div>
+      <h2>Setup</h2>
+      <p>Go to <strong>Super Admin → Integrations → Twilio → Connect</strong>. Enter your Twilio Account SID and Auth Token. You can either port your existing landline number to Twilio or set up call forwarding from your landline to a Twilio number.</p>
+      <h2>Call logging</h2>
+      <p>Every inbound and outbound call through your Twilio number is logged in the Manager portal under <strong>Call Log</strong> — caller ID, duration, who answered, call time, and a full transcript generated by Twilio's AI transcription.</p>
+      <h2>Customer SMS</h2>
+      <p>Send individual or automated SMS messages to customers from the Service Advisor and Manager portals. Messages come from your shop's Twilio number so customers see a consistent phone number.</p>
+      <h2>Lost customer outreach</h2>
+      <p>The Manager's <strong>SMS Automation</strong> page uses ML to suggest customers who are overdue for service based on their Mitchell history. One click sends a personalized outreach SMS.</p>
+    </div>
+
+    <!-- MITCHELL -->
+    <div class="doc-page" id="doc-mitchell">
+      <div class="page-header"><div class="page-tag">Integrations</div><div class="page-title">Mitchell Pro</div><div class="page-desc">Auto-fill labor times on repair orders using Mitchell's labor time database.</div></div>
+      <h2>Setup</h2>
+      <p>Go to <strong>Super Admin → Integrations → Mitchell Pro → Connect</strong>. Enter your Mitchell Pro API key.</p>
+      <h2>Labor time lookup</h2>
+      <p>When adding a labor line to a repair order, enter the operation code and AG Shop Pro automatically fetches the Mitchell labor time for that vehicle and pre-fills the estimated hours. You can override the value if needed.</p>
+    </div>
+
+    <!-- ETL -->
+    <div class="doc-page" id="doc-etl">
+      <div class="page-header"><div class="page-tag">Data & migration</div><div class="page-title">ETL migration</div><div class="page-desc">Import your existing customer, vehicle, and RO history from your current software.</div></div>
+      <h2>Supported sources</h2>
+      <ul><li><strong>Mitchell 1</strong> — export from Reports → Data Export as CSV</li><li><strong>Tekmetric</strong> — export from Settings → Data Export</li><li><strong>ShopWare</strong> — export from Admin → Export Data</li><li><strong>Generic CSV</strong> — any CSV with customer name, email, phone, vehicle, and service history</li></ul>
+      <h2>Migration steps</h2>
+      <div class="step-grid">
+        <div class="step-card"><div class="step-num">1</div><div class="step-title">Export from source</div><div class="step-desc">Export your data as CSV from your current software. Include customers, vehicles, and RO history.</div></div>
+        <div class="step-card"><div class="step-num">2</div><div class="step-title">Upload & preview</div><div class="step-desc">Go to Super Admin → ETL Migration. Upload the CSV. Preview the first 10 rows and map fields to the AG Shop Pro schema.</div></div>
+        <div class="step-card"><div class="step-num">3</div><div class="step-title">Run import</div><div class="step-desc">Click Start import. A progress bar shows records processed. Any errors are logged with the row number and reason.</div></div>
+      </div>
+      <div class="alert alert-tip">✓ Always run a preview import first on a small sample (50-100 records) before importing your full dataset. This lets you catch field mapping issues early.</div>
+      <h2>After migration</h2>
+      <p>Imported customers and vehicles appear immediately in your workspace. Historical ROs are marked as imported and are visible in the customer's service history. Imported ROs cannot be edited — they are read-only records.</p>
+    </div>
+
+    <!-- USERS -->
+    <div class="doc-page" id="doc-users">
+      <div class="page-header"><div class="page-tag">Data & migration</div><div class="page-title">Managing users</div><div class="page-desc">Add, edit, deactivate, and delete users across all workspaces.</div></div>
+      <h2>Adding a user</h2>
+      <p>Go to <strong>Super Admin → Users → + Add user</strong>. The 3-step wizard:</p>
+      <ol><li><strong>User details</strong> — name, email, and phone number. Phone enables SMS-based password reset.</li><li><strong>Role & access</strong> — select the role (Super Admin, Manager, Service Advisor, or Technician) and assign the workspace(s) they can access.</li><li><strong>Confirm & invite</strong> — preview the invite email before sending.</li></ol>
+      <h2>Deactivating a user</h2>
+      <p>Click <strong>Deactivate</strong> next to any user. Their account is suspended immediately — they cannot log in — but their data is preserved. Click <strong>Reactivate</strong> to restore access.</p>
+      <h2>Deleting a user</h2>
+      <p>Click <strong>Delete</strong>. You'll be prompted to confirm. Deletion is permanent and cannot be undone. All their comments and time entries remain in the system attributed to their name, but their login is removed.</p>
+      <div class="alert alert-warn">⚠ You cannot delete your own account. Contact AG Holdings support to delete the primary Super Admin account.</div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="doc-page" id="doc-security">
+      <div class="page-header"><div class="page-tag">Data & migration</div><div class="page-title">Security</div><div class="page-desc">How AG Shop Pro keeps your shop data safe.</div></div>
+      <h2>Authentication</h2>
+      <ul><li>Passwords are hashed and never stored in plain text</li><li>Sessions expire when you close the browser tab</li><li>Password reset links expire after 1 hour</li><li>SMS OTP codes expire after 10 minutes</li></ul>
+      <h2>Data isolation</h2>
+      <p>Every database query is scoped by workspace ID. It is architecturally impossible for users in one workspace to access data from another workspace.</p>
+      <h2>Infrastructure</h2>
+      <ul><li>All traffic encrypted via HTTPS (TLS 1.3)</li><li>Database in a private VPC subnet — not internet-accessible</li><li>S3 buckets encrypted at rest (AES-256)</li><li>AWS WAF protects against SQL injection and XSS</li><li>Automated daily database backups with 7-day retention</li></ul>
+      <h2>Best practices</h2>
+      <ul><li>Use a strong unique password — at least 12 characters with uppercase, numbers, and symbols</li><li>Never share your login credentials</li><li>Sign out when using a shared device</li><li>Report suspicious activity to your admin immediately</li></ul>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showDoc(id, el) {
+  document.querySelectorAll('.doc-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+  document.getElementById('doc-' + id).classList.add('active');
+  if(el) el.classList.add('active');
+  const titles = {
+    overview:'Overview', quickstart:'Quick start guide', signup:'Signing up',
+    workspaces:'Workspaces', login:'Login & password reset', roles:'Roles overview',
+    superadmin:'Super admin portal', manager:'Manager portal', service:'Service advisor portal',
+    tech:'Technician portal', ros:'Repair orders', workflow:'Workflow pipeline',
+    customers:'Customers & vehicles', invoices:'Invoices & payments', timeclock:'Time clock',
+    reminders:'Reminders', ccc:'CCC One', square:'Square payments', twilio:'Twilio',
+    mitchell:'Mitchell Pro', etl:'ETL migration', users:'Managing users', security:'Security'
+  };
+  document.getElementById('topbar-section').textContent = titles[id] || id;
+  window.scrollTo(0,0);
+}
+
+function searchDocs(q) {
+  const links = document.querySelectorAll('.nav-link');
+  q = q.toLowerCase().trim();
+  links.forEach(l => {
+    l.style.display = (!q || l.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-group-label').forEach(g => {
+    const section = g.nextElementSibling?.closest ? g.parentElement : null;
+    g.style.display = '';
+  });
+}
+</script>
+</body>
+</html>

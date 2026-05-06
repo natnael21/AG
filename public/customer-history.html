@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AG Shop Pro — Customer History</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0a1628;--accent:#e94560;--gold:#c9a84c;--bg:#f8fafc;--card:#fff;--border:#e2e8f0;--text:#1a2035;--muted:#718096;--green:#2f855a;--blue:#2b6cb0;--yellow:#b7791f;--red:#c53030;--purple:#6b46c1}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+.topbar{background:var(--navy);padding:11px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.brand{font-family:'DM Serif Display',serif;font-size:.9rem;color:#fff}
+.brand span{color:var(--accent)}
+.btn{padding:6px 12px;border-radius:8px;font-size:.72rem;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);transition:all .15s}
+.btn:hover{background:rgba(255,255,255,.15)}
+.btn-white{background:#fff;color:var(--navy);border-color:#fff}
+.btn-r{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-sm{padding:4px 9px;font-size:.65rem}
+.content{max-width:960px;margin:0 auto;padding:20px}
+.customer-hero{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:18px}
+.ch-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:16px}
+.ch-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:600;flex-shrink:0}
+.ch-name{font-size:1.1rem;font-weight:600;margin-bottom:3px}
+.ch-contact{font-size:.78rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.ch-source{font-size:.65rem;color:var(--accent);background:#fff5f5;padding:2px 7px;border-radius:50px;border:1px solid rgba(233,69,96,.2)}
+.ch-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding-top:14px;border-top:1px solid var(--border)}
+.ch-stat{text-align:center}
+.ch-stat-val{font-size:1.2rem;font-weight:600;color:var(--text)}
+.ch-stat-lbl{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:2px}
+.tab-bar{display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab{padding:8px 16px;font-size:.78rem;font-weight:500;cursor:pointer;border:none;background:none;color:var(--muted);font-family:'DM Sans',sans-serif;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--text)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.card-hdr{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:.82rem;font-weight:600}
+.vehicle-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.vc-top{padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer}
+.vc-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;background:#f8fafc;flex-shrink:0}
+.vc-vin{font-size:.65rem;font-family:monospace;color:var(--muted);margin-top:1px}
+.vc-year{font-size:.9rem;font-weight:600}
+.vc-make{font-size:.8rem;color:var(--text)}
+.vc-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.badge{display:inline-flex;padding:2px 8px;border-radius:50px;font-size:.62rem;font-weight:600}
+.b-green{background:#c6f6d5;color:#276749}
+.b-blue{background:#bee3f8;color:#2a4365}
+.b-yellow{background:#fefcbf;color:#744210}
+.b-red{background:#fed7d7;color:#822727}
+.b-gray{background:#edf2f7;color:#4a5568}
+.b-purple{background:#e9d8fd;color:#553c9a}
+.b-orange{background:#feebc8;color:#7b341e}
+.mileage-timeline{padding:12px 16px;border-top:1px solid var(--border)}
+.ml-title{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}
+.ml-track{display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:4px}
+.ml-point{display:flex;flex-direction:column;align-items:center;min-width:70px}
+.ml-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.ml-line{height:2px;flex:1;background:var(--border);min-width:20px}
+.ml-mileage{font-size:.7rem;font-weight:600;margin-top:4px;text-align:center}
+.ml-date{font-size:.6rem;color:var(--muted);text-align:center}
+.ro-timeline{display:flex;flex-direction:column;gap:0}
+.ro-row{display:flex;align-items:flex-start;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.ro-row:last-child{border-bottom:none}
+.ro-row:hover{background:#f8fafc}
+.ro-row.expanded{background:#fafbff}
+.ro-date-col{width:80px;flex-shrink:0;text-align:right}
+.ro-date{font-size:.75rem;font-weight:500}
+.ro-year{font-size:.65rem;color:var(--muted)}
+.ro-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.ro-line{width:1px;background:var(--border);flex-shrink:0;align-self:stretch;margin:12px 0 0;min-height:20px}
+.ro-body{flex:1}
+.ro-title{font-size:.82rem;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:7px}
+.ro-complaint{font-size:.72rem;color:var(--muted);margin-bottom:5px;line-height:1.5}
+.ro-totals{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:5px}
+.ro-total-item{font-size:.68rem;color:var(--muted)}
+.ro-total-item strong{color:var(--text)}
+.ro-detail{display:none;margin-top:8px}
+.ro-detail.open{display:block}
+.lines-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.lines-section{background:#f8fafc;border-radius:8px;overflow:hidden}
+.lines-hdr{padding:6px 10px;font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:#f1f5f9;border-bottom:1px solid var(--border)}
+.line-item{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--border);font-size:.72rem}
+.line-item:last-child{border-bottom:none}
+.line-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.line-desc{flex:1;color:var(--text)}
+.line-cat{font-size:.6rem;color:var(--muted)}
+.line-amt{font-weight:500;white-space:nowrap}
+.cat-chip{display:inline-flex;padding:1px 6px;border-radius:50px;font-size:.58rem;font-weight:600;margin-right:4px}
+.payment-row{display:flex;align-items:center;gap:12px;padding:9px 16px;border-bottom:1px solid var(--border);font-size:.78rem}
+.payment-row:last-child{border-bottom:none}
+.category-bar{height:8px;background:#edf2f7;border-radius:50px;overflow:hidden;margin-bottom:6px}
+.category-fill{height:100%;border-radius:50px}
+.search-bar{display:flex;gap:8px;margin-bottom:14px}
+.search-input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif;background:var(--card)}
+.search-input:focus{outline:none;border-color:var(--accent)}
+.toast{position:fixed;bottom:16px;right:16px;background:var(--navy);color:#fff;padding:9px 14px;border-radius:9px;font-size:.75rem;z-index:999;opacity:0;transform:translateY(6px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.source-pill{font-size:.62rem;padding:2px 7px;border-radius:50px;background:#ebf8ff;color:#2a4365;border:1px solid #bee3f8}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <div class="brand">AG <span>Shop Pro</span> <span style="font-size:.72rem;color:rgba(255,255,255,.35);font-family:'DM Sans',sans-serif">/ Customer history</span></div>
+  <div style="display:flex;gap:7px">
+    <button class="btn btn-sm" onclick="history.back()">← Back</button>
+    <button class="btn btn-sm btn-white" onclick="toast('Printing customer report...')">Print report</button>
+    <button class="btn btn-sm btn-r" onclick="toast('SMS sent to Marcus Johnson')">Send SMS</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- CUSTOMER HERO -->
+  <div class="customer-hero">
+    <div class="ch-top">
+      <div class="ch-avatar" style="background:#bee3f8;color:#2a4365">MJ</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="ch-name">Marcus Johnson</div>
+          <span class="ch-source">Mitchell 1 · ws-001</span>
+        </div>
+        <div class="ch-contact">
+          <span>📞 (240) 555-0142</span>
+          <span>✉ marcus.j@email.com</span>
+          <span>📍 Silver Spring, MD</span>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted)">Customer since Feb 2019 · Last visit: Apr 23, 2026</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:1.4rem;font-weight:600;color:var(--green)">$8,420</div>
+        <div style="font-size:.68rem;color:var(--muted)">Total spent · all time</div>
+      </div>
+    </div>
+    <div class="ch-stats">
+      <div class="ch-stat"><div class="ch-stat-val">14</div><div class="ch-stat-lbl">Total visits</div></div>
+      <div class="ch-stat"><div class="ch-stat-val">2</div><div class="ch-stat-lbl">Vehicles</div></div>
+      <div class="ch-stat"><div class="ch-stat-val">$601</div><div class="ch-stat-lbl">Avg ticket</div></div>
+      <div class="ch-stat"><div class="ch-stat-val">Apr 23</div><div class="ch-stat-lbl">Last visit</div></div>
+      <div class="ch-stat"><div class="ch-stat-val" style="color:var(--green)">Active</div><div class="ch-stat-lbl">Status</div></div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab active" onclick="showTab('history',this)">Service history</button>
+    <button class="tab" onclick="showTab('vehicles',this)">Vehicles & mileage</button>
+    <button class="tab" onclick="showTab('spending',this)">Spending breakdown</button>
+    <button class="tab" onclick="showTab('payments',this)">Payments</button>
+  </div>
+
+  <!-- SERVICE HISTORY TAB -->
+  <div class="tab-content active" id="tab-history">
+    <div class="search-bar">
+      <input class="search-input" placeholder="Search ROs by complaint, service, vehicle..." oninput="filterROs(this.value)"/>
+      <select style="padding:7px 11px;border:1px solid var(--border);border-radius:8px;font-size:.75rem;font-family:'DM Sans',sans-serif;background:var(--card)">
+        <option>All vehicles</option>
+        <option>2019 BMW 3 Series</option>
+        <option>2021 Honda CR-V</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="card-hdr">All repair orders <span style="font-size:.65rem;font-weight:400;color:var(--muted)">14 visits · click to expand</span><span class="source-pill">Mitchell 1</span></div>
+      <div class="ro-timeline" id="ro-list">
+
+        <div class="ro-row" onclick="toggleRO(this)">
+          <div class="ro-date-col"><div class="ro-date">Apr 23</div><div class="ro-year">2026</div></div>
+          <div class="ro-dot" style="background:var(--blue)"></div>
+          <div class="ro-body">
+            <div class="ro-title">RO-1041 <span class="badge b-blue">In progress</span></div>
+            <div class="ro-complaint">Front end collision damage — bumper replacement, hood realignment, headlight assembly</div>
+            <div class="ro-totals">
+              <div class="ro-total-item">Labor: <strong>$840</strong></div>
+              <div class="ro-total-item">Parts: <strong>$1,380</strong></div>
+              <div class="ro-total-item">Vehicle: <strong>2019 BMW 3 Series</strong></div>
+              <div class="ro-total-item">Tech: <strong>Alex Torres</strong></div>
+            </div>
+            <div class="ro-detail">
+              <div class="lines-grid">
+                <div class="lines-section">
+                  <div class="lines-hdr">Labor lines</div>
+                  <div class="line-item"><div class="line-dot" style="background:#3182ce"></div><div><div class="line-desc">Front bumper replacement</div><div class="line-cat">labor_body · 3.5h</div></div><div class="line-amt">$420</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#38a169"></div><div><div class="line-desc">Hood realignment</div><div class="line-cat">labor_body · 2.0h</div></div><div class="line-amt">$240</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#3182ce"></div><div><div class="line-desc">Headlight assembly install</div><div class="line-cat">labor_mechanical · 1.5h</div></div><div class="line-amt">$180</div></div>
+                </div>
+                <div class="lines-section">
+                  <div class="lines-hdr">Parts lines</div>
+                  <div class="line-item"><div class="line-dot" style="background:#805ad5"></div><div><div class="line-desc">Front bumper cover</div><div class="line-cat">parts_oem · OEM</div></div><div class="line-amt">$520</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#805ad5"></div><div><div class="line-desc">Headlight assembly</div><div class="line-cat">parts_oem · OEM</div></div><div class="line-amt">$410</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#dd6b20"></div><div><div class="line-desc">Bumper mounting bracket</div><div class="line-cat">parts_aftermarket</div></div><div class="line-amt">$45</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#718096"></div><div><div class="line-desc">Shop supplies</div><div class="line-cat">shop_supplies</div></div><div class="line-amt">$45</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ro-row" onclick="toggleRO(this)">
+          <div class="ro-date-col"><div class="ro-date">Nov 12</div><div class="ro-year">2025</div></div>
+          <div class="ro-dot" style="background:var(--green)"></div>
+          <div class="ro-body">
+            <div class="ro-title">RO-0987 <span class="badge b-green">Paid</span></div>
+            <div class="ro-complaint">Full service — oil change, brake inspection, tire rotation, cabin filter</div>
+            <div class="ro-totals">
+              <div class="ro-total-item">Labor: <strong>$180</strong></div>
+              <div class="ro-total-item">Parts: <strong>$87</strong></div>
+              <div class="ro-total-item">Vehicle: <strong>2019 BMW 3 Series</strong></div>
+              <div class="ro-total-item">Total: <strong>$267</strong></div>
+            </div>
+            <div class="ro-detail">
+              <div class="lines-grid">
+                <div class="lines-section">
+                  <div class="lines-hdr">Labor lines</div>
+                  <div class="line-item"><div class="line-dot" style="background:#d69e2e"></div><div><div class="line-desc">Oil change — synthetic 5W-30</div><div class="line-cat">labor_maintenance · 0.5h</div></div><div class="line-amt">$60</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#d69e2e"></div><div><div class="line-desc">Tire rotation + balance</div><div class="line-cat">labor_maintenance · 0.8h</div></div><div class="line-amt">$80</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#3182ce"></div><div><div class="line-desc">Brake inspection</div><div class="line-cat">labor_mechanical · 0.3h</div></div><div class="line-amt">$40</div></div>
+                </div>
+                <div class="lines-section">
+                  <div class="lines-hdr">Parts lines</div>
+                  <div class="line-item"><div class="line-dot" style="background:#dd6b20"></div><div><div class="line-desc">Synthetic oil 5W-30 (6qt)</div><div class="line-cat">parts_aftermarket</div></div><div class="line-amt">$42</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#805ad5"></div><div><div class="line-desc">BMW oil filter OEM</div><div class="line-cat">parts_oem</div></div><div class="line-amt">$28</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#dd6b20"></div><div><div class="line-desc">Cabin air filter</div><div class="line-cat">parts_aftermarket</div></div><div class="line-amt">$17</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ro-row" onclick="toggleRO(this)">
+          <div class="ro-date-col"><div class="ro-date">Jun 3</div><div class="ro-year">2025</div></div>
+          <div class="ro-dot" style="background:var(--green)"></div>
+          <div class="ro-body">
+            <div class="ro-title">RO-0921 <span class="badge b-green">Paid</span></div>
+            <div class="ro-complaint">Brake pads + rotors front — squealing noise on braking</div>
+            <div class="ro-totals">
+              <div class="ro-total-item">Labor: <strong>$240</strong></div>
+              <div class="ro-total-item">Parts: <strong>$310</strong></div>
+              <div class="ro-total-item">Vehicle: <strong>2019 BMW 3 Series</strong></div>
+              <div class="ro-total-item">Total: <strong>$550</strong></div>
+            </div>
+            <div class="ro-detail">
+              <div class="lines-grid">
+                <div class="lines-section">
+                  <div class="lines-hdr">Labor lines</div>
+                  <div class="line-item"><div class="line-dot" style="background:#3182ce"></div><div><div class="line-desc">Front brake pads + rotors R&R</div><div class="line-cat">labor_mechanical · 2.0h</div></div><div class="line-amt">$240</div></div>
+                </div>
+                <div class="lines-section">
+                  <div class="lines-hdr">Parts lines</div>
+                  <div class="line-item"><div class="line-dot" style="background:#805ad5"></div><div><div class="line-desc">BMW front brake rotors (2)</div><div class="line-cat">parts_oem · OEM</div></div><div class="line-amt">$180</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#805ad5"></div><div><div class="line-desc">BMW front brake pads</div><div class="line-cat">parts_oem · OEM</div></div><div class="line-amt">$95</div></div>
+                  <div class="line-item"><div class="line-dot" style="background:#dd6b20"></div><div><div class="line-desc">Brake cleaner + hardware</div><div class="line-cat">shop_supplies</div></div><div class="line-amt">$35</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ro-row" onclick="toggleRO(this)" style="opacity:.7">
+          <div class="ro-date-col"><div class="ro-date">Jan 9</div><div class="ro-year">2025</div></div>
+          <div class="ro-dot" style="background:var(--green)"></div>
+          <div class="ro-body">
+            <div class="ro-title">RO-0874 <span class="badge b-green">Paid</span></div>
+            <div class="ro-complaint">Oil change + tire rotation + check A/C cooling</div>
+            <div class="ro-totals">
+              <div class="ro-total-item">Total: <strong>$189</strong></div>
+              <div class="ro-total-item">Vehicle: <strong>2019 BMW 3 Series</strong></div>
+            </div>
+            <div class="ro-detail"><div style="padding:8px;font-size:.72rem;color:var(--muted)">Click to expand labor + parts lines</div></div>
+          </div>
+        </div>
+
+        <div class="ro-row" onclick="toggleRO(this)" style="opacity:.7">
+          <div class="ro-date-col"><div class="ro-date">Aug 14</div><div class="ro-year">2024</div></div>
+          <div class="ro-dot" style="background:var(--green)"></div>
+          <div class="ro-body">
+            <div class="ro-title">RO-0801 <span class="badge b-green">Paid</span></div>
+            <div class="ro-complaint">2021 Honda CR-V — first visit · 60,000 mile service</div>
+            <div class="ro-totals">
+              <div class="ro-total-item">Total: <strong>$340</strong></div>
+              <div class="ro-total-item">Vehicle: <strong>2021 Honda CR-V</strong></div>
+            </div>
+            <div class="ro-detail"><div style="padding:8px;font-size:.72rem;color:var(--muted)">Click to expand</div></div>
+          </div>
+        </div>
+
+        <div style="padding:10px 16px;font-size:.72rem;color:var(--muted);background:#f8fafc;text-align:center">
+          + 9 more visits from 2019–2023 · All imported from Mitchell 1
+          <button class="btn btn-sm" style="margin-left:8px;font-size:.65rem" onclick="toast('Loading full history...')">Load all</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VEHICLES TAB -->
+  <div class="tab-content" id="tab-vehicles">
+    <div class="vehicle-card">
+      <div class="vc-top">
+        <div class="vc-icon">🚗</div>
+        <div style="flex:1">
+          <div class="vc-year" style="font-size:1rem">2019 BMW 3 Series</div>
+          <div class="vc-make">330i xDrive · Mineral White Metallic</div>
+          <div class="vc-vin">VIN: WBA5R7C50KAF82341</div>
+          <div class="vc-badges">
+            <span class="badge b-blue">Primary vehicle</span>
+            <span class="badge b-gray">10 visits</span>
+            <span class="badge b-green">Last in Apr 2026</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:1rem;font-weight:600">68,420 mi</div>
+          <div style="font-size:.68rem;color:var(--muted)">Current mileage</div>
+        </div>
+      </div>
+      <div class="mileage-timeline">
+        <div class="ml-title">Mileage at each visit (from Mitchell 1)</div>
+        <div class="ml-track">
+          <div class="ml-point"><div class="ml-dot"></div><div class="ml-mileage">38,200</div><div class="ml-date">Feb 2019</div></div>
+          <div class="ml-line"></div>
+          <div class="ml-point"><div class="ml-dot"></div><div class="ml-mileage">44,100</div><div class="ml-date">Jun 2020</div></div>
+          <div class="ml-line"></div>
+          <div class="ml-point"><div class="ml-dot"></div><div class="ml-mileage">49,800</div><div class="ml-date">Mar 2021</div></div>
+          <div class="ml-line"></div>
+          <div class="ml-point"><div class="ml-dot"></div><div class="ml-mileage">54,300</div><div class="ml-date">Aug 2022</div></div>
+          <div class="ml-line"></div>
+          <div class="ml-point"><div class="ml-dot"></div><div class="ml-mileage">59,100</div><div class="ml-date">Jan 2024</div></div>
+          <div class="ml-line"></div>
+          <div class="ml-point"><div class="ml-dot"></div><div class="ml-mileage">62,800</div><div class="ml-date">Jun 2025</div></div>
+          <div class="ml-line"></div>
+          <div class="ml-point"><div class="ml-dot" style="background:var(--green)"></div><div class="ml-mileage" style="color:var(--green)">68,420</div><div class="ml-date">Apr 2026</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="vehicle-card">
+      <div class="vc-top">
+        <div class="vc-icon">🚙</div>
+        <div style="flex:1">
+          <div class="vc-year" style="font-size:1rem">2021 Honda CR-V</div>
+          <div class="vc-make">EX-L AWD · Sonic Gray Pearl</div>
+          <div class="vc-vin">VIN: 5J6RW2H83MA009142</div>
+          <div class="vc-badges">
+            <span class="badge b-gray">4 visits</span>
+            <span class="badge b-yellow">Last in Nov 2025</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:1rem;font-weight:600">71,200 mi</div>
+          <div style="font-size:.68rem;color:var(--muted)">Current mileage</div>
+        </div>
+      </div>
+      <div class="mileage-timeline">
+        <div class="ml-title">Mileage history</div>
+        <div class="ml-track">
+          <div class="ml-point"><div class="ml-dot"></div><div class="ml-mileage">58,400</div><div class="ml-date">Aug 2024</div></div>
+          <div class="ml-line"></div>
+          <div class="ml-point"><div class="ml-dot"></div><div class="ml-mileage">63,100</div><div class="ml-date">Jan 2025</div></div>
+          <div class="ml-line"></div>
+          <div class="ml-point"><div class="ml-dot"></div><div class="ml-mileage">68,900</div><div class="ml-date">Jun 2025</div></div>
+          <div class="ml-line"></div>
+          <div class="ml-point"><div class="ml-dot" style="background:var(--green)"></div><div class="ml-mileage" style="color:var(--green)">71,200</div><div class="ml-date">Nov 2025</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPENDING TAB -->
+  <div class="tab-content" id="tab-spending">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="card">
+        <div class="card-hdr">Spending by category <span style="font-size:.65rem;font-weight:400;color:var(--muted)">All visits · from Mitchell ROs</span></div>
+        <div style="padding:14px">
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span>Labor — mechanical</span><span style="font-weight:500">$2,840 <span style="color:var(--muted);font-weight:400">(33.7%)</span></span></div>
+            <div class="category-bar"><div class="category-fill" style="width:100%;background:#3182ce"></div></div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span>Labor — body/paint</span><span style="font-weight:500">$1,260 <span style="color:var(--muted);font-weight:400">(15.0%)</span></span></div>
+            <div class="category-bar"><div class="category-fill" style="width:44%;background:#38a169"></div></div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span>Parts — OEM</span><span style="font-weight:500">$2,180 <span style="color:var(--muted);font-weight:400">(25.9%)</span></span></div>
+            <div class="category-bar"><div class="category-fill" style="width:77%;background:#805ad5"></div></div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span>Parts — aftermarket</span><span style="font-weight:500">$980 <span style="color:var(--muted);font-weight:400">(11.6%)</span></span></div>
+            <div class="category-bar"><div class="category-fill" style="width:35%;background:#dd6b20"></div></div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span>Labor — maintenance</span><span style="font-weight:500">$720 <span style="color:var(--muted);font-weight:400">(8.5%)</span></span></div>
+            <div class="category-bar"><div class="category-fill" style="width:25%;background:#d69e2e"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span>Shop supplies</span><span style="font-weight:500">$440 <span style="color:var(--muted);font-weight:400">(5.2%)</span></span></div>
+            <div class="category-bar"><div class="category-fill" style="width:15%;background:#718096"></div></div>
+          </div>
+          <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.8rem;margin-top:10px">
+            <span>Total</span><strong>$8,420</strong>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">Year over year</div>
+        <div style="padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem"><span>2019</span><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:6px;background:#edf2f7;border-radius:50px;overflow:hidden"><div style="width:25%;height:100%;background:#3182ce;border-radius:50px"></div></div><strong>$680</strong></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem"><span>2020</span><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:6px;background:#edf2f7;border-radius:50px;overflow:hidden"><div style="width:32%;height:100%;background:#3182ce;border-radius:50px"></div></div><strong>$420</strong></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem"><span>2021</span><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:6px;background:#edf2f7;border-radius:50px;overflow:hidden"><div style="width:40%;height:100%;background:#3182ce;border-radius:50px"></div></div><strong>$610</strong></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem"><span>2022</span><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:6px;background:#edf2f7;border-radius:50px;overflow:hidden"><div style="width:55%;height:100%;background:#3182ce;border-radius:50px"></div></div><strong>$890</strong></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem"><span>2023</span><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:6px;background:#edf2f7;border-radius:50px;overflow:hidden"><div style="width:45%;height:100%;background:#3182ce;border-radius:50px"></div></div><strong>$740</strong></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem"><span>2024</span><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:6px;background:#edf2f7;border-radius:50px;overflow:hidden"><div style="width:70%;height:100%;background:#3182ce;border-radius:50px"></div></div><strong>$1,420</strong></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:.78rem"><span>2025</span><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:6px;background:#edf2f7;border-radius:50px;overflow:hidden"><div style="width:65%;height:100%;background:#3182ce;border-radius:50px"></div></div><strong>$1,240</strong></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:.78rem"><span>2026 (YTD)</span><div style="display:flex;align-items:center;gap:8px"><div style="width:60px;height:6px;background:#edf2f7;border-radius:50px;overflow:hidden"><div style="width:100%;height:100%;background:var(--accent);border-radius:50px"></div></div><strong style="color:var(--accent)">$2,420</strong></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAYMENTS TAB -->
+  <div class="tab-content" id="tab-payments">
+    <div class="card">
+      <div class="card-hdr">Payment history <span class="source-pill" style="background:#f0fff4;color:#276749;border-color:#9ae6b4">Square live</span></div>
+      <div id="payment-list">
+        <div class="payment-row"><span style="color:var(--muted);width:90px;flex-shrink:0">Apr 23, 2026</span><span style="font-weight:500;flex:1">RO-1041 · Deposit</span><span class="badge b-yellow">Partial</span><span style="font-weight:600;width:80px;text-align:right">$500.00</span></div>
+        <div class="payment-row"><span style="color:var(--muted);width:90px;flex-shrink:0">Nov 12, 2025</span><span style="font-weight:500;flex:1">RO-0987 · Full service</span><span class="badge b-green">Paid</span><span style="font-weight:600;width:80px;text-align:right">$267.00</span></div>
+        <div class="payment-row"><span style="color:var(--muted);width:90px;flex-shrink:0">Jun 5, 2025</span><span style="font-weight:500;flex:1">RO-0921 · Brake job</span><span class="badge b-green">Paid</span><span style="font-weight:600;width:80px;text-align:right">$550.00</span></div>
+        <div class="payment-row"><span style="color:var(--muted);width:90px;flex-shrink:0">Jan 10, 2025</span><span style="font-weight:500;flex:1">RO-0874 · Oil + AC check</span><span class="badge b-green">Paid</span><span style="font-weight:600;width:80px;text-align:right">$189.00</span></div>
+        <div class="payment-row"><span style="color:var(--muted);width:90px;flex-shrink:0">Aug 15, 2024</span><span style="font-weight:500;flex:1">RO-0801 · 60k service CR-V</span><span class="badge b-green">Paid</span><span style="font-weight:600;width:80px;text-align:right">$340.00</span></div>
+        <div style="padding:9px 16px;font-size:.72rem;color:var(--muted);text-align:center;background:#f8fafc">Showing 5 of 14 payments · <button class="btn btn-sm" style="margin-left:4px;font-size:.65rem" onclick="toast('Loading all payment history...')">Load all</button></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function toggleRO(row) {
+  const detail = row.querySelector('.ro-detail');
+  if (!detail) return;
+  const isOpen = detail.classList.contains('open');
+  /* Close all others */
+  document.querySelectorAll('.ro-detail.open').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.ro-row.expanded').forEach(r => r.classList.remove('expanded'));
+  if (!isOpen) {
+    detail.classList.add('open');
+    row.classList.add('expanded');
+  }
+}
+
+function filterROs(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.ro-row').forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = !q || text.includes(q) ? '' : 'none';
+  });
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>

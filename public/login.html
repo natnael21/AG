@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AG Shop Pro — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0a1628;--navy2:#111f35;--accent:#e94560;--gold:#c9a84c;--muted:rgba(255,255,255,.45)}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);min-height:100vh;display:flex;overflow-x:hidden}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
+.left{flex:1;display:flex;align-items:center;justify-content:center;padding:60px;min-height:100vh}
+.left-inner{max-width:460px}
+.logo{display:flex;align-items:center;gap:9px;margin-bottom:48px}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;color:#fff}
+.logo-text{font-family:'DM Serif Display',serif;font-size:1rem;color:#fff}
+.logo-text span{color:var(--accent)}
+.hero-sub{font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+.hero-h1{font-family:'DM Serif Display',serif;font-size:2.8rem;line-height:1.1;color:#fff;margin-bottom:14px}
+.hero-h1 em{color:var(--accent);font-style:italic}
+.hero-p{font-size:.88rem;color:var(--muted);line-height:1.7;margin-bottom:32px;max-width:380px}
+.feat{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted);margin-bottom:8px}
+.feat-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.signup-cta{margin-top:36px;padding:20px 24px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:12px}
+.signup-cta-text{font-size:.85rem;color:rgba(255,255,255,.7);margin-bottom:12px;line-height:1.5}
+.btn-signup-hero{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--gold);color:#0a1628;border:none;border-radius:9px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn-signup-hero:hover{background:#b8943e;transform:translateY(-1px)}
+.right{width:440px;background:var(--navy2);border-left:1px solid rgba(255,255,255,.07);display:flex;align-items:flex-start;justify-content:center;padding:44px 36px;overflow-y:auto;min-height:100vh}
+.right-inner{width:100%;padding:20px 0}
+.card-title{font-family:'DM Serif Display',serif;font-size:1.5rem;color:#fff;margin-bottom:4px}
+.card-sub{font-size:.78rem;color:var(--muted);margin-bottom:22px;line-height:1.5}
+.flbl{display:block;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:6px;margin-top:14px}
+.flbl:first-of-type{margin-top:0}
+.finput{width:100%;padding:11px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:9px;color:#fff;font-size:.85rem;font-family:'DM Sans',sans-serif;transition:border-color .2s}
+.finput:focus{outline:none;border-color:var(--accent)}
+.finput::placeholder{color:rgba(255,255,255,.2)}
+.finput option{background:#111f35}
+.role-hint{font-size:.7rem;color:var(--gold);margin-top:6px;min-height:16px}
+.msg{font-size:.75rem;border-radius:7px;padding:9px 12px;margin-bottom:12px;display:none;line-height:1.6}
+.msg.show{display:block}
+.msg-error{background:rgba(252,129,129,.1);border:1px solid rgba(252,129,129,.25);color:#fc8181}
+.msg-success{background:rgba(104,211,145,.1);border:1px solid rgba(104,211,145,.25);color:#68d391}
+.btn-main{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:.88rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:14px;transition:background .2s}
+.btn-main:hover{background:#c73550}
+.btn-main:disabled{background:#5a1e2b;cursor:not-allowed;color:rgba(255,255,255,.4)}
+.btn-gold{background:var(--gold) !important;color:#0a1628 !important}
+.btn-gold:hover{background:#b8943e !important}
+.link-btn{color:var(--accent);cursor:pointer;font-size:.75rem;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0}
+.link-btn:hover{text-decoration:underline}
+.divider{display:flex;align-items:center;gap:10px;margin:20px 0;font-size:.62rem;color:rgba(255,255,255,.2)}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.demo-btn{padding:9px 6px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.03);color:rgba(255,255,255,.45);font-size:.68rem;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:center;transition:all .15s}
+.demo-btn:hover{border-color:var(--accent);color:#fff;background:rgba(233,69,96,.07)}
+.demo-icon{font-size:13px;display:block;margin-bottom:3px}
+.panel{display:none;width:100%}
+.panel.active{display:block}
+.back-btn{display:flex;align-items:center;gap:5px;color:rgba(255,255,255,.3);font-size:.75rem;cursor:pointer;margin-bottom:20px;background:none;border:none;font-family:'DM Sans',sans-serif;padding:0}
+.back-btn:hover{color:rgba(255,255,255,.65)}
+.progress-bar{height:3px;background:rgba(255,255,255,.08);border-radius:50px;margin-bottom:5px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:50px;transition:width .4s ease}
+.progress-label{font-size:.62rem;color:rgba(255,255,255,.25);margin-bottom:14px}
+.si-wrap{display:flex;align-items:center;margin-bottom:20px}
+.si-item{display:flex;align-items:center;gap:5px;flex:1}
+.si-num{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;border:1.5px solid rgba(255,255,255,.12);color:rgba(255,255,255,.25);flex-shrink:0;transition:all .3s}
+.si-num.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.si-num.done{background:#2f855a;border-color:#2f855a;color:#fff}
+.si-label{font-size:.65rem;color:rgba(255,255,255,.25);transition:color .3s}
+.si-label.active{color:rgba(255,255,255,.75);font-weight:500}
+.si-line{flex:1;height:1px;background:rgba(255,255,255,.07);margin:0 4px}
+.signup-step{display:none}
+.signup-step.active{display:block}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.choice-btn{padding:10px 8px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.03);color:rgba(255,255,255,.5);font-size:.72rem;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:center;transition:all .15s}
+.choice-btn:hover{border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.8)}
+.choice-btn.selected{border-color:var(--accent);background:rgba(233,69,96,.1);color:#fff}
+.choice-icon{font-size:15px;display:block;margin-bottom:3px}
+.tools-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px}
+.tool-btn{padding:9px 5px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.03);color:rgba(255,255,255,.45);font-size:.65rem;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:center;transition:all .15s}
+.tool-btn:hover{border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.8)}
+.tool-btn.selected{border-color:var(--gold);background:rgba(201,168,76,.1);color:var(--gold)}
+.success-card{text-align:center;padding:10px 0}
+.success-icon{font-size:44px;margin-bottom:14px}
+@media(max-width:900px){.left{display:none}.right{width:100%;border-left:none;padding:32px 24px}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<div class="left">
+  <div class="left-inner">
+    <div class="logo"><div class="logo-icon">AG</div><div class="logo-text">Shop <span>Pro</span></div></div>
+    <div class="hero-sub">Multi-workspace shop management</div>
+    <h1 class="hero-h1">Every shop.<br><em>One platform.</em></h1>
+    <p class="hero-p">Real-time repair orders, technician management, customer SMS automation, and CCC One + Square integration — across all your locations.</p>
+    <div class="feat"><div class="feat-dot"></div>Workspace-based access — each shop is fully isolated</div>
+    <div class="feat"><div class="feat-dot"></div>Role-based portals — manager, advisor, technician</div>
+    <div class="feat"><div class="feat-dot"></div>Animated workflow pipeline per repair order</div>
+    <div class="feat"><div class="feat-dot"></div>AI-powered lost customer SMS via Mitchell data</div>
+    <div class="feat"><div class="feat-dot"></div>Live Twilio call transcription + landline bridge</div>
+    <div class="feat"><div class="feat-dot"></div>Mitchell 1 ETL data migration per workspace</div>
+    <div class="signup-cta">
+      <div class="signup-cta-text">Ready to modernize your shop? Get set up in minutes — no credit card required.</div>
+      <button class="btn-signup-hero" onclick="showPanel('panel-signup')">✦ Get started free →</button>
+    </div>
+  </div>
+</div>
+
+<div class="right">
+  <div class="right-inner">
+
+    <!-- LOGIN -->
+    <div class="panel active" id="panel-login">
+      <div class="card-title">Welcome back</div>
+      <div class="card-sub">Sign in to your workspace</div>
+      <div class="msg msg-error" id="login-error"></div>
+      <label class="flbl">Email address</label>
+      <input class="finput" id="login-email" type="email" placeholder="you@yourshop.com" autocomplete="email"
+        oninput="onEmailInput(this.value)" onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()"/>
+      <div class="role-hint" id="role-hint"></div>
+      <label class="flbl">Password</label>
+      <input class="finput" id="login-password" type="password" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()"/>
+      <div style="text-align:right;margin-top:8px"><button class="link-btn" onclick="showPanel('panel-forgot')">Forgot password?</button></div>
+      <button class="btn-main" id="login-btn" onclick="doLogin()">Sign in →</button>
+      <div class="divider">or try a demo account</div>
+      <div class="demo-grid">
+        <div class="demo-btn" onclick="demoLogin('super_admin')"><span class="demo-icon">🌐</span><span style="font-weight:500">Super admin</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">All workspaces</div></div>
+        <div class="demo-btn" onclick="demoLogin('manager')"><span class="demo-icon">🏢</span><span style="font-weight:500">Manager</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">AmeriBenz</div></div>
+        <div class="demo-btn" onclick="demoLogin('service_advisor')"><span class="demo-icon">🔧</span><span style="font-weight:500">Service advisor</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">AmeriBenz</div></div>
+        <div class="demo-btn" onclick="demoLogin('technician')"><span class="demo-icon">⚙️</span><span style="font-weight:500">Technician</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">AmeriBenz</div></div>
+      </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:.75rem;color:rgba(255,255,255,.3)">New to AG Shop Pro?</span>
+        <button class="btn-main" style="width:auto;padding:8px 16px;margin-top:0;font-size:.78rem" onclick="showPanel('panel-signup')">Get started free →</button>
+      </div>
+    </div>
+
+    <!-- FORGOT PASSWORD -->
+    <div class="panel" id="panel-forgot">
+      <button class="back-btn" onclick="showPanel('panel-login')">← Back to sign in</button>
+      <div class="card-title">Reset password</div>
+      <div class="card-sub">Enter your email and we'll send a secure reset link. Expires in 1 hour.</div>
+      <div class="msg msg-error" id="forgot-error"></div>
+      <div class="msg msg-success" id="forgot-success"></div>
+      <label class="flbl">Email address</label>
+      <input class="finput" id="forgot-email" type="email" placeholder="you@yourshop.com" onkeydown="if(event.key==='Enter')doForgot()"/>
+      <button class="btn-main" id="forgot-btn" onclick="doForgot()">Send reset link →</button>
+      <div style="margin-top:14px;font-size:.7rem;color:rgba(255,255,255,.22);line-height:1.7">No access to your email? Ask your admin to reset your password from the Users page.</div>
+    </div>
+
+    <!-- SIGNUP -->
+    <div class="panel" id="panel-signup">
+      <button class="back-btn" id="signup-back-btn" onclick="signupBack()">← Back to sign in</button>
+      <div class="progress-bar"><div class="progress-fill" id="signup-progress" style="width:20%"></div></div>
+      <div class="progress-label" id="signup-progress-label">Step 1 of 5</div>
+      <div class="si-wrap">
+        <div class="si-item"><div class="si-num active" id="si1">1</div><div class="si-label active" id="sl1">You</div></div>
+        <div class="si-line"></div>
+        <div class="si-item"><div class="si-num" id="si2">2</div><div class="si-label" id="sl2">Shop</div></div>
+        <div class="si-line"></div>
+        <div class="si-item"><div class="si-num" id="si3">3</div><div class="si-label" id="sl3">Team</div></div>
+        <div class="si-line"></div>
+        <div class="si-item"><div class="si-num" id="si4">4</div><div class="si-label" id="sl4">Tools</div></div>
+        <div class="si-line"></div>
+        <div class="si-item"><div class="si-num" id="si5">5</div><div class="si-label" id="sl5">Done</div></div>
+      </div>
+      <div class="msg msg-error" id="signup-error"></div>
+
+      <!-- Step 1 -->
+      <div class="signup-step active" id="ss1">
+        <div class="card-title">Let's get started</div>
+        <div class="card-sub">Tell us about yourself — takes about 2 minutes.</div>
+        <div class="frow">
+          <div><label class="flbl">First name</label><input class="finput" id="s-first" placeholder="John"/></div>
+          <div><label class="flbl">Last name</label><input class="finput" id="s-last" placeholder="Smith"/></div>
+        </div>
+        <label class="flbl">Work email</label>
+        <input class="finput" id="s-email" type="email" placeholder="john@yourshop.com"/>
+        <label class="flbl">Phone number</label>
+        <input class="finput" id="s-phone" type="tel" placeholder="(240) 555-0100"/>
+        <div style="margin-top:7px;font-size:.68rem;color:rgba(255,255,255,.22)">📱 Phone enables SMS-based password reset</div>
+        <button class="btn-main" onclick="signupNext(1)">Continue →</button>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="signup-step" id="ss2">
+        <div class="card-title">Your shop</div>
+        <div class="card-sub">Tell us about your business so we can tailor your workspace.</div>
+        <label class="flbl">Shop / business name</label>
+        <input class="finput" id="s-shop" placeholder="e.g. Capitol Auto Body"/>
+        <label class="flbl">Shop type</label>
+        <div class="choice-grid">
+          <div class="choice-btn" onclick="selectChoice('s-type',this,'Auto body')"><span class="choice-icon">🚗</span>Auto body</div>
+          <div class="choice-btn" onclick="selectChoice('s-type',this,'Mechanic')"><span class="choice-icon">🔧</span>Mechanic</div>
+          <div class="choice-btn" onclick="selectChoice('s-type',this,'Quick lube')"><span class="choice-icon">⚡</span>Quick lube</div>
+          <div class="choice-btn" onclick="selectChoice('s-type',this,'Multi-location')"><span class="choice-icon">🏢</span>Multi-location</div>
+        </div>
+        <input type="hidden" id="s-type"/>
+        <label class="flbl" style="margin-top:14px">Annual revenue (approximate)</label>
+        <select class="finput" id="s-revenue">
+          <option value="">Select range...</option>
+          <option>Under $250K</option>
+          <option>$250K – $500K</option>
+          <option>$500K – $1M</option>
+          <option>$1M – $2.5M</option>
+          <option>$2.5M – $5M</option>
+          <option>Over $5M</option>
+        </select>
+        <button class="btn-main" onclick="signupNext(2)">Continue →</button>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="signup-step" id="ss3">
+        <div class="card-title">Your team</div>
+        <div class="card-sub">Help us understand your team so we set up the right roles.</div>
+        <label class="flbl">Number of technicians</label>
+        <div class="choice-grid">
+          <div class="choice-btn" onclick="selectChoice('s-techs',this,'1-2')"><span class="choice-icon">👤</span>1–2</div>
+          <div class="choice-btn" onclick="selectChoice('s-techs',this,'3-5')"><span class="choice-icon">👥</span>3–5</div>
+          <div class="choice-btn" onclick="selectChoice('s-techs',this,'6-10')"><span class="choice-icon">🏗️</span>6–10</div>
+          <div class="choice-btn" onclick="selectChoice('s-techs',this,'10+')"><span class="choice-icon">🏭</span>10+</div>
+        </div>
+        <input type="hidden" id="s-techs"/>
+        <label class="flbl" style="margin-top:14px">Total employees (including front desk)</label>
+        <select class="finput" id="s-employees">
+          <option value="">Select...</option>
+          <option>1–5</option>
+          <option>6–15</option>
+          <option>16–30</option>
+          <option>30+</option>
+        </select>
+        <label class="flbl">Do you have a dedicated service advisor?</label>
+        <div class="choice-grid">
+          <div class="choice-btn" onclick="selectChoice('s-advisor',this,'Yes')">Yes</div>
+          <div class="choice-btn" onclick="selectChoice('s-advisor',this,'No')">No — just me</div>
+        </div>
+        <input type="hidden" id="s-advisor"/>
+        <button class="btn-main" onclick="signupNext(3)">Continue →</button>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="signup-step" id="ss4">
+        <div class="card-title">Your current setup</div>
+        <div class="card-sub">What are you using today? We'll make migration smooth.</div>
+        <label class="flbl">Current software (select all that apply)</label>
+        <div class="tools-grid">
+          <div class="tool-btn" onclick="toggleTool(this,'Mitchell 1')">Mitchell 1</div>
+          <div class="tool-btn" onclick="toggleTool(this,'Tekmetric')">Tekmetric</div>
+          <div class="tool-btn" onclick="toggleTool(this,'ShopWare')">ShopWare</div>
+          <div class="tool-btn" onclick="toggleTool(this,'CCC One')">CCC One</div>
+          <div class="tool-btn" onclick="toggleTool(this,'QuickBooks')">QuickBooks</div>
+          <div class="tool-btn" onclick="toggleTool(this,'R.O. Writer')">R.O. Writer</div>
+          <div class="tool-btn" onclick="toggleTool(this,'Excel/Sheets')">Excel/Sheets</div>
+          <div class="tool-btn" onclick="toggleTool(this,'Pen & paper')">Pen & paper</div>
+          <div class="tool-btn" onclick="toggleTool(this,'Other')">Other</div>
+        </div>
+        <label class="flbl" style="margin-top:14px">Biggest pain point right now</label>
+        <div class="choice-grid">
+          <div class="choice-btn" onclick="selectChoice('s-pain',this,'Tracking ROs')"><span class="choice-icon">📋</span>Tracking ROs</div>
+          <div class="choice-btn" onclick="selectChoice('s-pain',this,'Managing techs')"><span class="choice-icon">👥</span>Managing techs</div>
+          <div class="choice-btn" onclick="selectChoice('s-pain',this,'Customer comms')"><span class="choice-icon">📱</span>Customer comms</div>
+          <div class="choice-btn" onclick="selectChoice('s-pain',this,'Getting paid')"><span class="choice-icon">💳</span>Getting paid</div>
+        </div>
+        <input type="hidden" id="s-pain"/>
+        <label class="flbl" style="margin-top:14px">How did you hear about us?</label>
+        <select class="finput" id="s-source">
+          <option value="">Select...</option>
+          <option>Google search</option>
+          <option>Referral from another shop</option>
+          <option>Social media</option>
+          <option>AG Holdings team</option>
+          <option>Trade show / event</option>
+          <option>Other</option>
+        </select>
+        <button class="btn-main btn-gold" id="submit-btn" onclick="doSignup()">Submit & get started →</button>
+      </div>
+
+      <!-- Step 5 SUCCESS -->
+      <div class="signup-step" id="ss5">
+        <div class="success-card">
+          <div class="success-icon">🎉</div>
+          <div class="card-title" style="text-align:center;margin-bottom:8px">You're on the list!</div>
+          <div style="font-size:.82rem;color:rgba(255,255,255,.5);line-height:1.8;margin-bottom:20px;text-align:center">
+            Thanks <strong id="success-name" style="color:#fff">there</strong>!<br>
+            We've received your request for<br>
+            <strong id="success-shop" style="color:#fff">your shop</strong>.<br><br>
+            A welcome email is on its way to<br>
+            <strong id="success-email" style="color:var(--gold)">your inbox</strong>.
+          </div>
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px;margin-bottom:20px;text-align:left">
+            <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);margin-bottom:10px">What happens next</div>
+            <div style="font-size:.75rem;color:rgba(255,255,255,.5);line-height:2">
+              ✅ Welcome email sent to your inbox<br>
+              🏢 Workspace activated within 24 hours<br>
+              🔑 Login credentials emailed to set password<br>
+              👥 Invite your team from the Users page<br>
+              📊 Import your data via ETL Migration
+            </div>
+          </div>
+          <button class="btn-main" onclick="showPanel('panel-login')">← Back to sign in</button>
+          <div style="margin-top:12px;text-align:center"><a href="docs.html" style="font-size:.75rem;color:rgba(255,255,255,.3);text-decoration:none">Read the documentation →</a></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+(function(){
+  const s = AUTH.getSession();
+  if(s && s.role) window.location.replace(AUTH.ROLE_PORTAL[s.role] || 'manager.html');
+  const p = new URLSearchParams(window.location.search);
+  if(p.get('token')) window.location.replace('reset.html?token=' + p.get('token'));
+  if(p.get('signup')) showPanel('panel-signup');
+})();
+
+let currentStep = 1;
+const selectedTools = new Set();
+
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  clearMsgs();
+  if(id === 'panel-signup'){ currentStep = 1; updateStep(); }
+  document.querySelector('.right').scrollTop = 0;
+}
+
+function clearMsgs(){ document.querySelectorAll('.msg').forEach(m => m.classList.remove('show')); }
+function showMsg(id, text){ const el = document.getElementById(id); el.textContent = text; el.classList.add('show'); }
+
+function onEmailInput(v){
+  const hint = document.getElementById('role-hint');
+  const u = AUTH.getUsers().find(x => x.email.toLowerCase() === v.toLowerCase());
+  if(u){ const lbl={super_admin:'Super Admin',manager:'Manager',service_advisor:'Service Advisor',technician:'Technician'}; hint.textContent='→ '+lbl[u.role]+' · '+AUTH.getMyWorkspaces(u).length+' workspace(s)'; }
+  else if(v.length>4&&v.includes('@')) hint.textContent='→ Role detected on sign in';
+  else hint.textContent='';
+}
+
+function doLogin(){
+  clearMsgs();
+  const email=document.getElementById('login-email').value.trim();
+  const pw=document.getElementById('login-password').value;
+  const btn=document.getElementById('login-btn');
+  if(!email){showMsg('login-error','Please enter your email.');return;}
+  if(!pw){showMsg('login-error','Please enter your password.');return;}
+  btn.textContent='Signing in...';btn.disabled=true;
+  setTimeout(()=>{
+    const r=AUTH.login(email,pw);
+    if(r.ok){window.location.replace(AUTH.ROLE_PORTAL[r.role]||'manager.html');}
+    else{btn.textContent='Sign in →';btn.disabled=false;showMsg('login-error',r.error);}
+  },500);
+}
+
+function demoLogin(role){
+  const map={super_admin:'demo@admin.com',manager:'demo@manager.com',service_advisor:'demo@service.com',technician:'demo@tech.com'};
+  const r=AUTH.login(map[role],'demo');
+  if(r.ok) window.location.replace(AUTH.ROLE_PORTAL[r.role]);
+}
+
+function doForgot(){
+  clearMsgs();
+  const email=document.getElementById('forgot-email').value.trim();
+  const btn=document.getElementById('forgot-btn');
+  if(!email){showMsg('forgot-error','Please enter your email.');return;}
+  btn.textContent='Sending...';btn.disabled=true;
+  setTimeout(()=>{
+    const r=AUTH.requestReset(email);
+    btn.textContent='Send reset link →';btn.disabled=false;
+    if(r.ok) showMsg('forgot-success','Reset link sent to '+email+'. Check your inbox — expires in 1 hour.');
+    else showMsg('forgot-error',r.error);
+  },700);
+}
+
+/* SIGNUP */
+function updateStep(){
+  const n=currentStep;
+  document.getElementById('signup-progress').style.width=(n*20)+'%';
+  document.getElementById('signup-progress-label').textContent='Step '+n+' of 5';
+  document.querySelectorAll('.signup-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('ss'+n).classList.add('active');
+  for(let i=1;i<=5;i++){
+    const sn=document.getElementById('si'+i),sl=document.getElementById('sl'+i);
+    sn.className='si-num'+(i<n?' done':i===n?' active':'');
+    sn.textContent=i<n?'✓':i;
+    sl.className='si-label'+(i===n?' active':'');
+  }
+  document.getElementById('signup-back-btn').textContent=n===1?'← Back to sign in':'← Back';
+}
+
+function signupBack(){
+  if(currentStep===1){showPanel('panel-login');return;}
+  currentStep--;updateStep();
+}
+
+function signupNext(step){
+  clearMsgs();
+  if(step===1){
+    if(!document.getElementById('s-first').value.trim()){showMsg('signup-error','Please enter your first name.');return;}
+    const email=document.getElementById('s-email').value.trim();
+    if(!email||!email.includes('@')){showMsg('signup-error','Please enter a valid email.');return;}
+  }
+  if(step===2){
+    if(!document.getElementById('s-shop').value.trim()){showMsg('signup-error','Please enter your shop name.');return;}
+    if(!document.getElementById('s-type').value){showMsg('signup-error','Please select your shop type.');return;}
+    if(!document.getElementById('s-revenue').value){showMsg('signup-error','Please select your revenue range.');return;}
+  }
+  if(step===3){
+    if(!document.getElementById('s-techs').value){showMsg('signup-error','Please select your technician count.');return;}
+  }
+  currentStep=step+1;updateStep();
+}
+
+function selectChoice(inputId, btn, value){
+  btn.parentElement.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById(inputId).value=value;
+}
+
+function toggleTool(btn,name){
+  if(selectedTools.has(name)){selectedTools.delete(name);btn.classList.remove('selected');}
+  else{selectedTools.add(name);btn.classList.add('selected');}
+}
+
+function doSignup(){
+  const btn=document.getElementById('submit-btn');
+  btn.textContent='Submitting...';btn.disabled=true;
+  const data={
+    first:document.getElementById('s-first').value.trim(),
+    last:document.getElementById('s-last').value.trim(),
+    email:document.getElementById('s-email').value.trim(),
+    phone:document.getElementById('s-phone').value.trim(),
+    shop:document.getElementById('s-shop').value.trim(),
+    type:document.getElementById('s-type').value,
+    revenue:document.getElementById('s-revenue').value,
+    techs:document.getElementById('s-techs').value,
+    employees:document.getElementById('s-employees').value,
+    advisor:document.getElementById('s-advisor').value,
+    pain:document.getElementById('s-pain').value,
+    source:document.getElementById('s-source').value,
+    tools:[...selectedTools].join(', ')||'None',
+    submittedAt:new Date().toISOString()
+  };
+  console.log('[AG Shop Pro Signup]', data);
+  /* Production: POST /api/signup → SES sends welcome email to data.email */
+  setTimeout(()=>{
+    btn.textContent='Submit & get started →';btn.disabled=false;
+    document.getElementById('success-name').textContent=data.first||'there';
+    document.getElementById('success-shop').textContent=data.shop||'your shop';
+    document.getElementById('success-email').textContent=data.email;
+    currentStep=5;updateStep();
+  },1000);
+}
+</script>
+</body>
+</html>

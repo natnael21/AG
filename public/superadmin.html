@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AG Shop Pro — Super Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0a1628;--navy2:#111f35;--accent:#e94560;--gold:#c9a84c;--bg:#f0f2f7;--card:#fff;--border:#e2e8f0;--text:#1a2035;--muted:#718096;--green:#2f855a;--yellow:#b7791f;--red:#c53030;--blue:#2b6cb0;--purple:#6b46c1}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;display:flex;height:100vh;overflow:hidden}
+.sidebar{width:210px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-top{padding:16px 12px 10px;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand{display:flex;align-items:center;gap:8px}
+.brand-icon{width:26px;height:26px;background:var(--gold);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#0a1628}
+.brand-name{font-family:'DM Serif Display',serif;font-size:.9rem;color:#fff}
+.brand-name span{color:var(--accent)}
+.brand-role{font-size:.6rem;color:rgba(255,255,255,.3);margin-left:34px;margin-top:1px}
+.nav-section{padding:8px 10px 2px;font-size:.55rem;color:rgba(255,255,255,.25);letter-spacing:.15em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:7px;padding:7px 10px;margin:1px 6px;border-radius:6px;cursor:pointer;color:rgba(255,255,255,.5);font-size:.75rem;transition:all .15s}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9)}
+.nav-item.active{background:rgba(201,168,76,.12);color:var(--gold);font-weight:500}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:.55rem;padding:1px 5px;border-radius:50px;font-weight:600}
+.sidebar-footer{margin-top:auto;padding:12px;border-top:1px solid rgba(255,255,255,.07);font-size:.65rem;color:rgba(255,255,255,.25);display:flex;align-items:center;gap:7px}
+.user-dot{width:22px;height:22px;border-radius:50%;background:rgba(201,168,76,.2);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:600;color:var(--gold)}
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar h1{font-size:.92rem;font-weight:600}
+.btn{padding:6px 12px;border-radius:8px;font-size:.72rem;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--border);background:var(--card);color:var(--text);transition:all .15s;font-weight:500}
+.btn:hover{background:var(--bg)}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-gold{background:var(--gold);color:#0a1628;border-color:var(--gold)}
+.btn-sm{padding:4px 9px;font-size:.68rem}
+.content{flex:1;overflow-y:auto;padding:14px 18px}
+.page{display:none}
+.page.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px}
+.stat-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+.stat-value{font-size:1.5rem;font-weight:600}
+.stat-sub{font-size:.65rem;margin-top:2px}
+.stat-up{color:var(--green)}
+.stat-warn{color:var(--red)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.card-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:.8rem;font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+table.dt{width:100%;border-collapse:collapse}
+table.dt th{padding:6px 12px;text-align:left;font-size:.6rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;background:#f8fafc}
+table.dt td{padding:8px 12px;font-size:.75rem;border-top:1px solid var(--border)}
+table.dt tr:hover td{background:#f8fafc;cursor:pointer}
+.badge{display:inline-flex;padding:2px 7px;border-radius:50px;font-size:.62rem;font-weight:600}
+.badge-green{background:#c6f6d5;color:#276749}
+.badge-yellow{background:#fefcbf;color:#744210}
+.badge-red{background:#fed7d7;color:#822727}
+.badge-blue{background:#bee3f8;color:#2a4365}
+.badge-gray{background:#edf2f7;color:#4a5568}
+.badge-orange{background:#feebc8;color:#7b341e}
+.badge-purple{background:#e9d8fd;color:#553c9a}
+.shop-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s}
+.shop-card:hover{border-color:var(--gold);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.shop-status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.shop-name{font-size:.85rem;font-weight:600}
+.shop-meta{font-size:.68rem;color:var(--muted);margin-top:1px}
+.shop-stats{margin-left:auto;text-align:right}
+.shop-rev{font-size:.9rem;font-weight:600}
+.shop-rev-sub{font-size:.62rem;color:var(--muted)}
+.alert-row{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)}
+.alert-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.a-red{background:var(--red)}
+.a-yellow{background:var(--yellow)}
+.a-green{background:var(--green)}
+.alert-title{font-size:.75rem;font-weight:600}
+.alert-detail{font-size:.65rem;color:var(--muted);margin-top:1px}
+.burn-row{margin-bottom:10px}
+.burn-label-row{display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:4px}
+.burn-track{height:7px;background:#edf2f7;border-radius:50px;overflow:hidden}
+.burn-fill{height:100%;border-radius:50px;transition:width .6s}
+.form-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:.75rem;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+.form-input:focus{outline:none;border-color:var(--gold)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;width:500px;max-width:95vw;overflow:hidden;border:1px solid var(--border)}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:.95rem;font-weight:600}
+.modal-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)}
+.modal-body{padding:20px;max-height:70vh;overflow-y:auto}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.steps-wrap{display:flex;align-items:center;margin-bottom:18px}
+.step-item{display:flex;align-items:center;gap:7px;flex:1}
+.step-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;border:1.5px solid var(--border);color:var(--muted);flex-shrink:0}
+.step-num.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.step-num.done{background:var(--green);border-color:var(--green);color:#fff}
+.step-label{font-size:.72rem;color:var(--muted)}
+.step-label.active{color:var(--text);font-weight:600}
+.step-divider{flex:1;height:1px;background:var(--border);margin:0 6px}
+.mstep{display:none}
+.mstep.active{display:block}
+.role-card{border:1px solid var(--border);border-radius:9px;padding:11px;margin-bottom:7px;cursor:pointer;transition:all .15s}
+.role-card:hover,.role-card.selected{border-color:var(--accent);background:#fff5f5}
+.role-card-title{font-size:.78rem;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:7px}
+.role-card-desc{font-size:.68rem;color:var(--muted);line-height:1.5}
+.role-perms{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.role-perm-tag{font-size:.6rem;padding:2px 7px;border-radius:50px;background:#f8fafc;color:var(--muted);border:1px solid var(--border)}
+.perm-matrix{width:100%;border-collapse:collapse}
+.perm-matrix th{padding:8px 10px;font-size:.6rem;font-weight:600;color:var(--muted);text-align:center;background:#f8fafc;border:1px solid var(--border)}
+.perm-matrix th:first-child{text-align:left}
+.perm-matrix td{padding:7px 10px;font-size:.72rem;border:1px solid var(--border);text-align:center}
+.perm-matrix td:first-child{text-align:left;font-weight:600;background:#f8fafc}
+.perm-check{color:var(--green);font-size:13px}
+.perm-x{color:#cbd5e0;font-size:13px}
+.perm-partial{color:var(--yellow);font-size:.65rem;font-weight:700}
+.user-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:600;flex-shrink:0}
+.form-label{font-size:.62rem;color:var(--muted);margin-bottom:3px;display:block}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.etl-upload-area{border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:10px}
+.etl-upload-area:hover{border-color:var(--gold)}
+.integration-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)}
+.int-name{font-size:.78rem;font-weight:600}
+.int-desc{font-size:.65rem;color:var(--muted);margin-top:1px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:10px;font-size:.75rem;z-index:9999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+<script src="auth.js"></script>
+<script>
+(function(){
+  var s = AUTH.requireAuth();
+  if(!s) return;
+  // Update sidebar user info
+  document.addEventListener('DOMContentLoaded', function(){
+    var n = document.getElementById('sidebar-username');
+    var sh = document.getElementById('sidebar-shopname');
+    if(n) n.textContent = s.name || 'User';
+    if(sh) sh.textContent = s.activeWorkspaceName || s.shop || '';
+  });
+})();
+function logout(){ AUTH.logout(); }
+</script>
+
+<div class="toast" id="toast"></div>
+
+<div class="sidebar">
+  <div class="sidebar-top">
+    <div class="brand">
+      <div class="brand-icon">AG</div>
+      <div>
+        <div class="brand-name">Shop <span>Pro</span></div>
+        <div class="brand-role">Super admin</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-section">Platform</div>
+  <div class="nav-item active" onclick="showPage('overview',this)">▦ All shops</div>
+  <div class="nav-item" onclick="showPage('alerts',this)">⚠ Alerts <span class="nav-badge">4</span></div>
+  <div class="nav-item" onclick="showPage('billing',this)">💳 Billing</div>
+  <div class="nav-item" onclick="showPage('onboard',this)">+ Onboard shop</div>
+  <div class="nav-section">Analytics</div>
+  <div class="nav-item" onclick="showPage('revenue',this)">📊 Revenue</div>
+  <div class="nav-item" onclick="showPage('techs',this)">👥 All technicians</div>
+  <div class="nav-section">Data</div>
+  <div class="nav-item" onclick="showPage('etl',this)">🔄 ETL migration</div>
+  <div class="nav-item" onclick="showPage('integrations',this)">🔌 Integrations</div>
+  <div class="nav-section">Users</div>
+  <div class="nav-item" onclick="showPage('users',this)">👤 All users</div>
+  <div class="nav-item" onclick="showPage('roles',this)">🔒 Roles & access</div>
+  <div class="nav-item" onclick="showPage('invites',this)">✉ Pending invites</div>
+  <div class="nav-item" onclick="showPage('resets',this)">🔑 Password resets</div>
+  <div class="nav-section">System</div>
+  <div class="nav-item" onclick="showPage('settings',this)">⚙ Settings</div>
+  <div class="sidebar-footer">
+    <div class="user-dot">NA</div>
+    <div style="flex:1;min-width:0"><div style="color:rgba(255,255,255,.6);font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="sidebar-username">Naod Mekonnen</div><div id="sidebar-shopname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">AG Holdings LLC</div></div>
+    <button onclick="logout()" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:.7rem;flex-shrink:0" title="Sign out">⬡ Out</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1 id="page-title">All shops overview</h1>
+    <div style="display:flex;gap:6px">
+      <span style="font-size:.72rem;color:var(--muted)">Apr 27, 2026</span>
+      <button class="btn btn-gold" onclick="showPage('onboard',document.querySelectorAll('.nav-item')[3])">+ Onboard shop</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- ALL SHOPS -->
+    <div class="page active" id="page-overview">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Active shops</div><div class="stat-value">3</div><div class="stat-sub">3 more pending</div></div>
+        <div class="stat-card"><div class="stat-label">Platform MRR</div><div class="stat-value">$747</div><div class="stat-sub stat-up">↑ $149 this month</div></div>
+        <div class="stat-card"><div class="stat-label">Total ROs today</div><div class="stat-value">24</div><div class="stat-sub">Across all shops</div></div>
+        <div class="stat-card"><div class="stat-label">Active alerts</div><div class="stat-value stat-warn">4</div><div class="stat-sub stat-warn">2 idle techs</div></div>
+      </div>
+      <div style="margin-bottom:10px;font-size:.78rem;font-weight:600">Shop performance</div>
+      <div class="shop-card" onclick="showPage('shop-detail',null)">
+        <div class="shop-status-dot" style="background:var(--green)"></div>
+        <div>
+          <div class="shop-name">Capitol Auto Body</div>
+          <div class="shop-meta">Silver Spring MD · 4 techs · Body shop · Pro plan</div>
+        </div>
+        <div style="flex:1;margin:0 12px">
+          <div class="burn-row" style="margin-bottom:0"><div class="burn-label-row" style="font-size:.62rem"><span style="color:var(--muted)">RO completion</span><span>71%</span></div><div class="burn-track"><div class="burn-fill" style="width:71%;background:var(--green)"></div></div></div>
+        </div>
+        <div class="shop-stats">
+          <div class="shop-rev">$18,420</div>
+          <div class="shop-rev-sub">Apr · 14 ROs</div>
+        </div>
+        <span class="badge badge-green">Active</span>
+      </div>
+      <div class="shop-card" onclick="showPage('shop-detail',null)">
+        <div class="shop-status-dot" style="background:var(--blue)"></div>
+        <div>
+          <div class="shop-name">Silver Spring Mechanics</div>
+          <div class="shop-meta">Silver Spring MD · 3 techs · Mechanic · Pro plan</div>
+        </div>
+        <div style="flex:1;margin:0 12px">
+          <div class="burn-row" style="margin-bottom:0"><div class="burn-label-row" style="font-size:.62rem"><span style="color:var(--muted)">RO completion</span><span>83%</span></div><div class="burn-track"><div class="burn-fill" style="width:83%;background:var(--blue)"></div></div></div>
+        </div>
+        <div class="shop-stats">
+          <div class="shop-rev">$11,240</div>
+          <div class="shop-rev-sub">Apr · 22 ROs</div>
+        </div>
+        <span class="badge badge-green">Active</span>
+      </div>
+      <div class="shop-card" onclick="showPage('shop-detail',null)">
+        <div class="shop-status-dot" style="background:var(--yellow)"></div>
+        <div>
+          <div class="shop-name">Bethesda Quick Lube</div>
+          <div class="shop-meta">Bethesda MD · 2 techs · Quick lube · Starter (trial)</div>
+        </div>
+        <div style="flex:1;margin:0 12px">
+          <div class="burn-row" style="margin-bottom:0"><div class="burn-label-row" style="font-size:.62rem"><span style="color:var(--muted)">RO completion</span><span>95%</span></div><div class="burn-track"><div class="burn-fill" style="width:95%;background:var(--yellow)"></div></div></div>
+        </div>
+        <div class="shop-stats">
+          <div class="shop-rev">$6,800</div>
+          <div class="shop-rev-sub">Apr · 48 ROs</div>
+        </div>
+        <span class="badge badge-blue">Trial</span>
+      </div>
+      <div class="shop-card" style="border-style:dashed;background:#f8fafc">
+        <div class="shop-status-dot" style="background:#cbd5e0"></div>
+        <div>
+          <div class="shop-name" style="color:var(--muted)">Shop 4 — data migration in progress</div>
+          <div class="shop-meta">Mitchell 1 CSV uploaded · 847 records mapping</div>
+        </div>
+        <div class="shop-stats"><div class="shop-rev" style="color:var(--muted)">—</div><div class="shop-rev-sub">Not yet live</div></div>
+        <span class="badge badge-gray">Pending</span>
+      </div>
+    </div>
+
+    <!-- SHOP DETAIL -->
+    <div class="page" id="page-shop-detail">
+      <div style="margin-bottom:10px"><button class="btn btn-sm" onclick="showPage('overview',document.querySelectorAll('.nav-item')[0])">← All shops</button></div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">April revenue</div><div class="stat-value">$18,420</div><div class="stat-sub stat-up">↑ 12%</div></div>
+        <div class="stat-card"><div class="stat-label">Open ROs</div><div class="stat-value">14</div></div>
+        <div class="stat-card"><div class="stat-label">Tech utilization</div><div class="stat-value">78%</div></div>
+        <div class="stat-card"><div class="stat-label">Idle alerts</div><div class="stat-value stat-warn">1</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header">Capitol Auto Body — team</div>
+          <table class="dt">
+            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Today</th></tr></thead>
+            <tbody>
+              <tr><td>Maria Gonzalez</td><td>Service advisor</td><td><span class="badge badge-green">Active</span></td><td>6 ROs</td></tr>
+              <tr><td>Alex Torres</td><td>Technician</td><td><span class="badge badge-green">Active</span></td><td>2.4h</td></tr>
+              <tr><td>James Reed</td><td>Technician</td><td><span class="badge badge-green">Active</span></td><td>2.4h</td></tr>
+              <tr><td>Mike Santos</td><td>Technician</td><td><span class="badge badge-yellow">Idle</span></td><td>0h</td></tr>
+              <tr><td>Kevin Lee</td><td>Technician</td><td><span class="badge badge-red">⚠ 47min</span></td><td>0h</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header">Burn rate (April)</div>
+          <div style="padding:12px 14px">
+            <div class="burn-row"><div class="burn-label-row"><span>Parts</span><span style="font-weight:600;color:var(--red)">$6,840 · over</span></div><div class="burn-track"><div class="burn-fill" style="width:37%;background:var(--red)"></div></div></div>
+            <div class="burn-row"><div class="burn-label-row"><span>Labor</span><span style="font-weight:600">$4,200</span></div><div class="burn-track"><div class="burn-fill" style="width:23%;background:var(--yellow)"></div></div></div>
+            <div class="burn-row"><div class="burn-label-row"><span>Overhead</span><span style="font-weight:600">$3,200</span></div><div class="burn-track"><div class="burn-fill" style="width:17%;background:var(--blue)"></div></div></div>
+            <div style="padding-top:8px;border-top:1px solid var(--border);font-size:.72rem;color:var(--muted)">Net margin: <strong style="color:var(--green)">$7,380 (40%)</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="page" id="page-alerts">
+      <div class="card">
+        <div class="card-header" style="background:#fff5f5;color:#822727">⚠ Platform alerts (4)</div>
+        <div class="alert-row"><div class="alert-dot a-red"></div><div style="flex:1"><div class="alert-title">Idle technician — Kevin Lee · Capitol Auto Body</div><div class="alert-detail">No active RO for 47 minutes</div></div><span class="badge badge-red">Idle</span></div>
+        <div class="alert-row"><div class="alert-dot a-red"></div><div style="flex:1"><div class="alert-title">Idle advisor — Front desk · Silver Spring Mechanics</div><div class="alert-detail">No RO activity for 1.5 hours</div></div><span class="badge badge-red">Idle</span></div>
+        <div class="alert-row"><div class="alert-dot a-yellow"></div><div style="flex:1"><div class="alert-title">Overdue invoice — INV-2039 · Capitol Auto Body</div><div class="alert-detail">$2,890 · Jennifer Wu · 5 days overdue</div></div><span class="badge badge-orange">Finance</span></div>
+        <div class="alert-row"><div class="alert-dot a-yellow"></div><div style="flex:1"><div class="alert-title">Parts budget exceeded — Capitol Auto Body</div><div class="alert-detail">$840 over monthly parts budget</div></div><span class="badge badge-orange">Budget</span></div>
+      </div>
+    </div>
+
+    <!-- BILLING -->
+    <div class="page" id="page-billing">
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card"><div class="stat-label">Monthly MRR</div><div class="stat-value">$747</div></div>
+        <div class="stat-card"><div class="stat-label">ARR (projected)</div><div class="stat-value">$8,964</div></div>
+        <div class="stat-card"><div class="stat-label">Churn rate</div><div class="stat-value stat-up">0%</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Subscriptions</div>
+        <table class="dt">
+          <thead><tr><th>Shop</th><th>Plan</th><th>MRR</th><th>Users</th><th>Status</th><th>Next billing</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">Capitol Auto Body</td><td>Pro</td><td>$299</td><td>5</td><td><span class="badge badge-green">Active</span></td><td>May 1</td><td><button class="btn btn-sm" onclick="t('Managing Capitol Auto Body subscription')">Manage</button></td></tr>
+            <tr><td style="font-weight:600">Silver Spring Mechanics</td><td>Pro</td><td>$299</td><td>4</td><td><span class="badge badge-green">Active</span></td><td>May 3</td><td><button class="btn btn-sm" onclick="t('Managing Silver Spring subscription')">Manage</button></td></tr>
+            <tr><td style="font-weight:600">Bethesda Quick Lube</td><td>Starter</td><td>$149</td><td>3</td><td><span class="badge badge-blue">Trial (13 days)</span></td><td>May 10</td><td><button class="btn btn-gold btn-sm" onclick="t('Upgrading Bethesda to Pro')">Upgrade</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ONBOARD -->
+    <div class="page" id="page-onboard">
+      <div class="grid2">
+        <div>
+          <div class="card">
+            <div class="card-header">New shop details</div>
+            <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+              <div class="form-row">
+                <div><label class="form-label">Shop name</label><input class="form-input" placeholder="Auto shop name"/></div>
+                <div><label class="form-label">Type</label><select class="form-input"><option>Auto body</option><option>Mechanic</option><option>Quick lube</option><option>Both</option></select></div>
+              </div>
+              <div><label class="form-label">Address</label><input class="form-input" placeholder="Street, city, state, zip"/></div>
+              <div class="form-row">
+                <div><label class="form-label">Phone</label><input class="form-input" placeholder="(000) 000-0000"/></div>
+                <div><label class="form-label">Email</label><input class="form-input" placeholder="owner@shop.com" type="email"/></div>
+              </div>
+              <div><label class="form-label">Plan</label>
+                <select class="form-input"><option>Starter — $149/mo (3 users)</option><option>Pro — $299/mo (10 users)</option><option>Enterprise — $599/mo (unlimited)</option></select>
+              </div>
+              <div class="form-row">
+                <div><label class="form-label">Labor rate ($/hr)</label><input class="form-input" type="number" value="120"/></div>
+                <div><label class="form-label">Tax rate (%)</label><input class="form-input" type="number" value="6.0"/></div>
+              </div>
+              <button class="btn btn-gold" onclick="t('Shop created · Onboarding email sent · Login credentials generated')">Create shop & send invite</button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-header">ETL data migration</div>
+            <div style="padding:14px">
+              <div style="margin-bottom:10px;font-size:.75rem;color:var(--muted)">Import existing customer, vehicle, and RO history from your current software.</div>
+              <div style="margin-bottom:10px">
+                <label class="form-label">Source system</label>
+                <select class="form-input"><option>Mitchell 1</option><option>Tekmetric</option><option>ShopWare</option><option>Generic CSV</option></select>
+              </div>
+              <div class="etl-upload-area" onclick="t('CSV upload dialog opened')">
+                <div style="font-size:1.5rem;margin-bottom:8px">📁</div>
+                <div style="font-size:.78rem;font-weight:600;margin-bottom:4px">Upload CSV export</div>
+                <div style="font-size:.68rem;color:var(--muted)">Drag and drop or click to browse · customers, vehicles, RO history</div>
+              </div>
+              <div style="font-size:.72rem;color:var(--muted);margin-bottom:10px">After upload you'll preview and map fields before importing live data.</div>
+              <button class="btn btn-accent btn-sm" onclick="t('Sample import preview — 847 records mapped successfully')">Preview import</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Active migrations</div>
+            <div style="padding:10px 14px">
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+                <div style="flex:1"><div style="font-size:.75rem;font-weight:600">Shop 4 · Mitchell 1</div><div style="font-size:.65rem;color:var(--muted)">847 records · mapping in progress</div></div>
+                <span class="badge badge-yellow">Processing</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 0">
+                <div style="flex:1"><div style="font-size:.75rem;font-weight:600">Capitol Auto Body · Mitchell 1</div><div style="font-size:.65rem;color:var(--muted)">2,341 records imported</div></div>
+                <span class="badge badge-green">Complete</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVENUE -->
+    <div class="page" id="page-revenue">
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card"><div class="stat-label">Platform MRR</div><div class="stat-value">$747</div><div class="stat-sub stat-up">↑ $149 this month</div></div>
+        <div class="stat-card"><div class="stat-label">Total shop revenue</div><div class="stat-value">$36,460</div><div class="stat-sub stat-up">↑ 9% vs March</div></div>
+        <div class="stat-card"><div class="stat-label">Shops at target</div><div class="stat-value">2/3</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Monthly revenue — all shops</div>
+        <table class="dt">
+          <thead><tr><th>Shop</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>Trend</th><th>Plan</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">Capitol Auto Body</td><td>$12,400</td><td>$15,600</td><td>$16,400</td><td>$18,420</td><td style="color:var(--green);font-weight:600">↑ 12%</td><td><span class="badge badge-purple">Pro</span></td></tr>
+            <tr><td style="font-weight:600">Silver Spring Mech.</td><td>$8,200</td><td>$9,400</td><td>$10,800</td><td>$11,240</td><td style="color:var(--green);font-weight:600">↑ 4%</td><td><span class="badge badge-purple">Pro</span></td></tr>
+            <tr><td style="font-weight:600">Bethesda Quick Lube</td><td>—</td><td>—</td><td>$4,200</td><td>$6,800</td><td style="color:var(--green);font-weight:600">↑ 62%</td><td><span class="badge badge-blue">Starter</span></td></tr>
+            <tr style="background:#f8fafc"><td style="font-weight:700">Platform total</td><td>$20,600</td><td>$25,000</td><td>$31,400</td><td style="font-weight:700">$36,460</td><td style="color:var(--green);font-weight:700">↑ 16%</td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ALL TECHS -->
+    <div class="page" id="page-techs">
+      <div class="card">
+        <div class="card-header">All technicians — platform wide</div>
+        <table class="dt">
+          <thead><tr><th>Name</th><th>Shop</th><th>Status</th><th>Apr ROs</th><th>Apr hours</th><th>Efficiency</th><th>Revenue</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">Alex Torres</td><td>Capitol Auto Body</td><td><span class="badge badge-green">Active</span></td><td>18</td><td>72h</td><td style="color:var(--green);font-weight:600">94%</td><td>$8,640</td></tr>
+            <tr><td style="font-weight:600">James Reed</td><td>Capitol Auto Body</td><td><span class="badge badge-green">Active</span></td><td>15</td><td>58h</td><td style="color:var(--blue);font-weight:600">88%</td><td>$6,960</td></tr>
+            <tr><td style="font-weight:600">Mike Santos</td><td>Capitol Auto Body</td><td><span class="badge badge-yellow">Idle</span></td><td>12</td><td>44h</td><td style="color:var(--yellow);font-weight:600">76%</td><td>$5,280</td></tr>
+            <tr style="background:#fff5f5"><td style="font-weight:600">Kevin Lee</td><td>Capitol Auto Body</td><td><span class="badge badge-red">⚠ Idle 47min</span></td><td>9</td><td>32h</td><td style="color:var(--yellow);font-weight:600">71%</td><td>$3,840</td></tr>
+            <tr><td style="font-weight:600">David Park</td><td>Silver Spring Mech.</td><td><span class="badge badge-green">Active</span></td><td>22</td><td>84h</td><td style="color:var(--green);font-weight:600">91%</td><td>$10,080</td></tr>
+            <tr><td style="font-weight:600">Chris Johnson</td><td>Bethesda Quick Lube</td><td><span class="badge badge-green">Active</span></td><td>48</td><td>76h</td><td style="color:var(--green);font-weight:600">97%</td><td>$6,800</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ETL -->
+    <div class="page" id="page-etl">
+      <div class="card">
+        <div class="card-header">Import history</div>
+        <table class="dt">
+          <thead><tr><th>Shop</th><th>Source</th><th>File</th><th>Records</th><th>Imported</th><th>Errors</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody>
+            <tr><td>Capitol Auto Body</td><td>Mitchell 1</td><td>capitol_m1_export.csv</td><td>2,341</td><td>2,338</td><td>3</td><td><span class="badge badge-green">Complete</span></td><td>Apr 15</td></tr>
+            <tr><td>Shop 4</td><td>Mitchell 1</td><td>shop4_customers.csv</td><td>847</td><td>612</td><td>12</td><td><span class="badge badge-yellow">Processing</span></td><td>Today</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-header">New import</div>
+        <div style="padding:14px">
+          <div class="form-row">
+            <div><label class="form-label">Shop</label><select class="form-input"><option>Capitol Auto Body</option><option>Silver Spring Mechanics</option><option>Bethesda Quick Lube</option><option>Shop 4</option></select></div>
+            <div><label class="form-label">Source system</label><select class="form-input"><option>Mitchell 1</option><option>Tekmetric</option><option>ShopWare</option><option>Generic CSV</option></select></div>
+          </div>
+          <div class="etl-upload-area" onclick="t('File upload dialog opened')">
+            <div style="font-size:1.5rem;margin-bottom:8px">📁</div>
+            <div style="font-size:.78rem;font-weight:600">Upload CSV or JSON export</div>
+            <div style="font-size:.65rem;color:var(--muted);margin-top:4px">Customers · Vehicles · RO history · Payments</div>
+          </div>
+          <button class="btn btn-gold" onclick="t('Import queued — preview will appear in 30 seconds')">Start import</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTEGRATIONS -->
+    <div class="page" id="page-integrations">
+      <div class="card">
+        <div class="card-header">Platform integrations</div>
+        <div class="integration-row"><div><div class="int-name">CCC One</div><div class="int-desc">Auto-import estimates as repair orders · Webhook configured</div></div><span class="badge badge-green">Connected</span></div>
+        <div class="integration-row"><div><div class="int-name">Mitchell Pro (labor times)</div><div class="int-desc">Auto-fill labor hours on RO creation</div></div><div style="display:flex;gap:6px;align-items:center"><input style="width:140px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.72rem" placeholder="API key"/><button class="btn btn-sm btn-accent" onclick="t('Mitchell Pro connected')">Connect</button></div></div>
+        <div class="integration-row"><div><div class="int-name">Square (payments)</div><div class="int-desc">Generate payment links · Real-time revenue webhook</div></div><span class="badge badge-green">Connected</span></div>
+        <div class="integration-row"><div><div class="int-name">Twilio (SMS + calls)</div><div class="int-desc">Customer SMS · Call transcription · Landline forwarding</div></div><div style="display:flex;gap:6px;align-items:center"><input style="width:140px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.72rem" placeholder="Account SID"/><button class="btn btn-sm btn-accent" onclick="t('Twilio connected')">Connect</button></div></div>
+        <div class="integration-row"><div><div class="int-name">Worldpac (parts ordering)</div><div class="int-desc">Search and order parts directly from RO parts lines</div></div><div style="display:flex;gap:6px;align-items:center"><input style="width:140px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.72rem" placeholder="Account#"/><button class="btn btn-sm btn-accent" onclick="t('Worldpac connected')">Connect</button></div></div>
+      </div>
+    </div>
+
+
+    <!-- USERS PAGE -->
+    <div class="page" id="page-users">
+      <div class="acontent">
+        <div class="admin-stats">
+          <div class="admin-stat"><div class="admin-stat-label">Total users</div><div class="admin-stat-value">11</div></div>
+          <div class="admin-stat"><div class="admin-stat-label">Active</div><div class="admin-stat-value">9</div></div>
+          <div class="admin-stat"><div class="admin-stat-label">Pending invites</div><div class="admin-stat-value" style="color:#b7791f">2</div></div>
+          <div class="admin-stat"><div class="admin-stat-label">Resets (24h)</div><div class="admin-stat-value">1</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input style="flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif" placeholder="Search users..."/>
+          <select style="padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif;background:var(--bg)"><option>All shops</option><option>Capitol Auto Body</option><option>Silver Spring Mechanics</option><option>Bethesda Quick Lube</option></select>
+          <button class="btn btn-sm btn-accent" onclick="openCreateModal()">+ Add user</button>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-header">All users <span style="font-size:.68rem;font-weight:400;color:var(--muted)">Click row to edit</span></div>
+          <table class="admin-table">
+            <thead><tr><th></th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Shop</th><th>Status</th><th>Last login</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr onclick="openEditModal('Naod','Mekonnen','naod@agholdingcorp.com','(301) 555-0100','Super admin','All shops')"><td><div class="user-avatar" style="background:#fefcbf;color:#744210">NA</div></td><td style="font-weight:600">Naod Mekonnen</td><td>naod@agholdingcorp.com</td><td>(301) 555-0100</td><td><span class="abadge abadge-blue">Super admin</span></td><td>All shops</td><td><span class="abadge abadge-green">Active</span></td><td style="color:var(--muted)">Today</td><td><button class="action-btn" onclick="event.stopPropagation();openEditModal('Naod','Mekonnen','naod@agholdingcorp.com','(301) 555-0100','Super admin','All shops')">Edit</button></td></tr>
+              <tr onclick="openEditModal('Maria','Gonzalez','maria.g@capitolauto.com','(240) 555-0120','Manager','Capitol Auto Body')"><td><div class="user-avatar" style="background:#e9d8fd;color:#553c9a">MG</div></td><td style="font-weight:600">Maria Gonzalez</td><td>maria.g@capitolauto.com</td><td>(240) 555-0120</td><td><span class="abadge abadge-blue">Manager</span></td><td>Capitol Auto Body</td><td><span class="abadge abadge-green">Active</span></td><td style="color:var(--muted)">Today</td><td><button class="action-btn" onclick="event.stopPropagation();openEditModal('Maria','Gonzalez','maria.g@capitolauto.com','(240) 555-0120','Manager','Capitol Auto Body')">Edit</button><button class="action-btn green" onclick="event.stopPropagation();t('Reset email sent to Maria Gonzalez')">Reset</button><button class="action-btn" style="background:#fefcbf;border-color:#f6e05e;color:#744210" onclick="event.stopPropagation();deactivateUser(this,'Maria Gonzalez')">Deactivate</button><button class="action-btn red" onclick="event.stopPropagation();deleteUser(this,'Maria Gonzalez')">Delete</button></td></tr>
+              <tr onclick="openEditModal('Alex','Torres','alex.torres@capitolauto.com','(240) 555-0181','Technician','Capitol Auto Body')"><td><div class="user-avatar" style="background:#bee3f8;color:#2a4365">AT</div></td><td style="font-weight:600">Alex Torres</td><td>alex.torres@capitolauto.com</td><td>(240) 555-0181</td><td><span class="abadge abadge-green">Technician</span></td><td>Capitol Auto Body</td><td><span class="abadge abadge-green">Active</span></td><td style="color:var(--muted)">Today</td><td><button class="action-btn" onclick="event.stopPropagation();openEditModal('Alex','Torres','alex.torres@capitolauto.com','(240) 555-0181','Technician','Capitol Auto Body')">Edit</button><button class="action-btn green" onclick="event.stopPropagation();t('Reset sent to Alex Torres')">Reset</button><button class="action-btn" style="background:#fefcbf;border-color:#f6e05e;color:#744210" onclick="event.stopPropagation();deactivateUser(this,'Alex Torres')">Deactivate</button><button class="action-btn red" onclick="event.stopPropagation();deleteUser(this,'Alex Torres')">Delete</button></td></tr>
+              <tr onclick="openEditModal('Kevin','Lee','kevin.lee@capitolauto.com','(443) 555-0197','Technician','Capitol Auto Body')"><td><div class="user-avatar" style="background:#fed7d7;color:#822727">KL</div></td><td style="font-weight:600">Kevin Lee</td><td>kevin.lee@capitolauto.com</td><td>(443) 555-0197</td><td><span class="abadge abadge-green">Technician</span></td><td>Capitol Auto Body</td><td><span class="abadge abadge-green">Active</span></td><td style="color:var(--muted)">2 days ago</td><td><button class="action-btn" onclick="event.stopPropagation();openEditModal('Kevin','Lee','kevin.lee@capitolauto.com','(443) 555-0197','Technician','Capitol Auto Body')">Edit</button><button class="action-btn green" onclick="event.stopPropagation();t('SMS reset sent to Kevin Lee')">Reset</button><button class="action-btn" style="background:#fefcbf;border-color:#f6e05e;color:#744210" onclick="event.stopPropagation();deactivateUser(this,'Kevin Lee')">Deactivate</button><button class="action-btn red" onclick="event.stopPropagation();deleteUser(this,'Kevin Lee')">Delete</button></td></tr>
+              <tr onclick="openEditModal('Sarah','Johnson','sarah.j@ssm.com','(240) 555-0245','Technician','Silver Spring Mechanics')"><td><div class="user-avatar" style="background:#fefcbf;color:#744210">SJ</div></td><td style="font-weight:600">Sarah Johnson</td><td>sarah.j@ssm.com</td><td>(240) 555-0245</td><td><span class="abadge abadge-green">Technician</span></td><td>Silver Spring Mech.</td><td><span class="abadge abadge-yellow">Pending invite</span></td><td style="color:var(--muted)">Never</td><td><button class="action-btn green" onclick="event.stopPropagation();t('Invite resent to sarah.j@ssm.com')">Resend invite</button><button class="action-btn red" onclick="event.stopPropagation();deleteUser(this,'Sarah Johnson')">Delete</button></td></tr>
+              <tr onclick="openEditModal('David','Park','david.park@ssm.com','(301) 555-0210','Service advisor','Silver Spring Mechanics')"><td><div class="user-avatar" style="background:#bee3f8;color:#2a4365">DP</div></td><td style="font-weight:600">David Park</td><td>david.park@ssm.com</td><td>(301) 555-0210</td><td><span class="abadge abadge-blue">Service advisor</span></td><td>Silver Spring Mech.</td><td><span class="abadge abadge-green">Active</span></td><td style="color:var(--muted)">Today</td><td><button class="action-btn" onclick="event.stopPropagation();openEditModal('David','Park','david.park@ssm.com','(301) 555-0210','Service advisor','Silver Spring Mechanics')">Edit</button><button class="action-btn green" onclick="event.stopPropagation();t('Reset sent to David Park')">Reset</button><button class="action-btn" style="background:#fefcbf;border-color:#f6e05e;color:#744210" onclick="event.stopPropagation();deactivateUser(this,'David Park')">Deactivate</button><button class="action-btn red" onclick="event.stopPropagation();deleteUser(this,'David Park')">Delete</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLES PAGE -->
+    <div class="page" id="page-roles">
+      <div class="acontent">
+        <div class="admin-card">
+          <div class="admin-card-header">Role permission matrix</div>
+          <div style="overflow-x:auto;padding:12px 14px">
+            <table class="perm-matrix">
+              <thead><tr><th style="min-width:170px">Permission</th><th>Super admin</th><th>Manager</th><th>Service advisor</th><th>Technician</th></tr></thead>
+              <tbody>
+                <tr><td>View all shops</td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td></tr>
+                <tr><td>Manage billing</td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td></tr>
+                <tr><td>Create / delete users</td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Own shop</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td></tr>
+                <tr><td>View all repair orders</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Own ROs</span></td><td><span class="perm-partial">Assigned</span></td></tr>
+                <tr><td>Create repair orders</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td></tr>
+                <tr><td>Approve estimates</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td></tr>
+                <tr><td>Update labor status</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Own lines</span></td></tr>
+                <tr><td>Clock in / out</td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td><td><span class="perm-check">✓</span></td></tr>
+                <tr><td>View financial data</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Invoices only</span></td><td><span class="perm-x">—</span></td></tr>
+                <tr><td>Send customer SMS</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td></tr>
+                <tr><td>ETL migration</td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td></tr>
+                <tr><td>View reports</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Limited</span></td><td><span class="perm-x">—</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVITES PAGE -->
+    <div class="page" id="page-invites">
+      <div class="acontent">
+        <div class="admin-card">
+          <div class="admin-card-header">Pending invites (2) <span style="font-size:.68rem;font-weight:400;color:var(--muted)">Links expire after 72 hours</span></div>
+          <table class="admin-table">
+            <thead><tr><th>Email</th><th>Phone</th><th>Role</th><th>Shop</th><th>Invited</th><th>Expires</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td>sarah.j@ssm.com</td><td>(240) 555-0245</td><td><span class="abadge abadge-green">Technician</span></td><td>Silver Spring</td><td style="color:var(--muted)">2h ago</td><td style="color:#b7791f">70h left</td><td><button class="action-btn green" onclick="t('Invite resent to sarah.j@ssm.com')">Resend</button><button class="action-btn red" onclick="t('Invite cancelled')">Cancel</button></td></tr>
+              <tr><td>chris.j@bethesda.com</td><td>(571) 555-0220</td><td><span class="abadge abadge-blue">Service advisor</span></td><td>Bethesda</td><td style="color:var(--muted)">1 day ago</td><td style="color:#c53030">22h left</td><td><button class="action-btn green" onclick="t('Invite resent to chris.j@bethesda.com')">Resend</button><button class="action-btn red" onclick="t('Invite cancelled')">Cancel</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-header">How invites work</div>
+          <div style="padding:12px 14px;font-size:.78rem;color:var(--muted);line-height:1.9">
+            <div>1. Create a user with email and phone number</div>
+            <div>2. Invite email sent instantly with secure link to set password</div>
+            <div>3. User clicks link, sets password, logged in to their portal immediately</div>
+            <div>4. Expired invites can be resent — a new secure link is generated</div>
+            <div>5. Phone saved for SMS-based self-service password reset via Twilio</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSWORD RESETS PAGE -->
+    <div class="page" id="page-resets">
+      <div class="acontent">
+        <div class="grid2">
+          <div class="admin-card">
+            <div class="admin-card-header">Recent reset activity (24h)</div>
+            <table class="admin-table">
+              <thead><tr><th>User</th><th>Method</th><th>Time</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td style="font-weight:600">Alex Torres</td><td>Email link</td><td style="color:var(--muted)">2h ago</td><td><span class="abadge abadge-green">Completed</span></td></tr>
+                <tr><td style="font-weight:600">Kevin Lee</td><td>SMS OTP</td><td style="color:var(--muted)">Yesterday</td><td><span class="abadge abadge-green">Completed</span></td></tr>
+                <tr><td style="font-weight:600">Sarah Johnson</td><td>Email link</td><td style="color:var(--muted)">3 days ago</td><td><span class="abadge abadge-yellow">Pending</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-header">Self-service reset methods</div>
+            <div style="padding:12px 14px;display:flex;flex-direction:column;gap:9px">
+              <div style="padding:9px 11px;background:#f8fafc;border-radius:8px"><div style="font-size:.78rem;font-weight:600;margin-bottom:3px">📧 Email reset link</div><div style="font-size:.7rem;color:var(--muted);line-height:1.5">User enters email on login. Secure link emailed instantly. Expires 1 hour.</div></div>
+              <div style="padding:9px 11px;background:#f8fafc;border-radius:8px"><div style="font-size:.78rem;font-weight:600;margin-bottom:3px">📱 SMS one-time code</div><div style="font-size:.7rem;color:var(--muted);line-height:1.5">User enters phone number. 6-digit OTP via Twilio. Expires 10 min. Phone must be on file.</div></div>
+              <div style="padding:9px 11px;background:#f8fafc;border-radius:8px"><div style="font-size:.78rem;font-weight:600;margin-bottom:3px">🔑 Admin-initiated reset</div><div style="font-size:.7rem;color:var(--muted);line-height:1.5">Super admin triggers from user table. User gets email or SMS based on preference.</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-header">Send manual reset</div>
+          <div style="padding:12px 14px;display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:160px"><div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">User</div><select class="form-input" style="margin-bottom:0"><option>Alex Torres</option><option>Maria Gonzalez</option><option>Kevin Lee</option><option>James Reed</option></select></div>
+            <div style="flex:1;min-width:130px"><div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">Method</div><select class="form-input" style="margin-bottom:0"><option>Email link</option><option>SMS OTP</option><option>Both</option></select></div>
+            <button class="btn btn-sm btn-accent" onclick="t('Password reset sent to selected user')">Send reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header">Platform settings</div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div><label class="form-label">Platform name</label><input class="form-input" value="AG Shop Pro"/></div>
+            <div><label class="form-label">Support email</label><input class="form-input" value="support@agshopro.com"/></div>
+            <div><label class="form-label">Default timezone</label><select class="form-input"><option>America/New_York (EST)</option><option>America/Chicago (CST)</option><option>America/Los_Angeles (PST)</option></select></div>
+            <button class="btn btn-gold" style="align-self:flex-start" onclick="t('Settings saved')">Save settings</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">Super admins</div>
+          <table class="dt">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600">Naod Mekonnen</td><td>naod@agholdingcorp.com</td><td><span class="badge badge-purple">Owner</span></td></tr>
+              <tr><td style="font-weight:600">Abraham Lema</td><td>abraham@agholdingcorp.com</td><td><span class="badge badge-blue">Admin</span></td></tr>
+            </tbody>
+          </table>
+          <div style="padding:10px 14px"><button class="btn btn-sm btn-accent" onclick="t('Admin invite sent')">+ Add admin</button></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  const titles = {'overview':'All shops overview','shop-detail':'Shop detail — Capitol Auto Body','alerts':'Platform alerts','billing':'Billing & subscriptions','onboard':'Onboard new shop','revenue':'Revenue analytics','techs':'All technicians','etl':'ETL migration','integrations':'Integrations','settings':'Settings','users':'Users','roles':'Roles & access','invites':'Pending invites','resets':'Password resets'};
+  document.getElementById('page-title').textContent = titles[id] || id;
+}
+
+function t(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+let modalStepN = 1;
+let selectedRole = 'super_admin';
+
+function openCreateModal() {
+  modalStepN = 1;
+  selectedRole = 'super_admin';
+  updateModalStep();
+  document.getElementById('create-modal').classList.add('open');
+}
+
+function closeCreateModal() {
+  document.getElementById('create-modal').classList.remove('open');
+}
+
+function doModalStep(dir) {
+  if (modalStepN === 3 && dir === 1) { sendInvite(); return; }
+  if (modalStepN === 2 && dir === 1) populateConfirm();
+  modalStepN = Math.max(1, Math.min(3, modalStepN + dir));
+  updateModalStep();
+}
+
+function updateModalStep() {
+  document.querySelectorAll('.mstep').forEach(s => s.classList.remove('active'));
+  document.getElementById('ms' + modalStepN).classList.add('active');
+  for (let i = 1; i <= 3; i++) {
+    const sn = document.getElementById('sn' + i);
+    const sl = document.getElementById('sl' + i);
+    sn.className = 'step-num' + (i < modalStepN ? ' done' : i === modalStepN ? ' active' : '');
+    sn.textContent = i < modalStepN ? '✓' : i;
+    sl.className = 'step-label' + (i === modalStepN ? ' active' : '');
+  }
+  document.getElementById('back-btn').style.display = modalStepN > 1 ? '' : 'none';
+  document.getElementById('next-btn').textContent = modalStepN === 3 ? 'Send invite →' : 'Continue →';
+}
+
+function selectRole(role) {
+  selectedRole = role;
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('rc-' + role).classList.add('selected');
+}
+
+function updateRoleCards() {
+  const shop = document.getElementById('u-shop').value;
+  const sa = document.getElementById('rc-super_admin');
+  sa.style.opacity = shop ? '.4' : '1';
+  sa.style.pointerEvents = shop ? 'none' : '';
+  if (shop && selectedRole === 'super_admin') selectRole('manager');
+}
+
+function populateConfirm() {
+  const first = document.getElementById('u-first').value || 'John';
+  const last = document.getElementById('u-last').value || 'Smith';
+  const email = document.getElementById('u-email').value || 'john@yourshop.com';
+  const phone = document.getElementById('u-phone').value || 'Not provided';
+  const shop = document.getElementById('u-shop').value || 'All shops';
+  const roleNames = {super_admin:'Super admin',manager:'Manager',service_advisor:'Service advisor',technician:'Technician'};
+  const role = roleNames[selectedRole] || 'Technician';
+  document.getElementById('c-name').textContent = first + ' ' + last;
+  document.getElementById('c-email').textContent = email;
+  document.getElementById('c-phone').textContent = phone;
+  document.getElementById('c-shop').textContent = shop;
+  document.getElementById('c-role').textContent = role;
+  document.getElementById('p-name').textContent = first;
+  document.getElementById('p-shop').textContent = shop;
+  document.getElementById('p-role').textContent = role;
+  document.getElementById('p-email').textContent = email;
+  document.getElementById('p-phone').textContent = phone;
+}
+
+function sendInvite() {
+  const name = document.getElementById('c-name').textContent;
+  const email = document.getElementById('c-email').textContent;
+  closeCreateModal();
+  t('Invite sent to ' + name + ' at ' + email + ' · SMS reset enabled');
+}
+
+function deleteUser(btn, name) {
+  if (!confirm('Permanently delete ' + name + '? This cannot be undone.')) return;
+  const row = btn.closest('tr');
+  row.style.transition = 'opacity .3s';
+  row.style.opacity = '0';
+  setTimeout(() => {
+    row.remove();
+    t(name + ' deleted from platform');
+  }, 300);
+}
+
+function deactivateUser(btn, name) {
+  const row = btn.closest('tr');
+  const statusCell = row.querySelector('.abadge-green, .abadge-yellow');
+  if (btn.textContent === 'Deactivate') {
+    if (statusCell) { statusCell.className = 'abadge abadge-red'; statusCell.textContent = 'Inactive'; }
+    btn.textContent = 'Reactivate';
+    btn.style.background = '#c6f6d5';
+    btn.style.borderColor = '#9ae6b4';
+    btn.style.color = '#276749';
+    t(name + ' deactivated — access revoked');
+  } else {
+    if (statusCell) { statusCell.className = 'abadge abadge-green'; statusCell.textContent = 'Active'; }
+    btn.textContent = 'Deactivate';
+    btn.style.background = '#fefcbf';
+    btn.style.borderColor = '#f6e05e';
+    btn.style.color = '#744210';
+    t(name + ' reactivated — access restored');
+  }
+}
+  document.getElementById('edit-modal-title').textContent = 'Edit user — ' + first + ' ' + last;
+  document.getElementById('e-first').value = first || '';
+  document.getElementById('e-last').value = last || '';
+  document.getElementById('e-email').value = email || '';
+  document.getElementById('e-phone').value = phone || '';
+  if (role) document.getElementById('e-role').value = role;
+  if (shop) document.getElementById('e-shop').value = shop;
+  document.getElementById('edit-modal').classList.add('open');
+}
+</script>
+<!-- CREATE USER MODAL -->
+<div class="modal-overlay" id="create-modal">
+  <div class="modal">
+    <div class="modal-header"><h3>Add new user</h3><button class="modal-close" onclick="closeCreateModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="steps-wrap">
+        <div class="step-item"><div class="step-num active" id="sn1">1</div><div class="step-label active" id="sl1">User details</div></div>
+        <div class="step-divider"></div>
+        <div class="step-item"><div class="step-num" id="sn2">2</div><div class="step-label" id="sl2">Role & access</div></div>
+        <div class="step-divider"></div>
+        <div class="step-item"><div class="step-num" id="sn3">3</div><div class="step-label" id="sl3">Confirm & invite</div></div>
+      </div>
+      <!-- Step 1 -->
+      <div class="mstep active" id="ms1">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><label class="form-label">First name</label><input class="form-input" id="u-first" placeholder="John"/></div>
+          <div><label class="form-label">Last name</label><input class="form-input" id="u-last" placeholder="Smith"/></div>
+        </div>
+        <div style="margin-top:10px"><label class="form-label">Email address</label><input class="form-input" id="u-email" type="email" placeholder="john@yourshop.com"/></div>
+        <div style="margin-top:10px"><label class="form-label">Phone number</label><input class="form-input" id="u-phone" type="tel" placeholder="(240) 555-0100"/></div>
+        <div style="margin-top:8px;padding:9px 12px;background:#ebf8ff;border-radius:8px;font-size:.72rem;color:#2a4365">📱 Phone enables SMS-based self-service password reset via Twilio. Email is used for invite and email reset links.</div>
+      </div>
+      <!-- Step 2 -->
+      <div class="mstep" id="ms2">
+        <div style="margin-bottom:12px"><label class="form-label">Assign to shop</label>
+          <select class="form-input" id="u-shop" onchange="updateRoleCards()">
+            <option value="">All shops (super admin only)</option>
+            <option>Capitol Auto Body</option>
+            <option>Silver Spring Mechanics</option>
+            <option>Bethesda Quick Lube</option>
+          </select>
+        </div>
+        <label class="form-label" style="margin-bottom:8px">Select role</label>
+        <div id="role-cards">
+          <div class="role-card selected" id="rc-super_admin" onclick="selectRole('super_admin')">
+            <div class="role-card-title"><span class="abadge abadge-blue">Super admin</span></div>
+            <div class="role-card-desc">Full platform access. All shops, billing, users, integrations. AG Holdings owners only.</div>
+            <div class="role-perms"><span class="role-perm-tag">All shops</span><span class="role-perm-tag">Billing</span><span class="role-perm-tag">User mgmt</span><span class="role-perm-tag">Integrations</span><span class="role-perm-tag">ETL</span></div>
+          </div>
+          <div class="role-card" id="rc-manager" onclick="selectRole('manager')">
+            <div class="role-card-title"><span class="abadge abadge-purple">Manager</span></div>
+            <div class="role-card-desc">Full access to assigned shop. View all ROs, manage team, reports, invoices, SMS automation.</div>
+            <div class="role-perms"><span class="role-perm-tag">All ROs</span><span class="role-perm-tag">Team mgmt</span><span class="role-perm-tag">Reports</span><span class="role-perm-tag">Invoices</span><span class="role-perm-tag">SMS</span></div>
+          </div>
+          <div class="role-card" id="rc-service_advisor" onclick="selectRole('service_advisor')">
+            <div class="role-card-title"><span class="abadge abadge-blue">Service advisor</span></div>
+            <div class="role-card-desc">Create and manage ROs, schedule appointments, send customer SMS, close invoices.</div>
+            <div class="role-perms"><span class="role-perm-tag">Create ROs</span><span class="role-perm-tag">Appointments</span><span class="role-perm-tag">Customer SMS</span><span class="role-perm-tag">Close invoices</span></div>
+          </div>
+          <div class="role-card" id="rc-technician" onclick="selectRole('technician')">
+            <div class="role-card-title"><span class="abadge abadge-green">Technician</span></div>
+            <div class="role-card-desc">Mobile-first. Assigned ROs only, clock in/out, labor updates. No financial data.</div>
+            <div class="role-perms"><span class="role-perm-tag">Assigned ROs</span><span class="role-perm-tag">Clock in/out</span><span class="role-perm-tag">Labor updates</span><span class="role-perm-tag">Tech notes</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- Step 3 -->
+      <div class="mstep" id="ms3">
+        <div style="background:#f8fafc;border-radius:9px;padding:14px;margin-bottom:14px">
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px">Invite summary</div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.78rem">
+            <span style="color:var(--muted)">Name</span><span id="c-name" style="font-weight:600">—</span>
+            <span style="color:var(--muted)">Email</span><span id="c-email">—</span>
+            <span style="color:var(--muted)">Phone</span><span id="c-phone">—</span>
+            <span style="color:var(--muted)">Shop</span><span id="c-shop">—</span>
+            <span style="color:var(--muted)">Role</span><span id="c-role">—</span>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:12px">
+          <div style="padding:9px 12px;background:#f8fafc;font-size:.72rem;font-weight:600">Email preview</div>
+          <div style="padding:12px;font-size:.72rem;line-height:1.8;color:var(--muted)">
+            <div>Subject: <strong style="color:var(--text)">You've been invited to AG Shop Pro</strong></div>
+            <div style="margin-top:8px">Hi <strong id="p-name" style="color:var(--text)">John</strong>,</div>
+            <div>You've been added to <strong id="p-shop" style="color:var(--text)">Capitol Auto Body</strong> as a <strong id="p-role" style="color:var(--text)">Technician</strong>.</div>
+            <div style="margin-top:6px">Click below to set your password and get started.</div>
+            <div style="margin-top:10px;display:inline-block;padding:8px 16px;background:#e94560;color:#fff;border-radius:8px;font-size:.75rem;font-weight:600">Set password & sign in →</div>
+            <div style="margin-top:8px">Login: <strong id="p-email" style="color:var(--text)">—</strong></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#ebf8ff;border-radius:8px;font-size:.72rem;color:#2a4365">📱 SMS password reset will be enabled on <strong id="p-phone" style="margin-left:4px">—</strong></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" id="back-btn" onclick="doModalStep(-1)" style="display:none">← Back</button>
+      <button class="btn btn-sm" onclick="closeCreateModal()">Cancel</button>
+      <button class="btn btn-sm btn-accent" id="next-btn" onclick="doModalStep(1)">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT USER MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header"><h3 id="edit-modal-title">Edit user</h3><button class="modal-close" onclick="document.getElementById('edit-modal').classList.remove('open')">✕</button></div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label class="form-label">First name</label><input class="form-input" id="e-first"/></div>
+        <div><label class="form-label">Last name</label><input class="form-input" id="e-last"/></div>
+      </div>
+      <div style="margin-top:10px"><label class="form-label">Email address</label><input class="form-input" id="e-email" type="email"/></div>
+      <div style="margin-top:10px"><label class="form-label">Phone number</label><input class="form-input" id="e-phone" type="tel"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div><label class="form-label">Role</label>
+          <select class="form-input" id="e-role">
+            <option>Technician</option><option>Service advisor</option><option>Manager</option><option>Super admin</option>
+          </select>
+        </div>
+        <div><label class="form-label">Shop</label>
+          <select class="form-input" id="e-shop">
+            <option>Capitol Auto Body</option><option>Silver Spring Mechanics</option><option>Bethesda Quick Lube</option><option>All shops</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:10px"><label class="form-label">Account status</label>
+        <select class="form-input"><option>Active</option><option>Suspended</option><option>Deactivated</option></select>
+      </div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="font-size:.78rem;font-weight:600;margin-bottom:10px">Password reset</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="t('Reset email sent to user')">📧 Send reset email</button>
+          <button class="btn btn-sm" onclick="t('SMS OTP sent to phone on file')">📱 Send SMS code</button>
+          <button class="btn btn-sm btn-accent" onclick="t('Temporary password generated and emailed')">🔑 Generate temp password</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" onclick="document.getElementById('edit-modal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-sm btn-accent" onclick="t('User updated');document.getElementById('edit-modal').classList.remove('open')">Save changes</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
