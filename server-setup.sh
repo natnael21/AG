@@ -459,9 +459,9 @@ server {
     auth_basic "Preprod Access";
     auth_basic_user_file /etc/nginx/.htpasswd;
 
-    # Static frontend
+    # Static frontend (login.html is the real entry; no index.html in repo)
     root /var/www/agshopro-preprod/current/public;
-    index index.html;
+    index login.html index.html;
 
     # Block sensitive files
     location ~ /\\.env         { deny all; return 404; }
@@ -488,9 +488,9 @@ server {
         proxy_set_header   Host       \$host;
     }
 
-    # SPA fallback (comment out if not a single-page app)
+    # Multi-page static site — fall back to login, not missing index.html
     location / {
-        try_files \$uri \$uri/ /index.html;
+        try_files \$uri \$uri/ /login.html;
     }
 }
 NGINXCONF
