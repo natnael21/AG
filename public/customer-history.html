@@ -100,6 +100,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 </style>
 </head>
 <body>
+<script src="auth.js"></script>
+<script>
+(function(){
+  if(!AUTH.requireRoles(['manager', 'service_advisor', 'super_admin'])) return;
+})();
+</script>
 <div class="toast" id="toast"></div>
 
 <div class="topbar">

@@ -59,7 +59,7 @@ table.data-table tr:hover td{background:#f8fafc}
 <body>
 <script src="auth.js"></script>
 <script>
-(function(){ if(!AUTH.requireAuth()) return; })();
+(function(){ if(!AUTH.requireRoles(['manager', 'service_advisor', 'super_admin'])) return; })();
 </script>
 
 <div class="page-hdr">

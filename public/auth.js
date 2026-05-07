@@ -120,6 +120,40 @@ const AUTH = {
     return s;
   },
 
+  canAccessRole(session, allowedRoles) {
+    const s = session || this.getSession();
+    if (!s || !s.role) return false;
+    return Array.isArray(allowedRoles) && allowedRoles.includes(s.role);
+  },
+
+  requireRoles(allowedRoles) {
+    const s = this.requireAuth();
+    if (!s) return null;
+    if (!this.canAccessRole(s, allowedRoles)) {
+      const fallback = this.ROLE_PORTAL[s.role] || 'login.html';
+      window.location.replace(fallback);
+      return null;
+    }
+    return s;
+  },
+
+  async apiFetch(url, options) {
+    const s = this.requireAuth();
+    if (!s) throw new Error('Unauthorized');
+    const headers = Object.assign({}, options?.headers || {});
+    if (s.token) headers.Authorization = `Bearer ${s.token}`;
+    const res = await fetch(url, Object.assign({}, options || {}, {
+      headers,
+      credentials: 'same-origin',
+    }));
+    if (res.status === 401) {
+      this.clearSession();
+      window.location.replace('login.html');
+      throw new Error('Session expired');
+    }
+    return res;
+  },
+
   getMyWorkspaces(session) {
     const s = session || this.getSession();
     if (!s) return [];

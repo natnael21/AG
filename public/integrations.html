@@ -366,7 +366,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 <script src="auth.js"></script>
 <script>
 (function(){
-  const s = AUTH.requireAuth();
+  const s = AUTH.requireRoles(['manager', 'super_admin']);
   if(!s) return;
   document.addEventListener('DOMContentLoaded', () => {
     const n = document.getElementById('sidebar-username');

@@ -78,7 +78,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 <script src="auth.js"></script>
 <script>
 (function(){
-  var s = AUTH.requireAuth();
+  var s = AUTH.requireRoles(['technician', 'manager', 'super_admin']);
   if(!s) return;
   // Update sidebar user info
   document.addEventListener('DOMContentLoaded', function(){

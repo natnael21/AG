@@ -125,7 +125,7 @@ table.dt tr:hover td{background:#f8fafc;cursor:pointer}
 <script src="auth.js"></script>
 <script>
 (function(){
-  var s = AUTH.requireAuth();
+  var s = AUTH.requireRoles(['super_admin']);
   if(!s) return;
   // Update sidebar user info
   document.addEventListener('DOMContentLoaded', function(){
