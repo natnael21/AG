@@ -12,8 +12,6 @@ set -euo pipefail
 # ─────────────────────────────────────────────
 PROD_DOMAIN="agshopro.com"
 PREPROD_DOMAIN="preprod.agshopro.com"
-PREPROD_BASIC_AUTH_USER="teamuser"          # username for preprod password wall
-PREPROD_BASIC_AUTH_PASS="changeme123"       # change this to something strong
 DEPLOY_USER="deploy"
 APP_ROOT_PROD="/var/www/agshopro"
 APP_ROOT_PREPROD="/var/www/agshopro-preprod"
@@ -50,7 +48,7 @@ section "0. Preflight Checks"
 require_root
 
 info "Checking required tools are installed..."
-for cmd in nginx pm2 node npm certbot htpasswd; do
+for cmd in nginx pm2 node npm certbot; do
   if ! command -v "$cmd" &>/dev/null; then
     error "'$cmd' is not installed. Install it before running this script."
   fi
@@ -437,14 +435,6 @@ warn "  → Copy this file into your repo at: infra/pm2/ecosystem.config.js"
 # ─────────────────────────────────────────────
 section "7. Configuring Nginx preprod vhost"
 
-# Set up basic auth
-info "Setting up HTTP basic auth for preprod..."
-apt-get install -y -q apache2-utils > /dev/null
-htpasswd -bc /etc/nginx/.htpasswd "$PREPROD_BASIC_AUTH_USER" "$PREPROD_BASIC_AUTH_PASS"
-chmod 640 /etc/nginx/.htpasswd
-chown root:www-data /etc/nginx/.htpasswd
-info "Basic auth created for user: $PREPROD_BASIC_AUTH_USER"
-
 # Write preprod Nginx config (HTTP only — HTTPS added by certbot after DNS is live)
 NGINX_PREPROD_CONF="/etc/nginx/sites-available/agshopro-preprod"
 cat > "$NGINX_PREPROD_CONF" << NGINXCONF
@@ -454,10 +444,6 @@ cat > "$NGINX_PREPROD_CONF" << NGINXCONF
 server {
     listen 80;
     server_name $PREPROD_DOMAIN;
-
-    # Basic auth — keeps preprod private
-    auth_basic "Preprod Access";
-    auth_basic_user_file /etc/nginx/.htpasswd;
 
     # Static frontend (login.html is the real entry; no index.html in repo)
     root /var/www/agshopro-preprod/current/public;
@@ -615,8 +601,8 @@ echo ""
 echo "  6. VERIFY PROD IS STILL HEALTHY"
 echo "     $ curl https://$PROD_DOMAIN/api/health"
 echo ""
-echo "  7. CHANGE PREPROD BASIC AUTH PASSWORD (if you used the default)"
-echo "     $ sudo htpasswd /etc/nginx/.htpasswd $PREPROD_BASIC_AUTH_USER"
+echo "  7. OPTIONAL: RESTRICT PREPROD BY IP (Nginx allow/deny) IF NEEDED"
+echo "     Add allow/deny rules in: /etc/nginx/sites-available/agshopro-preprod"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  DIRECTORY LAYOUT"

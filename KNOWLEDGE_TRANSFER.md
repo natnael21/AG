@@ -124,7 +124,7 @@ Steps:
 2. Generate release ID.
 3. SCP full repo to `/tmp/agshopro-release-preprod` on EC2.
 4. SSH execute `/var/www/agshopro-preprod/scripts/deploy.sh <release-id>`.
-5. Healthcheck `https://preprod.agshopro.com/api/health` using basic auth.
+5. Healthcheck `https://preprod.agshopro.com/api/health`.
 6. Emit failure annotation if any step fails.
 
 ## Prod workflow (`deploy-prod.yml`)
@@ -208,7 +208,6 @@ GitHub repository secrets used/required:
 - `EC2_HOST`
 - `EC2_USER` (targeted as `deploy` for workflow path)
 - `EC2_SSH_KEY` (private key matching `/home/deploy/.ssh/authorized_keys`)
-- `PREPROD_BASIC_AUTH` in format `username:password`
 
 Operational guidance:
 - rotate any previously exposed credentials (DB/API/SMTP/JWT/etc).
@@ -273,9 +272,9 @@ printf 'y\n' | sudo bash ~/server-setup.sh
 echo | openssl s_client -connect preprod.agshopro.com:443 -servername preprod.agshopro.com 2>/dev/null | openssl x509 -noout -subject -issuer -ext subjectAltName
 ```
 
-## Preprod health with basic auth
+## Preprod health
 ```bash
-curl -u "teamuser:<password>" https://preprod.agshopro.com/api/health
+curl https://preprod.agshopro.com/api/health
 ```
 
 ---
@@ -287,7 +286,7 @@ curl -u "teamuser:<password>" https://preprod.agshopro.com/api/health
 3. Replace placeholder tests/lint scripts with real checks.
 4. Remove/retire legacy duplicate workflow files (if still present).
 5. Confirm prod healthcheck stability after env migration to shared model.
-6. Change preprod basic auth password to strong value and sync `PREPROD_BASIC_AUTH`.
+6. If preprod needs a gate, add IP allow/deny rules in Nginx instead of HTTP basic auth.
 7. Patch `server-setup.sh` ssh service reload line (`ssh`, not `sshd`) if not already committed.
 
 ---
