@@ -840,6 +840,8 @@ function deactivateUser(btn, name) {
     t(name + ' reactivated — access restored');
   }
 }
+
+function openEditModal(first, last, email, phone, role, shop) {
   document.getElementById('edit-modal-title').textContent = 'Edit user — ' + first + ' ' + last;
   document.getElementById('e-first').value = first || '';
   document.getElementById('e-last').value = last || '';
