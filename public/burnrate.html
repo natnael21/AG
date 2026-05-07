@@ -57,6 +57,10 @@ table.data-table tr:hover td{background:#f8fafc}
 </style>
 </head>
 <body>
+<script src="auth.js"></script>
+<script>
+(function(){ if(!AUTH.requireAuth()) return; })();
+</script>
 
 <div class="page-hdr">
   <div>
@@ -201,15 +205,17 @@ async function loadData(days) {
 }
 
 async function fetchBurnRate(days) {
-  /* Real call — uncomment when API is live */
-  // const session = JSON.parse(sessionStorage.getItem('agshopro_session') || '{}');
-  // const res = await fetch(`${API}/burn-rate?days=${days}`, {
-  //   headers: { 'Authorization': `Bearer ${session.token}` }
-  // });
-  // if (!res.ok) throw new Error('API error');
-  // return res.json();
-
-  /* Demo mode: simulate API response */
+  const session = AUTH.getSession && AUTH.getSession();
+  if (session && session.token) {
+    const qs = new URLSearchParams({ days: String(days) });
+    if (session.activeWorkspaceId != null) qs.set('workspaceId', String(session.activeWorkspaceId));
+    const res = await fetch(`${API}/burn-rate?${qs}`, {
+      headers: { Authorization: `Bearer ${session.token}` },
+      credentials: 'same-origin',
+    });
+    if (!res.ok) throw new Error('API error');
+    return res.json();
+  }
   await new Promise(r => setTimeout(r, 600));
   return getDemoData(days);
 }
@@ -378,9 +384,19 @@ function renderSplitChart(data) {
   const ctx = document.getElementById('split-chart').getContext('2d');
   if(splitChart) splitChart.destroy();
 
-  const revCats = data.categoryBreakdown.filter(c =>
+  const breakdown = data.categoryBreakdown || [];
+  const revCats = breakdown.filter(c =>
     c.category !== 'square_fee' && c.category !== 'refund' && c.category !== 'uncategorized' && c.gross > 0
   );
+
+  if (!revCats.length) {
+    splitChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels: ['No data'], datasets: [{ data: [1], backgroundColor: ['#e2e8f0'], borderWidth: 2, borderColor: '#fff' }] },
+      options: { responsive: true, maintainAspectRatio: true, cutout: '65%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+    });
+    return;
+  }
 
   splitChart = new Chart(ctx, {
     type: 'doughnut',
@@ -406,8 +422,13 @@ function renderSplitChart(data) {
 }
 
 function renderCategoryList(data) {
-  const maxGross = Math.max(...data.categoryBreakdown.map(c => c.gross));
-  const html = data.categoryBreakdown.map(cat => {
+  const breakdown = data.categoryBreakdown || [];
+  if (!breakdown.length) {
+    document.getElementById('category-list').innerHTML = '<div class="loading">No category data yet — connect Square or sync transactions.</div>';
+    return;
+  }
+  const maxGross = Math.max(...breakdown.map(c => c.gross));
+  const html = breakdown.map(cat => {
     const pct = maxGross > 0 ? (cat.gross / maxGross * 100) : 0;
     const color = CAT_COLORS[cat.category] || '#a0aec0';
     const isExpense = cat.category === 'square_fee' || cat.category === 'refund';

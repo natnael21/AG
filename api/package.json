@@ -9,7 +9,7 @@
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "echo \"TODO: add unit tests\" && exit 0",
     "test:integration": "echo \"TODO: add integration tests\" && exit 0",
-    "migrate:latest": "echo \"TODO: wire migration tool\" && exit 0"
+    "migrate:latest": "node scripts/migrate.js"
   },
   "keywords": [],
   "author": "",
