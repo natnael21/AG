@@ -114,37 +114,23 @@ app.post('/api/signup', async (req, res) => {
   }
 
   try {
-    const bcrypt = require('bcrypt');
-    const crypto = require('crypto');
-    const password = `Temp-${crypto.randomBytes(5).toString('hex')}!`;
-    const hash = await bcrypt.hash(password, 12);
-
-    await pool.query('BEGIN');
-    const wsResult = await pool.query(
-      `INSERT INTO workspaces (name, type, plan, active)
-       VALUES ($1,$2,$3,true)
-       RETURNING id, name`,
-      [shop, type || 'mechanic', 'starter']
-    );
-    const workspaceId = wsResult.rows[0].id;
     const fullName = [first, last].filter(Boolean).join(' ').trim();
-
-    const userResult = await pool.query(
-      `INSERT INTO users (name, email, phone, password_hash, role, workspace_ids, active)
-       VALUES ($1,$2,$3,$4,'super_admin',$5,true)
-       RETURNING id, name, email, role, workspace_ids`,
-      [fullName || first, email.toLowerCase(), phone || null, hash, [workspaceId]]
+    const { rows: dup } = await pool.query(
+      `SELECT id FROM shop_signups WHERE lower(contact_email) = lower($1) AND status IN ('pending','approved') LIMIT 1`,
+      [email]
     );
+    if (dup.length) return res.status(409).json({ error: 'A signup request for this email already exists.' });
 
-    await pool.query(
-      `INSERT INTO leads_inbox
-       (workspace_id, contact_name, contact_email, contact_phone, shop_type, annual_revenue, technicians, employees, has_advisor, pain_point, source, tools, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'new')`,
+    const { rows } = await pool.query(
+      `INSERT INTO shop_signups
+       (contact_name, contact_email, contact_phone, shop_name, shop_type, annual_revenue, technicians, employees, has_advisor, pain_point, source, tools, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending')
+       RETURNING id, status, created_at`,
       [
-        workspaceId,
         fullName || first,
         email.toLowerCase(),
         phone || null,
+        shop,
         type || null,
         revenue || null,
         techs || null,
@@ -155,16 +141,8 @@ app.post('/api/signup', async (req, res) => {
         tools || null,
       ]
     );
-
-    await pool.query('COMMIT');
-    res.status(201).json({
-      ok: true,
-      workspace: wsResult.rows[0],
-      user: userResult.rows[0],
-      tempPassword: password,
-    });
+    res.status(201).json({ ok: true, signup: rows[0] });
   } catch (e) {
-    await pool.query('ROLLBACK').catch(() => {});
     if (String(e.message).toLowerCase().includes('duplicate key')) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
@@ -200,6 +178,52 @@ app.get('/api/users', requireAuth(['super_admin', 'manager']), async (req, res) 
   }
 });
 
+app.get('/api/admin/signups', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, contact_name, contact_email, contact_phone, shop_name, shop_type, annual_revenue,
+              technicians, employees, has_advisor, pain_point, source, tools, status, reviewed_by,
+              reviewed_at, created_at
+       FROM shop_signups
+       ORDER BY created_at DESC
+       LIMIT 200`
+    );
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/signups/:id/reject', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid signup id.' });
+    const { rows } = await pool.query(
+      `UPDATE shop_signups
+       SET status = 'rejected', reviewed_by = $2, reviewed_at = NOW()
+       WHERE id = $1 AND status = 'pending'
+       RETURNING id, status, reviewed_at`,
+      [id, req.session.user_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Pending signup not found.' });
+    res.json({ ok: true, signup: rows[0] });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/signups/:id/approve', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid signup id.' });
+    const out = await provisionSignup(id, req.session.user_id);
+    if (!out) return res.status(404).json({ error: 'Pending signup not found.' });
+    res.json({ ok: true, ...out });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 function resolveWorkspaceId(req, res) {
   const raw = req.query.workspaceId || req.body.workspaceId || req.session.workspace_ids?.[0];
   const workspaceId = Number(raw);
@@ -217,6 +241,115 @@ function resolveWorkspaceId(req, res) {
   }
 
   return workspaceId;
+}
+
+async function getColumnMeta(client, tableName, columnName) {
+  const { rows } = await client.query(
+    `SELECT data_type, column_default
+     FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = $1 AND column_name = $2`,
+    [tableName, columnName]
+  );
+  return rows[0] || null;
+}
+
+function makeTempPassword() {
+  const crypto = require('crypto');
+  return `Temp-${crypto.randomBytes(5).toString('hex')}!`;
+}
+
+async function provisionSignup(signupId, reviewerId) {
+  const bcrypt = require('bcrypt');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: srows } = await client.query(
+      `SELECT * FROM shop_signups WHERE id = $1 AND status = 'pending' FOR UPDATE`,
+      [signupId]
+    );
+    if (!srows.length) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+    const s = srows[0];
+
+    const wsIdMeta = await getColumnMeta(client, 'workspaces', 'id');
+    const wsIdIsInt = wsIdMeta && wsIdMeta.data_type.includes('integer');
+    const wsNeedsManualId = wsIdMeta && !wsIdMeta.column_default;
+    const wsTypeCol = await getColumnMeta(client, 'workspaces', 'shop_type')
+      ? 'shop_type'
+      : (await getColumnMeta(client, 'workspaces', 'type') ? 'type' : null);
+
+    const wsCols = [];
+    const wsVals = [];
+    const wsParams = [];
+    let p = 1;
+
+    if (wsNeedsManualId) {
+      wsCols.push('id');
+      if (wsIdIsInt) {
+        wsVals.push(`(SELECT COALESCE(MAX(id),0)+1 FROM workspaces)`);
+      } else {
+        wsVals.push(`$${p++}`);
+        wsParams.push(`ws-${Date.now()}`);
+      }
+    }
+    wsCols.push('name'); wsVals.push(`$${p++}`); wsParams.push(s.shop_name);
+    if (wsTypeCol) { wsCols.push(wsTypeCol); wsVals.push(`$${p++}`); wsParams.push(s.shop_type || 'mechanic'); }
+    if (await getColumnMeta(client, 'workspaces', 'plan')) { wsCols.push('plan'); wsVals.push(`$${p++}`); wsParams.push('starter'); }
+    if (await getColumnMeta(client, 'workspaces', 'active')) { wsCols.push('active'); wsVals.push('true'); }
+    const wsSql = `INSERT INTO workspaces (${wsCols.join(', ')}) VALUES (${wsVals.join(', ')}) RETURNING id, name`;
+    const { rows: wsRows } = await client.query(wsSql, wsParams);
+    const workspace = wsRows[0];
+
+    const tempPassword = makeTempPassword();
+    const passwordHash = await bcrypt.hash(tempPassword, 12);
+    const usersIdMeta = await getColumnMeta(client, 'users', 'id');
+    const usersNeedsManualId = usersIdMeta && !usersIdMeta.column_default;
+    const usersIdIsInt = usersIdMeta && usersIdMeta.data_type.includes('integer');
+    const wsIdsMeta = await getColumnMeta(client, 'users', 'workspace_ids');
+    const wsIdsIsInt = wsIdsMeta && wsIdsMeta.data_type.includes('integer');
+
+    const uCols = [];
+    const uVals = [];
+    const uParams = [];
+    let u = 1;
+    if (usersNeedsManualId) {
+      uCols.push('id');
+      if (usersIdIsInt) uVals.push(`(SELECT COALESCE(MAX(id),0)+1 FROM users)`);
+      else { uVals.push(`$${u++}`); uParams.push(`usr-${Date.now()}`); }
+    }
+    uCols.push('name');          uVals.push(`$${u++}`); uParams.push(s.contact_name || 'Shop Owner');
+    uCols.push('email');         uVals.push(`$${u++}`); uParams.push(String(s.contact_email || '').toLowerCase());
+    if (await getColumnMeta(client, 'users', 'phone')) { uCols.push('phone'); uVals.push(`$${u++}`); uParams.push(s.contact_phone || null); }
+    uCols.push('password_hash'); uVals.push(`$${u++}`); uParams.push(passwordHash);
+    uCols.push('role');          uVals.push(`$${u++}`); uParams.push('super_admin');
+    uCols.push('workspace_ids');
+    if (wsIdsIsInt) { uVals.push(`$${u++}`); uParams.push([Number(workspace.id)]); }
+    else { uVals.push(`$${u++}`); uParams.push([String(workspace.id)]); }
+    if (await getColumnMeta(client, 'users', 'active')) { uCols.push('active'); uVals.push('true'); }
+
+    const userSql = `INSERT INTO users (${uCols.join(', ')}) VALUES (${uVals.join(', ')})
+                     RETURNING id, name, email, role, workspace_ids`;
+    const { rows: uRows } = await client.query(userSql, uParams);
+    const user = uRows[0];
+
+    const { rows: doneRows } = await client.query(
+      `UPDATE shop_signups
+       SET status = 'approved', reviewed_by = $2, reviewed_at = NOW(), workspace_id = $3, user_id = $4
+       WHERE id = $1
+       RETURNING id, status, reviewed_at`,
+      [signupId, reviewerId, workspace.id, user.id]
+    );
+
+    await client.query('COMMIT');
+    return { signup: doneRows[0], workspace, user, tempPassword };
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
+  }
 }
 
 /* ── Core customers routes ── */

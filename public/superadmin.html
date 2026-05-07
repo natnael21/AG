@@ -133,6 +133,7 @@ table.dt tr:hover td{background:#f8fafc;cursor:pointer}
     var sh = document.getElementById('sidebar-shopname');
     if(n) n.textContent = s.name || 'User';
     if(sh) sh.textContent = s.activeWorkspaceName || s.shop || '';
+    loadSignupQueue();
   });
 })();
 function logout(){ AUTH.logout(); }
@@ -324,26 +325,39 @@ function logout(){ AUTH.logout(); }
             <div class="card-header">New shop details</div>
             <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
               <div class="form-row">
-                <div><label class="form-label">Shop name</label><input class="form-input" placeholder="Auto shop name"/></div>
-                <div><label class="form-label">Type</label><select class="form-input"><option>Auto body</option><option>Mechanic</option><option>Quick lube</option><option>Both</option></select></div>
+                <div><label class="form-label">Shop name</label><input class="form-input" id="signup-shop" placeholder="Auto shop name"/></div>
+                <div><label class="form-label">Type</label><select class="form-input" id="signup-type"><option>Auto body</option><option>Mechanic</option><option>Quick lube</option><option>Both</option></select></div>
               </div>
-              <div><label class="form-label">Address</label><input class="form-input" placeholder="Street, city, state, zip"/></div>
+              <div><label class="form-label">Address</label><input class="form-input" id="signup-address" placeholder="Street, city, state, zip"/></div>
               <div class="form-row">
-                <div><label class="form-label">Phone</label><input class="form-input" placeholder="(000) 000-0000"/></div>
-                <div><label class="form-label">Email</label><input class="form-input" placeholder="owner@shop.com" type="email"/></div>
+                <div><label class="form-label">Phone</label><input class="form-input" id="signup-phone" placeholder="(000) 000-0000"/></div>
+                <div><label class="form-label">Email</label><input class="form-input" id="signup-email" placeholder="owner@shop.com" type="email"/></div>
+              </div>
+              <div class="form-row">
+                <div><label class="form-label">Owner first name</label><input class="form-input" id="signup-first" placeholder="John"/></div>
+                <div><label class="form-label">Owner last name</label><input class="form-input" id="signup-last" placeholder="Smith"/></div>
               </div>
               <div><label class="form-label">Plan</label>
-                <select class="form-input"><option>Starter — $149/mo (3 users)</option><option>Pro — $299/mo (10 users)</option><option>Enterprise — $599/mo (unlimited)</option></select>
+                <select class="form-input" id="signup-plan"><option>Starter — $149/mo (3 users)</option><option>Pro — $299/mo (10 users)</option><option>Enterprise — $599/mo (unlimited)</option></select>
               </div>
               <div class="form-row">
-                <div><label class="form-label">Labor rate ($/hr)</label><input class="form-input" type="number" value="120"/></div>
-                <div><label class="form-label">Tax rate (%)</label><input class="form-input" type="number" value="6.0"/></div>
+                <div><label class="form-label">Labor rate ($/hr)</label><input class="form-input" id="signup-labor" type="number" value="120"/></div>
+                <div><label class="form-label">Tax rate (%)</label><input class="form-input" id="signup-tax" type="number" value="6.0"/></div>
               </div>
-              <button class="btn btn-gold" onclick="t('Shop created · Onboarding email sent · Login credentials generated')">Create shop & send invite</button>
+              <button class="btn btn-gold" onclick="submitOnboardSignup()">Submit onboarding request</button>
             </div>
           </div>
         </div>
         <div>
+          <div class="card">
+            <div class="card-header">Pending signup approvals</div>
+            <table class="dt">
+              <thead><tr><th>Shop</th><th>Owner</th><th>Email</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead>
+              <tbody id="signup-queue-body">
+                <tr><td colspan="6" style="color:var(--muted)">Loading signup requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
           <div class="card">
             <div class="card-header">ETL data migration</div>
             <div style="padding:14px">
@@ -623,6 +637,101 @@ function t(msg) {
   el.textContent = msg;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString();
+}
+
+async function loadSignupQueue() {
+  const body = document.getElementById('signup-queue-body');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">Loading signup requests...</td></tr>';
+  try {
+    const res = await AUTH.apiFetch('/api/admin/signups');
+    const rows = await res.json();
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">No signup requests yet.</td></tr>';
+      return;
+    }
+    body.innerHTML = rows.slice(0, 25).map((s) => `
+      <tr>
+        <td style="font-weight:600">${s.shop_name || '—'}</td>
+        <td>${s.contact_name || '—'}</td>
+        <td>${s.contact_email || '—'}</td>
+        <td><span class="badge ${s.status === 'approved' ? 'badge-green' : s.status === 'rejected' ? 'badge-red' : 'badge-yellow'}">${s.status}</span></td>
+        <td>${fmtDate(s.created_at)}</td>
+        <td>
+          ${s.status === 'pending'
+            ? `<button class="btn btn-sm btn-gold" onclick="approveSignup(${s.id})">Approve</button>
+               <button class="btn btn-sm" style="margin-left:6px" onclick="rejectSignup(${s.id})">Reject</button>`
+            : '—'}
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    body.innerHTML = '<tr><td colspan="6" style="color:var(--red)">Failed to load signup queue.</td></tr>';
+  }
+}
+
+async function approveSignup(id) {
+  if (!confirm('Approve this signup and provision workspace + owner account?')) return;
+  try {
+    const res = await AUTH.apiFetch(`/api/admin/signups/${id}/approve`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Approve failed');
+    t('Signup approved. Temp password: ' + data.tempPassword);
+    loadSignupQueue();
+  } catch (e) {
+    t('Approve failed: ' + e.message);
+  }
+}
+
+async function rejectSignup(id) {
+  if (!confirm('Reject this signup request?')) return;
+  try {
+    const res = await AUTH.apiFetch(`/api/admin/signups/${id}/reject`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Reject failed');
+    t('Signup rejected');
+    loadSignupQueue();
+  } catch (e) {
+    t('Reject failed: ' + e.message);
+  }
+}
+
+async function submitOnboardSignup() {
+  const first = document.getElementById('signup-first').value.trim();
+  const last = document.getElementById('signup-last').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const phone = document.getElementById('signup-phone').value.trim();
+  const shop = document.getElementById('signup-shop').value.trim();
+  const type = document.getElementById('signup-type').value;
+  const plan = document.getElementById('signup-plan').value;
+  if (!first || !email || !shop) {
+    t('Owner first name, email, and shop name are required.');
+    return;
+  }
+  try {
+    const res = await fetch('/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        first, last, email, phone, shop, type,
+        revenue: plan,
+        techs: null, employees: null, advisor: null,
+        pain: null, source: 'owner-onboard', tools: null,
+      }),
+      credentials: 'same-origin',
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Signup submit failed');
+    t('Signup request submitted and queued for approval.');
+    loadSignupQueue();
+  } catch (e) {
+    t('Submit failed: ' + e.message);
+  }
 }
 
 let modalStepN = 1;
