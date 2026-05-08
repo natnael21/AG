@@ -359,6 +359,40 @@ function resolveWorkspaceId(req, res) {
   return workspaceId;
 }
 
+/* ── Email test endpoint (admin only) ── */
+app.post('/api/admin/test-email', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email is required.' });
+
+    console.log('[test-email] Attempting to send test email to:', email);
+    console.log('[test-email] SMTP Config:', {
+      SMTP_HOST: process.env.SMTP_HOST,
+      SMTP_PORT: process.env.SMTP_PORT,
+      SMTP_SECURE: process.env.SMTP_SECURE,
+      SMTP_USER: process.env.SMTP_USER ? '***set***' : '***not set***',
+      SMTP_PASS: process.env.SMTP_PASS ? '***set***' : '***not set***',
+      FROM_EMAIL: process.env.FROM_EMAIL,
+    });
+
+    const testEmail = require('./services/email');
+    const result = await testEmail.sendApprovalEmail(
+      { name: 'Test User', email },
+      { name: 'Test Workspace', id: 0 },
+      'TestPassword123!'
+    );
+
+    res.json({
+      ok: result.success,
+      message: result.success ? 'Test email sent successfully' : 'Test email failed',
+      error: result.error || null,
+    });
+  } catch (e) {
+    console.error('[test-email]', e.message);
+    res.status(500).json({ error: 'Test email error: ' + e.message });
+  }
+});
+
 /* ── Core customers routes ── */
 app.get('/api/customers', requireAuth(), async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);

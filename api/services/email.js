@@ -2,15 +2,37 @@ const nodemailer = require('nodemailer');
 const path = require('path');
 
 // Initialize email transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'localhost',
-  port: parseInt(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: process.env.SMTP_USER ? {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  } : undefined,
-});
+let transporter = null;
+
+function initializeTransporter() {
+  try {
+    const config = {
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true',
+    };
+
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+      config.auth = {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      };
+    }
+
+    transporter = nodemailer.createTransport(config);
+    console.log('[Email] Transporter initialized with:', {
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      authConfigured: !!config.auth,
+    });
+  } catch (e) {
+    console.error('[Email] Failed to initialize transporter:', e.message);
+  }
+}
+
+// Initialize on module load
+initializeTransporter();
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@agshopro.com';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@agshopro.com';
@@ -20,6 +42,11 @@ const APP_URL = process.env.APP_URL || 'https://agshopro.com';
  * Send rejection email to signup applicant
  */
 async function sendRejectionEmail(signup, rejectionComment) {
+  if (!transporter) {
+    console.error('[sendRejectionEmail] Transporter not initialized');
+    return { success: false, error: 'Email service not configured' };
+  }
+
   try {
     const html = `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -41,16 +68,19 @@ async function sendRejectionEmail(signup, rejectionComment) {
       </div>
     `;
 
-    await transporter.sendMail({
+    console.log(`[sendRejectionEmail] Sending rejection email to ${signup.contact_email}`);
+    
+    const result = await transporter.sendMail({
       from: FROM_EMAIL,
       to: signup.contact_email,
       subject: 'AG Shop Pro - Application Review',
       html,
     });
 
+    console.log(`[sendRejectionEmail] Email sent successfully:`, result.messageId);
     return { success: true };
   } catch (e) {
-    console.error('[Email] Failed to send rejection email:', e.message);
+    console.error('[sendRejectionEmail] Failed to send rejection email:', e.message);
     return { success: false, error: e.message };
   }
 }
@@ -59,6 +89,11 @@ async function sendRejectionEmail(signup, rejectionComment) {
  * Send approval email with temp password
  */
 async function sendApprovalEmail(user, workspace, tempPassword) {
+  if (!transporter) {
+    console.error('[sendApprovalEmail] Transporter not initialized');
+    return { success: false, error: 'Email service not configured' };
+  }
+
   try {
     const loginUrl = `${APP_URL}/login`;
     
@@ -84,16 +119,19 @@ async function sendApprovalEmail(user, workspace, tempPassword) {
       </div>
     `;
 
-    await transporter.sendMail({
+    console.log(`[sendApprovalEmail] Sending approval email to ${user.email}`);
+    
+    const result = await transporter.sendMail({
       from: FROM_EMAIL,
       to: user.email,
       subject: 'Welcome to AG Shop Pro - Account Created',
       html,
     });
 
+    console.log(`[sendApprovalEmail] Email sent successfully:`, result.messageId);
     return { success: true };
   } catch (e) {
-    console.error('[Email] Failed to send approval email:', e.message);
+    console.error('[sendApprovalEmail] Failed to send approval email:', e.message);
     return { success: false, error: e.message };
   }
 }
@@ -102,6 +140,11 @@ async function sendApprovalEmail(user, workspace, tempPassword) {
  * Send reinstatement notification email
  */
 async function sendReinstateEmail(signup) {
+  if (!transporter) {
+    console.error('[sendReinstateEmail] Transporter not initialized');
+    return { success: false, error: 'Email service not configured' };
+  }
+
   try {
     const html = `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -116,16 +159,19 @@ async function sendReinstateEmail(signup) {
       </div>
     `;
 
-    await transporter.sendMail({
+    console.log(`[sendReinstateEmail] Sending reinstate email to ${signup.contact_email}`);
+    
+    const result = await transporter.sendMail({
       from: FROM_EMAIL,
       to: signup.contact_email,
       subject: 'AG Shop Pro - Application Reinstated',
       html,
     });
 
+    console.log(`[sendReinstateEmail] Email sent successfully:`, result.messageId);
     return { success: true };
   } catch (e) {
-    console.error('[Email] Failed to send reinstate email:', e.message);
+    console.error('[sendReinstateEmail] Failed to send reinstate email:', e.message);
     return { success: false, error: e.message };
   }
 }
