@@ -590,6 +590,570 @@ app.get('/api/analytics/burn-rate', requireAuth(), async (req, res) => {
   }
 });
 
+/* ── Repair Order Management Routes ── */
+const RepairOrderService = require('./services/repair-order');
+const repairOrderService = new RepairOrderService(pool);
+
+app.get('/api/repair-orders/:id', requireAuth(), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const roId = Number(req.params.id);
+    const repairOrder = await repairOrderService.getRepairOrder(roId, workspaceId);
+    if (!repairOrder) {
+      return res.status(404).json({ error: 'Repair order not found' });
+    }
+    res.json(repairOrder);
+  } catch (e) {
+    console.error('[repair-orders/:id]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/repair-orders/:id/parts', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const roId = Number(req.params.id);
+    const partData = req.body;
+    const result = await repairOrderService.addPartToRepairOrder(roId, partData, workspaceId, req.session.user_id);
+    res.json(result);
+  } catch (e) {
+    console.error('[repair-orders/:id/parts]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/repair-orders/:id/labor', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const roId = Number(req.params.id);
+    const laborData = req.body;
+    const result = await repairOrderService.addLaborToRepairOrder(roId, laborData, workspaceId, req.session.user_id);
+    res.json(result);
+  } catch (e) {
+    console.error('[repair-orders/:id/labor]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/repair-orders/:id/time/clock-in', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const roId = Number(req.params.id);
+    const result = await repairOrderService.clockIn(roId, req.session.user_id, workspaceId);
+    res.json(result);
+  } catch (e) {
+    console.error('[repair-orders/:id/clock-in]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/repair-orders/:id/time/clock-out', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const roId = Number(req.params.id);
+    const result = await repairOrderService.clockOut(roId, req.session.user_id, workspaceId);
+    res.json(result);
+  } catch (e) {
+    console.error('[repair-orders/:id/clock-out]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch('/api/repair-orders/:id', requireAuth(['super_admin', 'manager', 'service_advisor']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const roId = Number(req.params.id);
+    const updates = req.body;
+    const result = await repairOrderService.updateRepairOrder(roId, updates, workspaceId, req.session.user_id);
+    res.json(result);
+  } catch (e) {
+    console.error('[repair-orders/:id]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* ── Parts Management Routes ── */
+const PartsService = require('./services/parts');
+const partsService = new PartsService(pool);
+
+app.get('/api/parts', requireAuth(), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const { search, category, lowStock } = req.query;
+    let parts;
+
+    if (search) {
+      parts = await partsService.searchParts(search, workspaceId);
+    } else if (lowStock === 'true') {
+      parts = await partsService.getLowStockParts(workspaceId);
+    } else {
+      parts = await partsService.getAllParts(workspaceId, category);
+    }
+
+    res.json(parts);
+  } catch (e) {
+    console.error('[parts]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/parts', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const partData = req.body;
+    const result = await partsService.createPart(partData, workspaceId, req.session.user_id);
+    res.status(201).json(result);
+  } catch (e) {
+    console.error('[parts]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch('/api/parts/:id', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const partId = Number(req.params.id);
+    const updates = req.body;
+    const result = await partsService.updatePart(partId, updates, workspaceId, req.session.user_id);
+    res.json(result);
+  } catch (e) {
+    console.error('[parts/:id]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/parts/:id/adjust-inventory', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const partId = Number(req.params.id);
+    const { adjustment, reason } = req.body;
+    const result = await partsService.adjustInventory(partId, adjustment, reason, workspaceId, req.session.user_id);
+    res.json(result);
+  } catch (e) {
+    console.error('[parts/:id/adjust-inventory]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* ── User Management Routes ── */
+const UserManagementService = require('./services/user-management');
+const userManagementService = new UserManagementService(pool);
+
+app.post('/api/users/invite', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const inviteData = req.body;
+    const result = await userManagementService.inviteUser(workspaceId, inviteData, req.session.user_id);
+    res.status(201).json(result);
+  } catch (e) {
+    console.error('[users/invite]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch('/api/users/:id/role', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const userId = Number(req.params.id);
+    const { role } = req.body;
+    const result = await userManagementService.updateUserRole(userId, workspaceId, role, req.session.user_id);
+    res.json(result);
+  } catch (e) {
+    console.error('[users/:id/role]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/users/:id/workspace', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const userId = Number(req.params.id);
+    const result = await userManagementService.removeUserFromWorkspace(userId, workspaceId, req.session.user_id);
+    res.json(result);
+  } catch (e) {
+    console.error('[users/:id/workspace]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/users/:id/deactivate', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    const result = await userManagementService.deactivateUser(userId, req.session.user_id);
+    res.json(result);
+  } catch (e) {
+    console.error('[users/:id/deactivate]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/users/:id/reactivate', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    const result = await userManagementService.reactivateUser(userId, req.session.user_id);
+    res.json(result);
+  } catch (e) {
+    console.error('[users/:id/reactivate]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch('/api/users/profile', requireAuth(), async (req, res) => {
+  try {
+    const profileData = req.body;
+    const result = await userManagementService.updateUserProfile(req.session.user_id, profileData);
+    res.json(result);
+  } catch (e) {
+    console.error('[users/profile]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/users/:id/reset-password', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    const result = await userManagementService.resetUserPassword(userId, req.session.user_id);
+    res.json(result);
+  } catch (e) {
+    console.error('[users/:id/reset-password]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/users/workspace', requireAuth(), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const users = await userManagementService.getWorkspaceUsers(workspaceId);
+    res.json(users);
+  } catch (e) {
+    console.error('[users/workspace]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* ── Reporting & Analytics Routes ── */
+const ReportingService = require('./services/reporting');
+const reportingService = new ReportingService(pool);
+
+app.get('/api/reports/financial-summary', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const { startDate, endDate } = req.query;
+    const dateRange = startDate && endDate ? { startDate, endDate } : {};
+    const summary = await reportingService.getFinancialSummary(workspaceId, dateRange);
+    res.json(summary);
+  } catch (e) {
+    console.error('[reports/financial-summary]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/reports/technician-performance', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const { startDate, endDate } = req.query;
+    const dateRange = startDate && endDate ? { startDate, endDate } : {};
+    const performance = await reportingService.getTechnicianPerformance(workspaceId, dateRange);
+    res.json(performance);
+  } catch (e) {
+    console.error('[reports/technician-performance]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/reports/customer-analytics', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const { startDate, endDate } = req.query;
+    const dateRange = startDate && endDate ? { startDate, endDate } : {};
+    const analytics = await reportingService.getCustomerAnalytics(workspaceId, dateRange);
+    res.json(analytics);
+  } catch (e) {
+    console.error('[reports/customer-analytics]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/reports/parts-analytics', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const { startDate, endDate } = req.query;
+    const dateRange = startDate && endDate ? { startDate, endDate } : {};
+    const analytics = await reportingService.getPartsAnalytics(workspaceId, dateRange);
+    res.json(analytics);
+  } catch (e) {
+    console.error('[reports/parts-analytics]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/reports/revenue-trends', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const months = Number(req.query.months) || 12;
+    const trends = await reportingService.getRevenueTrends(workspaceId, months);
+    res.json(trends);
+  } catch (e) {
+    console.error('[reports/revenue-trends]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/reports/shop-kpis', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const { startDate, endDate } = req.query;
+    const dateRange = startDate && endDate ? { startDate, endDate } : {};
+    const kpis = await reportingService.getShopKPIs(workspaceId, dateRange);
+    res.json(kpis);
+  } catch (e) {
+    console.error('[reports/shop-kpis]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/reports/export', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  try {
+    const { format = 'json', startDate, endDate } = req.query;
+    const dateRange = startDate && endDate ? { startDate, endDate } : {};
+    const data = await reportingService.exportRepairOrderData(workspaceId, format, dateRange);
+    res.json(data);
+  } catch (e) {
+    console.error('[reports/export]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* ── Customer Portal Routes ── */
+const CustomerPortalService = require('./services/customer-portal');
+const customerPortalService = new CustomerPortalService(pool);
+
+// Customer authentication
+app.post('/api/customer/login', async (req, res) => {
+  const { email, password, workspaceId } = req.body;
+
+  if (!email || !password || !workspaceId) {
+    return res.status(400).json({ error: 'Email, password, and workspaceId are required' });
+  }
+
+  try {
+    const result = await customerPortalService.customerLogin(email, password, workspaceId);
+    res.json(result);
+  } catch (e) {
+    console.error('[customer/login]', e.message);
+    res.status(401).json({ error: e.message });
+  }
+});
+
+app.post('/api/customer/logout', async (req, res) => {
+  const sessionToken = req.headers.authorization?.slice(7);
+
+  if (!sessionToken) {
+    return res.status(400).json({ error: 'Session token required' });
+  }
+
+  try {
+    await customerPortalService.logout(sessionToken);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[customer/logout]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Customer portal middleware
+function requireCustomerAuth() {
+  return async (req, res, next) => {
+    const sessionToken = req.headers.authorization?.slice(7);
+
+    if (!sessionToken) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+      const customer = await customerPortalService.validateSession(sessionToken);
+      if (!customer) {
+        return res.status(401).json({ error: 'Invalid or expired session' });
+      }
+
+      req.customer = customer;
+      next();
+    } catch (e) {
+      console.error('[customer auth]', e.message);
+      res.status(500).json({ error: 'Authentication error' });
+    }
+  };
+}
+
+// Customer service history
+app.get('/api/customer/service-history', requireCustomerAuth(), async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const history = await customerPortalService.getServiceHistory(req.customer.id, limit, offset);
+    res.json(history);
+  } catch (e) {
+    console.error('[customer/service-history]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Customer vehicles
+app.get('/api/customer/vehicles', requireCustomerAuth(), async (req, res) => {
+  try {
+    const vehicles = await customerPortalService.getCustomerVehicles(req.customer.id);
+    res.json(vehicles);
+  } catch (e) {
+    console.error('[customer/vehicles]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Customer appointments
+app.post('/api/customer/appointments', requireCustomerAuth(), async (req, res) => {
+  try {
+    const appointmentData = req.body;
+    const result = await customerPortalService.scheduleAppointment(req.customer.id, appointmentData);
+    res.status(201).json(result);
+  } catch (e) {
+    console.error('[customer/appointments]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/customer/appointments', requireCustomerAuth(), async (req, res) => {
+  try {
+    const { status } = req.query;
+    const appointments = await customerPortalService.getCustomerAppointments(req.customer.id, status);
+    res.json(appointments);
+  } catch (e) {
+    console.error('[customer/appointments]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch('/api/customer/appointments/:id', requireCustomerAuth(), async (req, res) => {
+  try {
+    const appointmentId = Number(req.params.id);
+    const updateData = req.body;
+    const result = await customerPortalService.updateAppointment(appointmentId, req.customer.id, updateData);
+    res.json(result);
+  } catch (e) {
+    console.error('[customer/appointments/:id]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/customer/appointments/:id', requireCustomerAuth(), async (req, res) => {
+  try {
+    const appointmentId = Number(req.params.id);
+    const result = await customerPortalService.cancelAppointment(appointmentId, req.customer.id);
+    res.json(result);
+  } catch (e) {
+    console.error('[customer/appointments/:id]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Customer profile management
+app.get('/api/customer/profile', requireCustomerAuth(), async (req, res) => {
+  try {
+    const profile = await customerPortalService.getCustomerProfile(req.customer.id);
+    res.json(profile);
+  } catch (e) {
+    console.error('[customer/profile]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch('/api/customer/profile', requireCustomerAuth(), async (req, res) => {
+  try {
+    const profileData = req.body;
+    const result = await customerPortalService.updateCustomerProfile(req.customer.id, profileData);
+    res.json(result);
+  } catch (e) {
+    console.error('[customer/profile]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.patch('/api/customer/change-password', requireCustomerAuth(), async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const result = await customerPortalService.updatePortalPassword(req.customer.id, currentPassword, newPassword);
+    res.json(result);
+  } catch (e) {
+    console.error('[customer/change-password]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin endpoints for customer portal management
+app.post('/api/admin/customers/:id/enable-portal', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  try {
+    const customerId = Number(req.params.id);
+    const tempPassword = customerPortalService.generateTempPassword();
+    const result = await customerPortalService.enablePortalAccess(customerId, tempPassword);
+    res.json(result);
+  } catch (e) {
+    console.error('[admin/customers/:id/enable-portal]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/customers/:id/reset-portal-password', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  try {
+    const customerId = Number(req.params.id);
+    const result = await customerPortalService.resetPortalPassword(customerId);
+    res.json(result);
+  } catch (e) {
+    console.error('[admin/customers/:id/reset-portal-password]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 /* ── Forgot password ── */
 app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
