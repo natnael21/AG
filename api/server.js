@@ -4,6 +4,8 @@ const express    = require('express');
 const cors       = require('cors');
 const { Pool }   = require('pg');
 const createHealthRoute = require('./src/routes/health');
+const { provisionSignup, rejectSignup, reinstateSignup } = require('./services/signup');
+const { sendRejectionEmail, sendApprovalEmail, sendReinstateEmail } = require('./services/email');
 
 function parseCorsOrigins() {
   const raw = process.env.CORS_ORIGINS;
@@ -183,14 +185,16 @@ app.get('/api/admin/signups', requireAuth(['super_admin']), async (req, res) => 
     const { rows } = await pool.query(
       `SELECT id, contact_name, contact_email, contact_phone, shop_name, shop_type, annual_revenue,
               technicians, employees, has_advisor, pain_point, source, tools, status, reviewed_by,
-              reviewed_at, created_at
+              reviewed_at, rejection_comment, rejected_at, rejected_by, reinstated_at, reinstated_by,
+              workspace_id, user_id, created_at
        FROM shop_signups
        ORDER BY created_at DESC
        LIMIT 200`
     );
     res.json(rows);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('[admin/signups]', e.message);
+    res.status(500).json({ error: 'Failed to fetch signups: ' + e.message });
   }
 });
 
@@ -198,17 +202,38 @@ app.post('/api/admin/signups/:id/reject', requireAuth(['super_admin']), async (r
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid signup id.' });
-    const { rows } = await pool.query(
-      `UPDATE shop_signups
-       SET status = 'rejected', reviewed_by = $2, reviewed_at = NOW()
-       WHERE id = $1 AND status = 'pending'
-       RETURNING id, status, reviewed_at`,
-      [id, req.session.user_id]
+    
+    const { comment } = req.body || {};
+    
+    // Get signup details before rejecting
+    const { rows: signupRows } = await pool.query(
+      `SELECT * FROM shop_signups WHERE id = $1`,
+      [id]
     );
-    if (!rows.length) return res.status(404).json({ error: 'Pending signup not found.' });
-    res.json({ ok: true, signup: rows[0] });
+    
+    if (!signupRows.length) {
+      return res.status(404).json({ error: 'Signup not found.' });
+    }
+    
+    const signup = signupRows[0];
+    
+    // Reject the signup
+    const result = await rejectSignup(pool, id, req.session.user_id, comment || null);
+    
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    // Send rejection email
+    const emailResult = await sendRejectionEmail(signup, comment || null);
+    if (!emailResult.success) {
+      console.warn('[admin/signups/reject] Email send failed:', emailResult.error);
+    }
+    
+    res.json({ ok: true, signup: result.signup, emailSent: emailResult.success });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('[admin/signups/reject]', e.message);
+    res.status(500).json({ error: 'Failed to reject signup: ' + e.message });
   }
 });
 
@@ -216,11 +241,102 @@ app.post('/api/admin/signups/:id/approve', requireAuth(['super_admin']), async (
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid signup id.' });
-    const out = await provisionSignup(id, req.session.user_id);
-    if (!out) return res.status(404).json({ error: 'Pending signup not found.' });
-    res.json({ ok: true, ...out });
+    
+    const result = await provisionSignup(pool, id, req.session.user_id);
+    
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    // Send approval email with credentials
+    const emailResult = await sendApprovalEmail(result.user, result.workspace, result.tempPassword);
+    if (!emailResult.success) {
+      console.warn('[admin/signups/approve] Email send failed:', emailResult.error);
+    }
+    
+    res.json({ 
+      ok: true, 
+      signup: result.signup, 
+      workspace: result.workspace,
+      user: result.user,
+      tempPassword: result.tempPassword,
+      emailSent: emailResult.success
+    });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('[admin/signups/approve]', e.message);
+    res.status(500).json({ error: 'Failed to approve signup: ' + e.message });
+  }
+});
+
+app.post('/api/admin/signups/:id/reinstate', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid signup id.' });
+    
+    // Get signup details before reinstating
+    const { rows: signupRows } = await pool.query(
+      `SELECT * FROM shop_signups WHERE id = $1`,
+      [id]
+    );
+    
+    if (!signupRows.length) {
+      return res.status(404).json({ error: 'Signup not found.' });
+    }
+    
+    const signup = signupRows[0];
+    
+    // Reinstate the signup
+    const result = await reinstateSignup(pool, id, req.session.user_id);
+    
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    // Send reinstate notification email
+    const emailResult = await sendReinstateEmail(signup);
+    if (!emailResult.success) {
+      console.warn('[admin/signups/reinstate] Email send failed:', emailResult.error);
+    }
+    
+    res.json({ ok: true, signup: result.signup, emailSent: emailResult.success });
+  } catch (e) {
+    console.error('[admin/signups/reinstate]', e.message);
+    res.status(500).json({ error: 'Failed to reinstate signup: ' + e.message });
+  }
+});
+
+app.get('/api/admin/signups/:id', requireAuth(['super_admin']), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid signup id.' });
+    
+    const { rows: signupRows } = await pool.query(
+      `SELECT id, contact_name, contact_email, contact_phone, shop_name, shop_type, annual_revenue,
+              technicians, employees, has_advisor, pain_point, source, tools, status, 
+              reviewed_by, reviewed_at, rejection_comment, rejected_at, rejected_by,
+              reinstated_at, reinstated_by, workspace_id, user_id, created_at
+       FROM shop_signups
+       WHERE id = $1`,
+      [id]
+    );
+    
+    if (!signupRows.length) {
+      return res.status(404).json({ error: 'Signup not found.' });
+    }
+    
+    // Get audit history
+    const { rows: auditRows } = await pool.query(
+      `SELECT id, action, performed_by, reason, comment, old_status, new_status, created_at
+       FROM signup_audit_log
+       WHERE signup_id = $1
+       ORDER BY created_at DESC`,
+      [id]
+    );
+    
+    res.json({ signup: signupRows[0], auditHistory: auditRows });
+  } catch (e) {
+    console.error('[admin/signups/:id]', e.message);
+    res.status(500).json({ error: 'Failed to fetch signup: ' + e.message });
   }
 });
 
@@ -241,115 +357,6 @@ function resolveWorkspaceId(req, res) {
   }
 
   return workspaceId;
-}
-
-async function getColumnMeta(client, tableName, columnName) {
-  const { rows } = await client.query(
-    `SELECT data_type, column_default
-     FROM information_schema.columns
-     WHERE table_schema = 'public' AND table_name = $1 AND column_name = $2`,
-    [tableName, columnName]
-  );
-  return rows[0] || null;
-}
-
-function makeTempPassword() {
-  const crypto = require('crypto');
-  return `Temp-${crypto.randomBytes(5).toString('hex')}!`;
-}
-
-async function provisionSignup(signupId, reviewerId) {
-  const bcrypt = require('bcrypt');
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const { rows: srows } = await client.query(
-      `SELECT * FROM shop_signups WHERE id = $1 AND status = 'pending' FOR UPDATE`,
-      [signupId]
-    );
-    if (!srows.length) {
-      await client.query('ROLLBACK');
-      return null;
-    }
-    const s = srows[0];
-
-    const wsIdMeta = await getColumnMeta(client, 'workspaces', 'id');
-    const wsIdIsInt = wsIdMeta && wsIdMeta.data_type.includes('integer');
-    const wsNeedsManualId = wsIdMeta && !wsIdMeta.column_default;
-    const wsTypeCol = await getColumnMeta(client, 'workspaces', 'shop_type')
-      ? 'shop_type'
-      : (await getColumnMeta(client, 'workspaces', 'type') ? 'type' : null);
-
-    const wsCols = [];
-    const wsVals = [];
-    const wsParams = [];
-    let p = 1;
-
-    if (wsNeedsManualId) {
-      wsCols.push('id');
-      if (wsIdIsInt) {
-        wsVals.push(`(SELECT COALESCE(MAX(id),0)+1 FROM workspaces)`);
-      } else {
-        wsVals.push(`$${p++}`);
-        wsParams.push(`ws-${Date.now()}`);
-      }
-    }
-    wsCols.push('name'); wsVals.push(`$${p++}`); wsParams.push(s.shop_name);
-    if (wsTypeCol) { wsCols.push(wsTypeCol); wsVals.push(`$${p++}`); wsParams.push(s.shop_type || 'mechanic'); }
-    if (await getColumnMeta(client, 'workspaces', 'plan')) { wsCols.push('plan'); wsVals.push(`$${p++}`); wsParams.push('starter'); }
-    if (await getColumnMeta(client, 'workspaces', 'active')) { wsCols.push('active'); wsVals.push('true'); }
-    const wsSql = `INSERT INTO workspaces (${wsCols.join(', ')}) VALUES (${wsVals.join(', ')}) RETURNING id, name`;
-    const { rows: wsRows } = await client.query(wsSql, wsParams);
-    const workspace = wsRows[0];
-
-    const tempPassword = makeTempPassword();
-    const passwordHash = await bcrypt.hash(tempPassword, 12);
-    const usersIdMeta = await getColumnMeta(client, 'users', 'id');
-    const usersNeedsManualId = usersIdMeta && !usersIdMeta.column_default;
-    const usersIdIsInt = usersIdMeta && usersIdMeta.data_type.includes('integer');
-    const wsIdsMeta = await getColumnMeta(client, 'users', 'workspace_ids');
-    const wsIdsIsInt = wsIdsMeta && wsIdsMeta.data_type.includes('integer');
-
-    const uCols = [];
-    const uVals = [];
-    const uParams = [];
-    let u = 1;
-    if (usersNeedsManualId) {
-      uCols.push('id');
-      if (usersIdIsInt) uVals.push(`(SELECT COALESCE(MAX(id),0)+1 FROM users)`);
-      else { uVals.push(`$${u++}`); uParams.push(`usr-${Date.now()}`); }
-    }
-    uCols.push('name');          uVals.push(`$${u++}`); uParams.push(s.contact_name || 'Shop Owner');
-    uCols.push('email');         uVals.push(`$${u++}`); uParams.push(String(s.contact_email || '').toLowerCase());
-    if (await getColumnMeta(client, 'users', 'phone')) { uCols.push('phone'); uVals.push(`$${u++}`); uParams.push(s.contact_phone || null); }
-    uCols.push('password_hash'); uVals.push(`$${u++}`); uParams.push(passwordHash);
-    uCols.push('role');          uVals.push(`$${u++}`); uParams.push('super_admin');
-    uCols.push('workspace_ids');
-    if (wsIdsIsInt) { uVals.push(`$${u++}`); uParams.push([Number(workspace.id)]); }
-    else { uVals.push(`$${u++}`); uParams.push([String(workspace.id)]); }
-    if (await getColumnMeta(client, 'users', 'active')) { uCols.push('active'); uVals.push('true'); }
-
-    const userSql = `INSERT INTO users (${uCols.join(', ')}) VALUES (${uVals.join(', ')})
-                     RETURNING id, name, email, role, workspace_ids`;
-    const { rows: uRows } = await client.query(userSql, uParams);
-    const user = uRows[0];
-
-    const { rows: doneRows } = await client.query(
-      `UPDATE shop_signups
-       SET status = 'approved', reviewed_by = $2, reviewed_at = NOW(), workspace_id = $3, user_id = $4
-       WHERE id = $1
-       RETURNING id, status, reviewed_at`,
-      [signupId, reviewerId, workspace.id, user.id]
-    );
-
-    await client.query('COMMIT');
-    return { signup: doneRows[0], workspace, user, tempPassword };
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    client.release();
-  }
 }
 
 /* ── Core customers routes ── */
