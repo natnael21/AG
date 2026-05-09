@@ -5,7 +5,7 @@ const cors       = require('cors');
 const { Pool }   = require('pg');
 const createHealthRoute = require('./src/routes/health');
 const { provisionSignup, rejectSignup, reinstateSignup } = require('./services/signup');
-const { sendRejectionEmail, sendApprovalEmail, sendReinstateEmail } = require('./services/email');
+const { sendRejectionEmail, sendApprovalEmail, sendReinstateEmail, verifyTransporter } = require('./services/email');
 
 function parseCorsOrigins() {
   const raw = process.env.CORS_ORIGINS;
@@ -46,7 +46,7 @@ pool.connect((err, client, release) => {
 });
 
 /* ── Health check ── */
-app.get('/api/health', createHealthRoute(pool));
+app.get('/api/health', createHealthRoute({ pool, verifySmtp: verifyTransporter }));
 
 /* ── Auth routes ── */
 app.post('/api/auth/login', async (req, res) => {

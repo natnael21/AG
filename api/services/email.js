@@ -191,8 +191,19 @@ function escapeHtml(text) {
   return text.replace(/[&<>"']/g, m => map[m]);
 }
 
+async function verifyTransporter() {
+  if (!transporter) return { ok: false, error: 'transporter not initialized' };
+  try {
+    await transporter.verify();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 module.exports = {
   sendRejectionEmail,
   sendApprovalEmail,
   sendReinstateEmail,
+  verifyTransporter,
 };

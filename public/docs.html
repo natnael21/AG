@@ -137,11 +137,20 @@ table.doc-table td{padding:9px 12px;border:1px solid var(--border);color:var(--t
   <div class="nav-group">
     <div class="nav-group-label">Core features</div>
     <div class="nav-link" onclick="showDoc('ros',this)"><span class="nav-icon">✦</span>Repair orders</div>
+    <div class="nav-link" onclick="showDoc('parts',this)"><span class="nav-icon">📦</span>Parts & inventory</div>
     <div class="nav-link" onclick="showDoc('workflow',this)"><span class="nav-icon">⟳</span>Workflow pipeline</div>
     <div class="nav-link" onclick="showDoc('customers',this)"><span class="nav-icon">◎</span>Customers & vehicles</div>
+    <div class="nav-link" onclick="showDoc('reporting',this)"><span class="nav-icon">📊</span>Reports & analytics</div>
     <div class="nav-link" onclick="showDoc('invoices',this)"><span class="nav-icon">◆</span>Invoices & payments</div>
     <div class="nav-link" onclick="showDoc('timeclock',this)"><span class="nav-icon">⏱</span>Time clock</div>
     <div class="nav-link" onclick="showDoc('reminders',this)"><span class="nav-icon">🔔</span>Reminders</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Customer portal</div>
+    <div class="nav-link" onclick="showDoc('customer-portal',this)"><span class="nav-icon">🏠</span>Customer login</div>
+    <div class="nav-link" onclick="showDoc('customer-service',this)"><span class="nav-icon">📋</span>Service history</div>
+    <div class="nav-link" onclick="showDoc('customer-appointments',this)"><span class="nav-icon">📅</span>Appointment booking</div>
   </div>
 
   <div class="nav-group">
@@ -177,19 +186,21 @@ table.doc-table td{padding:9px 12px;border:1px solid var(--border);color:var(--t
     <!-- OVERVIEW -->
     <div class="doc-page active" id="doc-overview">
       <div class="hero-banner">
-        <div class="hero-tag">AG Shop Pro documentation</div>
-        <div class="hero-title">Welcome to <em>Shop Pro</em></div>
-        <div class="hero-desc">Everything you need to run your auto shop — repair orders, technician management, customer communications, invoicing, and more.</div>
+        <div class="hero-tag">AG Shop Pro v2.0 documentation</div>
+        <div class="hero-title">Complete <em>Shop Management</em></div>
+        <div class="hero-desc">Everything you need to run your auto shop — repair orders, parts inventory, technician time tracking, customer portal, business analytics, and more. Now with enhanced RO workflow, comprehensive reporting, and customer self-service.</div>
         <div class="quick-links">
           <div class="quick-link" onclick="showDoc('quickstart',document.querySelectorAll('.nav-link')[1])"><div class="quick-link-icon">⚡</div><div class="quick-link-label">Quick start</div></div>
           <div class="quick-link" onclick="showDoc('ros',document.querySelectorAll('.nav-link')[11])"><div class="quick-link-icon">✦</div><div class="quick-link-label">Repair orders</div></div>
-          <div class="quick-link" onclick="showDoc('workflow',document.querySelectorAll('.nav-link')[12])"><div class="quick-link-icon">⟳</div><div class="quick-link-label">Workflow</div></div>
-          <div class="quick-link" onclick="showDoc('etl',document.querySelectorAll('.nav-link')[21])"><div class="quick-link-icon">🔄</div><div class="quick-link-label">Data migration</div></div>
+          <div class="quick-link" onclick="showDoc('parts',document.querySelectorAll('.nav-link')[12])"><div class="quick-link-icon">📦</div><div class="quick-link-label">Parts & inventory</div></div>
+          <div class="quick-link" onclick="showDoc('reporting',document.querySelectorAll('.nav-link')[13])"><div class="quick-link-icon">📊</div><div class="quick-link-label">Reports & analytics</div></div>
         </div>
       </div>
 
       <h2>What is AG Shop Pro?</h2>
       <p>AG Shop Pro is a multi-workspace shop management platform built for auto body shops, mechanics, and quick lube operations. It connects your entire team — from the front desk to the bay — in one real-time system.</p>
+
+      <div class="alert alert-tip">✨ <strong>New in v2.0:</strong> Enhanced repair order workflow with parts tracking, comprehensive business analytics, customer self-service portal, and advanced inventory management.</div>
 
       <div class="step-grid">
         <div class="step-card"><div class="step-num">1</div><div class="step-title">Request access</div><div class="step-desc">Click "Request access" on the login page and fill in your shop details. You'll receive a welcome email within 24 hours.</div></div>
@@ -209,17 +220,21 @@ table.doc-table td{padding:9px 12px;border:1px solid var(--border);color:var(--t
     <!-- QUICK START -->
     <div class="doc-page" id="doc-quickstart">
       <div class="page-header"><div class="page-tag">Getting started</div><div class="page-title">Quick start guide</div><div class="page-desc">Get your shop up and running in under 30 minutes.</div></div>
-      <div class="toc"><div class="toc-title">On this page</div><ul class="toc-list"><li><a>1. Sign up and activate your workspace</a></li><li><a>2. Add your team</a></li><li><a>3. Create your first repair order</a></li><li><a>4. Connect integrations</a></li><li><a>5. Import existing data</a></li></ul></div>
+      <div class="toc"><div class="toc-title">On this page</div><ul class="toc-list"><li><a>1. Sign up and activate your workspace</a></li><li><a>2. Add your team</a></li><li><a>3. Set up parts inventory</a></li><li><a>4. Create your first repair order</a></li><li><a>5. Enable customer portal</a></li><li><a>6. Connect integrations</a></li><li><a>7. Import existing data</a></li></ul></div>
       <h2>1. Sign up and activate your workspace</h2>
       <p>Go to <code>agshopro.com</code> and click <strong>Request access</strong>. Fill in your shop name, email, and shop type. You'll receive a welcome email within 24 hours with your login credentials and a link to set your password.</p>
       <div class="alert alert-info">💡 Your workspace is your shop's private space. All your ROs, customers, inventory, and team data lives inside your workspace and is completely isolated from other shops.</div>
       <h2>2. Add your team</h2>
       <p>From the Super Admin portal, go to <strong>Users → Add user</strong>. Enter their name, email, and phone number, select their role and workspace, then click <strong>Send invite</strong>. They'll receive an email to set their password and get started.</p>
-      <h2>3. Create your first repair order</h2>
+      <h2>3. Set up parts inventory</h2>
+      <p>Go to <strong>Parts → Add part</strong>. Create your core parts catalog with part numbers, descriptions, costs, and minimum stock levels. Import bulk data from CSV if you have existing inventory.</p>
+      <h2>4. Create your first repair order</h2>
       <p>Log in as a Manager or Service Advisor. Click <strong>+ New RO</strong> in the top right. Follow the 3-step wizard: find or create the customer → select their vehicle → enter the complaint and assign a technician.</p>
-      <h2>4. Connect integrations</h2>
+      <h2>5. Enable customer portal</h2>
+      <p>From any customer record, click <strong>Enable Portal Access</strong>. The system generates a temporary password and emails login instructions. Customers can then view their service history and book appointments online.</p>
+      <h2>6. Connect integrations</h2>
       <p>Go to <strong>Super Admin → Integrations</strong>. Connect CCC One for estimate imports, Square for payment links, and Twilio to bridge your shop's landline for call logging and SMS.</p>
-      <h2>5. Import existing data</h2>
+      <h2>7. Import existing data</h2>
       <p>If you're migrating from Mitchell 1, Tekmetric, or ShopWare, go to <strong>Super Admin → ETL Migration</strong>. Export your data as CSV from your existing software, upload it, preview the field mapping, and run the import.</p>
     </div>
 
@@ -270,13 +285,13 @@ table.doc-table td{padding:9px 12px;border:1px solid var(--border);color:var(--t
     <div class="doc-page" id="doc-roles">
       <div class="page-header"><div class="page-tag">Portals & roles</div><div class="page-title">Roles overview</div><div class="page-desc">AG Shop Pro has four roles — each gets their own portal tailored to their job.</div></div>
       <div class="role-grid">
-        <div class="role-card"><span class="badge b-purple role-badge">Super admin</span><div class="role-title">AG Holdings owners</div><div class="role-desc">Full platform access. Manage all workspaces, users, billing, integrations, and ETL migration.</div><ul class="feature-list"><li>All workspaces</li><li>User management</li><li>Billing & subscriptions</li><li>Integrations setup</li><li>ETL data migration</li></ul></div>
-        <div class="role-card"><span class="badge b-blue role-badge">Manager</span><div class="role-title">Shop owners & managers</div><div class="role-desc">Full access to their workspace. All ROs, team management, financial reports, burn rate, SMS automation.</div><ul class="feature-list"><li>All ROs in workspace</li><li>Technician board & idle alerts</li><li>Burn rate dashboard</li><li>Call log & transcription</li><li>Lost customer SMS</li><li>Invoice closeout</li></ul></div>
-        <div class="role-card"><span class="badge b-green role-badge">Service advisor</span><div class="role-title">Front desk / advisors</div><div class="role-desc">Create and manage ROs, schedule appointments, communicate with customers, close invoices.</div><ul class="feature-list"><li>Create & manage ROs</li><li>New RO wizard</li><li>Appointment scheduling</li><li>Customer SMS</li><li>Reminder management</li><li>Invoice closeout</li></ul></div>
-        <div class="role-card"><span class="badge b-green role-badge">Technician</span><div class="role-title">Bay technicians</div><div class="role-desc">Mobile-first view. Assigned ROs only, clock in/out, labor status updates, timestamped tech notes.</div><ul class="feature-list"><li>Assigned ROs only</li><li>Start / pause / complete labor</li><li>Clock in & out</li><li>Parts status view</li><li>Timestamped tech notes</li></ul></div>
+        <div class="role-card"><span class="badge b-purple role-badge">Super admin</span><div class="role-title">AG Holdings owners</div><div class="role-desc">Full platform access. Manage all workspaces, users, billing, integrations, and ETL migration.</div><ul class="feature-list"><li>All workspaces</li><li>User management</li><li>Billing & subscriptions</li><li>Integrations setup</li><li>ETL data migration</li><li>Parts & inventory oversight</li><li>Advanced reporting</li><li>Customer portal admin</li></ul></div>
+        <div class="role-card"><span class="badge b-blue role-badge">Manager</span><div class="role-title">Shop owners & managers</div><div class="role-desc">Full access to their workspace. All ROs, team management, financial reports, burn rate, SMS automation.</div><ul class="feature-list"><li>All ROs in workspace</li><li>Technician board & idle alerts</li><li>Burn rate dashboard</li><li>Call log & transcription</li><li>Lost customer SMS</li><li>Invoice closeout</li><li>Parts inventory management</li><li>Financial & performance reports</li><li>User role management</li></ul></div>
+        <div class="role-card"><span class="badge b-green role-badge">Service advisor</span><div class="role-title">Front desk / advisors</div><div class="role-desc">Create and manage ROs, schedule appointments, communicate with customers, close invoices.</div><ul class="feature-list"><li>Create & manage ROs</li><li>New RO wizard</li><li>Appointment scheduling</li><li>Customer SMS</li><li>Reminder management</li><li>Invoice closeout</li><li>Parts ordering</li><li>Customer portal setup</li></ul></div>
+        <div class="role-card"><span class="badge b-green role-badge">Technician</span><div class="role-title">Bay technicians</div><div class="role-desc">Mobile-first view. Assigned ROs only, clock in/out, labor status updates, timestamped tech notes.</div><ul class="feature-list"><li>Assigned ROs only</li><li>Start / pause / complete labor</li><li>Clock in & out</li><li>Parts status view</li><li>Timestamped tech notes</li><li>Time tracking per RO</li></ul></div>
       </div>
       <h2>Permission matrix</h2>
-      <table class="doc-table"><thead><tr><th>Feature</th><th>Super admin</th><th>Manager</th><th>Service advisor</th><th>Technician</th></tr></thead><tbody><tr><td>View all workspaces</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr><tr><td>Create repair orders</td><td>✓</td><td>✓</td><td>✓</td><td>—</td></tr><tr><td>View all ROs</td><td>✓</td><td>✓</td><td>Own only</td><td>Assigned</td></tr><tr><td>View financial data</td><td>✓</td><td>✓</td><td>Invoices only</td><td>—</td></tr><tr><td>Clock in/out</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr><tr><td>Send customer SMS</td><td>✓</td><td>✓</td><td>✓</td><td>—</td></tr><tr><td>Manage users</td><td>✓</td><td>Own workspace</td><td>—</td><td>—</td></tr><tr><td>ETL migration</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr></tbody></table>
+      <table class="doc-table"><thead><tr><th>Feature</th><th>Super admin</th><th>Manager</th><th>Service advisor</th><th>Technician</th></tr></thead><tbody><tr><td>View all workspaces</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr><tr><td>Create repair orders</td><td>✓</td><td>✓</td><td>✓</td><td>—</td></tr><tr><td>View all ROs</td><td>✓</td><td>✓</td><td>Own only</td><td>Assigned</td></tr><tr><td>View financial data</td><td>✓</td><td>✓</td><td>Invoices only</td><td>—</td></tr><tr><td>Manage parts inventory</td><td>✓</td><td>✓</td><td>✓</td><td>View only</td></tr><tr><td>Access reports</td><td>✓</td><td>✓</td><td>—</td><td>—</td></tr><tr><td>Clock in/out</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr><tr><td>Send customer SMS</td><td>✓</td><td>✓</td><td>✓</td><td>—</td></tr><tr><td>Manage users</td><td>✓</td><td>Own workspace</td><td>—</td><td>—</td></tr><tr><td>Customer portal admin</td><td>✓</td><td>✓</td><td>✓</td><td>—</td></tr><tr><td>ETL migration</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr></tbody></table>
     </div>
 
     <!-- SUPER ADMIN -->
@@ -388,6 +403,166 @@ table.doc-table td{padding:9px 12px;border:1px solid var(--border);color:var(--t
       <p>Managers see all technician time entries for the day in the <strong>Tech Board</strong> section of the dashboard — who is clocked in, what RO they're working on, and total hours today. Idle alerts fire when a clocked-in technician has no active RO for 30+ minutes.</p>
       <h2>Weekly reports</h2>
       <p>Go to <strong>Reports → Technician performance</strong> to see hours worked, ROs completed, and efficiency percentage per technician for any date range.</p>
+    </div>
+
+    <!-- PARTS & INVENTORY -->
+    <div class="doc-page" id="doc-parts">
+      <div class="page-header"><div class="page-tag">Core features</div><div class="page-title">Parts & inventory</div><div class="page-desc">Complete parts catalog with real-time inventory tracking and automated ordering.</div></div>
+      <div class="toc"><div class="toc-title">On this page</div><ul class="toc-list"><li><a>Parts catalog management</a></li><li><a>Inventory tracking</a></li><li><a>Low stock alerts</a></li><li><a>Parts ordering</a></li><li><a>Testing parts functionality</a></li></ul></div>
+
+      <h2>Parts catalog management</h2>
+      <p>The parts catalog is your shop's complete inventory database. Each part includes:</p>
+      <ul><li><strong>Part number</strong> — manufacturer or internal part number</li><li><strong>Name & description</strong> — what the part is</li><li><strong>Category</strong> — engine, brakes, suspension, etc.</li><li><strong>Unit cost & price</strong> — your cost and selling price</li><li><strong>Supplier</strong> — who you buy from</li><li><strong>Minimum stock</strong> — reorder point</li><li><strong>Current quantity</strong> — real-time inventory</li></ul>
+
+      <h2>Inventory tracking</h2>
+      <p>Inventory updates automatically when parts are added to ROs or received from suppliers. Managers can also manually adjust inventory levels for cycle counts or corrections.</p>
+
+      <h2>Low stock alerts</h2>
+      <p>When inventory drops below the minimum stock level, the system sends alerts to managers and automatically flags the part in red. Go to <strong>Parts → Low stock</strong> to see all parts needing reorder.</p>
+
+      <h2>Parts ordering</h2>
+      <p>From any parts line in an RO, click <strong>Order part</strong> to place an order through your integrated supplier (Worldpac, NAPA, etc.). Status updates automatically when parts are received.</p>
+
+      <h3>Testing parts functionality</h3>
+      <div class="alert alert-tip">🧪 <strong>Manager/Super Admin Testing:</strong></div>
+      <div class="code-block">
+        <pre><span class="key">POST</span> <span class="val">/api/parts</span>
+{ "partNumber": "12345", "name": "Brake Pad Set", "category": "Brakes", "unitCost": 25.00, "unitPrice": 45.00, "minimumStock": 4, "quantityOnHand": 10 }
+
+<span class="key">GET</span> <span class="val">/api/parts?lowStock=true</span>
+<span class="key">POST</span> <span class="val">/api/parts/:id/adjust-inventory</span>
+{ "adjustment": -2, "reason": "Used on RO-12345" }</pre>
+      </div>
+    </div>
+
+    <!-- REPORTS & ANALYTICS -->
+    <div class="doc-page" id="doc-reporting">
+      <div class="page-header"><div class="page-tag">Core features</div><div class="page-title">Reports & analytics</div><div class="page-desc">Business intelligence dashboards with financial reports, technician performance, and customer insights.</div></div>
+      <div class="toc"><div class="toc-title">On this page</div><ul class="toc-list"><li><a>Financial reports</a></li><li><a>Technician performance</a></li><li><a>Customer analytics</a></li><li><a>Parts analytics</a></li><li><a>Shop KPIs</a></li><li><a>Data export</a></li><li><a>Testing reports</a></li></ul></div>
+
+      <h2>Financial reports</h2>
+      <p>Get comprehensive financial insights including:</p>
+      <ul><li><strong>Total revenue</strong> — gross sales across all ROs</li><li><strong>Parts vs labor breakdown</strong> — profitability analysis</li><li><strong>Average ticket size</strong> — typical RO value</li><li><strong>Revenue trends</strong> — month-over-month growth</li><li><strong>Profit margins</strong> — parts markup and labor efficiency</li></ul>
+
+      <h2>Technician performance</h2>
+      <p>Track technician productivity and efficiency:</p>
+      <ul><li><strong>ROs completed</strong> — volume of work</li><li><strong>Hours worked</strong> — total time tracked</li><li><strong>Labor revenue</strong> — dollars billed for their work</li><li><strong>Efficiency rating</strong> — revenue per hour</li><li><strong>Customer satisfaction</strong> — feedback scores</li></ul>
+
+      <h2>Customer analytics</h2>
+      <p>Understand your customer base:</p>
+      <ul><li><strong>Lifetime value</strong> — total spend per customer</li><li><strong>Service frequency</strong> — how often they return</li><li><strong>Vehicle count</strong> — fleet size</li><li><strong>Service history</strong> — complete repair timeline</li><li><strong>Retention metrics</strong> — customer loyalty indicators</li></ul>
+
+      <h2>Parts analytics</h2>
+      <p>Optimize your inventory:</p>
+      <ul><li><strong>Usage patterns</strong> — which parts sell most</li><li><strong>Stock efficiency</strong> — turnover rates</li><li><strong>Supplier performance</strong> — delivery times and quality</li><li><strong>Profitability</strong> — markup analysis by category</li></ul>
+
+      <h2>Shop KPIs</h2>
+      <p>Key performance indicators:</p>
+      <ul><li><strong>On-time completion</strong> — percentage of ROs finished on schedule</li><li><strong>Average cycle time</strong> — days from intake to completion</li><li><strong>Technician utilization</strong> — productive hours vs total hours</li><li><strong>Customer satisfaction</strong> — feedback ratings</li><li><strong>First-time fix rate</strong> — jobs completed without callbacks</li></ul>
+
+      <h2>Data export</h2>
+      <p>Export data for external analysis:</p>
+      <ul><li><strong>CSV format</strong> — for Excel or accounting software</li><li><strong>JSON format</strong> — for custom integrations</li><li><strong>Date range filtering</strong> — export specific time periods</li><li><strong>Custom fields</strong> — include only needed data</li></ul>
+
+      <h3>Testing reports functionality</h3>
+      <div class="alert alert-tip">🧪 <strong>Manager/Super Admin Testing:</strong></div>
+      <div class="code-block">
+        <pre><span class="key">GET</span> <span class="val">/api/reports/financial-summary?startDate=2024-01-01&endDate=2024-12-31</span>
+<span class="key">GET</span> <span class="val">/api/reports/technician-performance</span>
+<span class="key">GET</span> <span class="val">/api/reports/customer-analytics</span>
+<span class="key">GET</span> <span class="val">/api/reports/parts-analytics</span>
+<span class="key">GET</span> <span class="val">/api/reports/shop-kpis</span>
+<span class="key">GET</span> <span class="val">/api/reports/export?format=csv</span></pre>
+      </div>
+    </div>
+
+    <!-- CUSTOMER PORTAL -->
+    <div class="doc-page" id="doc-customer-portal">
+      <div class="page-header"><div class="page-tag">Customer portal</div><div class="page-title">Customer login</div><div class="page-desc">Secure customer portal for service history access and appointment booking.</div></div>
+      <div class="toc"><div class="toc-title">On this page</div><ul class="toc-list"><li><a>Portal access setup</a></li><li><a>Customer authentication</a></li><li><a>Security features</a></li><li><a>Testing customer login</a></li></ul></div>
+
+      <h2>Portal access setup</h2>
+      <p>Enable customer portal access from the customer details page:</p>
+      <ol><li>Go to <strong>Customers → [Customer Name]</strong></li><li>Click <strong>Enable Portal Access</strong></li><li>System generates temporary password</li><li>Email sent to customer with login instructions</li><li>Customer can change password after first login</li></ol>
+
+      <h2>Customer authentication</h2>
+      <p>Customers log in with their email and portal password:</p>
+      <ul><li><strong>Separate authentication</strong> — different from staff accounts</li><li><strong>Session management</strong> — secure token-based sessions</li><li><strong>Workspace isolation</strong> — customers only see their own data</li><li><strong>Auto-logout</strong> — sessions expire after 24 hours</li></ul>
+
+      <h2>Security features</h2>
+      <ul><li><strong>Password hashing</strong> — bcrypt encryption</li><li><strong>Session tokens</strong> — cryptographically secure</li><li><strong>Rate limiting</strong> — prevents brute force attacks</li><li><strong>Audit logging</strong> — all login attempts tracked</li></ul>
+
+      <h3>Testing customer portal</h3>
+      <div class="alert alert-tip">🧪 <strong>Admin Testing (enable portal):</strong></div>
+      <div class="code-block">
+        <pre><span class="key">POST</span> <span class="val">/api/admin/customers/:id/enable-portal</span>
+<span class="key">POST</span> <span class="val">/api/admin/customers/:id/reset-portal-password</span></pre>
+      </div>
+
+      <div class="alert alert-info">🧪 <strong>Customer Testing (portal login):</strong></div>
+      <div class="code-block">
+        <pre><span class="key">POST</span> <span class="val">/api/customer/login</span>
+{ "email": "customer@example.com", "password": "portalpass", "workspaceId": "workspace-uuid" }
+
+<span class="key">GET</span> <span class="val">/api/customer/service-history</span>
+<span class="key">GET</span> <span class="val">/api/customer/vehicles</span>
+<span class="key">POST</span> <span class="val">/api/customer/logout</span></pre>
+      </div>
+    </div>
+
+    <!-- CUSTOMER SERVICE HISTORY -->
+    <div class="doc-page" id="doc-customer-service">
+      <div class="page-header"><div class="page-tag">Customer portal</div><div class="page-title">Service history</div><div class="page-desc">Complete repair history accessible to customers through their portal.</div></div>
+
+      <h2>What customers can see</h2>
+      <p>Customers have access to their complete service history:</p>
+      <ul><li><strong>All repair orders</strong> — past and present</li><li><strong>Vehicle information</strong> — make, model, mileage</li><li><strong>Parts used</strong> — what was installed</li><li><strong>Labor performed</strong> — work completed</li><li><strong>Total costs</strong> — transparent pricing</li><li><strong>Status updates</strong> — current repair progress</li></ul>
+
+      <h2>Data privacy</h2>
+      <p>Customer data is completely isolated:</p>
+      <ul><li><strong>Workspace separation</strong> — customers only see their shop's data</li><li><strong>Personal data only</strong> — no access to other customers</li><li><strong>Audit logging</strong> — all portal access is tracked</li></ul>
+
+      <h3>Testing service history</h3>
+      <div class="alert alert-info">🧪 <strong>Customer Testing:</strong></div>
+      <div class="code-block">
+        <pre><span class="key">GET</span> <span class="val">/api/customer/service-history?limit=10&offset=0</span>
+<span class="key">GET</span> <span class="val">/api/customer/vehicles</span></pre>
+      </div>
+    </div>
+
+    <!-- CUSTOMER APPOINTMENTS -->
+    <div class="doc-page" id="doc-customer-appointments">
+      <div class="page-header"><div class="page-tag">Customer portal</div><div class="page-title">Appointment booking</div><div class="page-desc">Self-service appointment scheduling for customers.</div></div>
+
+      <h2>Appointment workflow</h2>
+      <ol><li><strong>Customer selects vehicle</strong> — from their registered vehicles</li><li><strong>Chooses date and time</strong> — preferred appointment slot</li><li><strong>Describes concern</strong> — what needs to be fixed</li><li><strong>Selects contact method</strong> — email, phone, or text</li><li><strong>Submits request</strong> — appointment created as "pending"</li><li><strong>Shop confirmation</strong> — staff confirms or suggests alternatives</li></ol>
+
+      <h2>Appointment management</h2>
+      <p>Customers can:</p>
+      <ul><li><strong>View all appointments</strong> — past and upcoming</li><li><strong>Update pending appointments</strong> — change date/time/concern</li><li><strong>Cancel appointments</strong> — if plans change</li><li><strong>View status</strong> — pending, confirmed, completed</li></ul>
+
+      <h2>Shop integration</h2>
+      <p>Appointments appear in staff dashboards:</p>
+      <ul><li><strong>Service advisors</strong> — can confirm and schedule</li><li><strong>Managers</strong> — oversight of all appointments</li><li><strong>Real-time updates</strong> — changes sync instantly</li></ul>
+
+      <h3>Testing appointments</h3>
+      <div class="alert alert-info">🧪 <strong>Customer Testing:</strong></div>
+      <div class="code-block">
+        <pre><span class="key">POST</span> <span class="val">/api/customer/appointments</span>
+{
+  "vehicleId": "vehicle-uuid",
+  "preferredDate": "2024-12-15",
+  "preferredTime": "10:00",
+  "concern": "Brake noise when stopping",
+  "contactMethod": "email"
+}
+
+<span class="key">GET</span> <span class="val">/api/customer/appointments</span>
+<span class="key">PATCH</span> <span class="val">/api/customer/appointments/:id</span>
+{ "preferredDate": "2024-12-16", "preferredTime": "14:00" }
+
+<span class="key">DELETE</span> <span class="val">/api/customer/appointments/:id</span></pre>
+      </div>
     </div>
 
     <!-- REMINDERS -->
