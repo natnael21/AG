@@ -1,7 +1,10 @@
 -- Enhanced repair order management
--- Adds parts, labor, and proper workflow
+-- ro_parts_lines and ro_labor_lines were created as stub tables in
+-- 001_initial.sql (id + workspace_id only), so this migration uses
+-- ALTER TABLE ADD COLUMN IF NOT EXISTS instead of CREATE TABLE to be
+-- idempotent on any DB state. All other tables are new and safe to CREATE.
 
--- Parts catalog
+-- Parts catalog (new table)
 CREATE TABLE IF NOT EXISTS parts (
   id SERIAL PRIMARY KEY,
   workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -20,36 +23,33 @@ CREATE TABLE IF NOT EXISTS parts (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Repair order parts lines (many-to-many with quantities)
-CREATE TABLE IF NOT EXISTS ro_parts_lines (
-  id SERIAL PRIMARY KEY,
-  repair_order_id INTEGER NOT NULL REFERENCES repair_orders(id) ON DELETE CASCADE,
-  part_id INTEGER REFERENCES parts(id) ON DELETE SET NULL,
-  part_number TEXT NOT NULL, -- Store here in case part is deleted
-  part_name TEXT NOT NULL,
-  quantity INTEGER NOT NULL DEFAULT 1,
-  unit_cost DECIMAL(10,2),
-  unit_price DECIMAL(10,2),
-  line_total DECIMAL(10,2) NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- Complete ro_parts_lines schema (stub from 001 had only id + workspace_id).
+-- Columns are nullable so ALTER succeeds even when rows already exist.
+ALTER TABLE ro_parts_lines
+  ADD COLUMN IF NOT EXISTS repair_order_id INTEGER REFERENCES repair_orders(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS part_id INTEGER REFERENCES parts(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS part_number TEXT,
+  ADD COLUMN IF NOT EXISTS part_name TEXT,
+  ADD COLUMN IF NOT EXISTS quantity INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS unit_cost DECIMAL(10,2),
+  ADD COLUMN IF NOT EXISTS unit_price DECIMAL(10,2),
+  ADD COLUMN IF NOT EXISTS line_total DECIMAL(10,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
--- Repair order labor lines
-CREATE TABLE IF NOT EXISTS ro_labor_lines (
-  id SERIAL PRIMARY KEY,
-  repair_order_id INTEGER NOT NULL REFERENCES repair_orders(id) ON DELETE CASCADE,
-  technician_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  technician_name TEXT, -- Store here in case user is deleted
-  description TEXT NOT NULL,
-  hours DECIMAL(6,2) NOT NULL DEFAULT 0,
-  hourly_rate DECIMAL(8,2) NOT NULL DEFAULT 0,
-  line_total DECIMAL(10,2) NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- Complete ro_labor_lines schema (stub from 001 had only id + workspace_id).
+ALTER TABLE ro_labor_lines
+  ADD COLUMN IF NOT EXISTS repair_order_id INTEGER REFERENCES repair_orders(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS technician_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS technician_name TEXT,
+  ADD COLUMN IF NOT EXISTS description TEXT,
+  ADD COLUMN IF NOT EXISTS hours DECIMAL(6,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS hourly_rate DECIMAL(8,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS line_total DECIMAL(10,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
--- Time tracking for technicians
+-- Time tracking for technicians (new table)
 CREATE TABLE IF NOT EXISTS time_entries (
   id SERIAL PRIMARY KEY,
   repair_order_id INTEGER REFERENCES repair_orders(id) ON DELETE CASCADE,
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS time_entries (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Customer feedback/satisfaction
+-- Customer feedback (new table)
 CREATE TABLE IF NOT EXISTS repair_order_feedback (
   id SERIAL PRIMARY KEY,
   repair_order_id INTEGER NOT NULL REFERENCES repair_orders(id) ON DELETE CASCADE,
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS repair_order_feedback (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Indexes for performance
+-- Indexes
 CREATE INDEX IF NOT EXISTS idx_parts_workspace ON parts(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_parts_part_number ON parts(part_number);
 CREATE INDEX IF NOT EXISTS idx_ro_parts_lines_ro ON ro_parts_lines(repair_order_id);
@@ -80,7 +80,7 @@ CREATE INDEX IF NOT EXISTS idx_time_entries_ro ON time_entries(repair_order_id);
 CREATE INDEX IF NOT EXISTS idx_time_entries_technician ON time_entries(technician_id);
 CREATE INDEX IF NOT EXISTS idx_feedback_ro ON repair_order_feedback(repair_order_id);
 
--- Update repair_orders table with additional fields
+-- Additional repair_orders fields
 ALTER TABLE repair_orders
   ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
   ADD COLUMN IF NOT EXISTS estimated_completion TIMESTAMPTZ,
@@ -90,7 +90,7 @@ ALTER TABLE repair_orders
   ADD COLUMN IF NOT EXISTS customer_approved_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS customer_approved_by INTEGER REFERENCES users(id);
 
--- Recalculate totals function
+-- Recalculate totals helper function
 CREATE OR REPLACE FUNCTION recalculate_ro_totals(ro_id INTEGER)
 RETURNS VOID AS $$
 DECLARE
@@ -98,15 +98,12 @@ DECLARE
   labor_total DECIMAL(12,2) := 0;
   total DECIMAL(12,2);
 BEGIN
-  -- Sum parts
   SELECT COALESCE(SUM(line_total), 0) INTO parts_total
   FROM ro_parts_lines WHERE repair_order_id = ro_id;
 
-  -- Sum labor
   SELECT COALESCE(SUM(line_total), 0) INTO labor_total
   FROM ro_labor_lines WHERE repair_order_id = ro_id;
 
-  -- Update totals
   total := parts_total + labor_total;
   UPDATE repair_orders
   SET total_estimate = total, total_final = total, updated_at = NOW()
