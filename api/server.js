@@ -471,6 +471,46 @@ app.post('/api/vehicles', requireAuth(['super_admin', 'manager', 'service_adviso
   }
 });
 
+/* ── CSV bulk import routes ── */
+const multer = require('multer');
+const ImportService = require('./services/import');
+const csvUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const importService = new ImportService(pool);
+
+app.post('/api/import/customers',
+  requireAuth(['super_admin', 'manager']),
+  csvUpload.single('file'),
+  async (req, res) => {
+    const workspaceId = resolveWorkspaceId(req, res);
+    if (!workspaceId) return;
+    if (!req.file) return res.status(400).json({ error: 'CSV file required (field name: file).' });
+    try {
+      const result = await importService.importCustomers(workspaceId, req.file.buffer);
+      res.json(result);
+    } catch (e) {
+      console.error('[import/customers]', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  }
+);
+
+app.post('/api/import/vehicles',
+  requireAuth(['super_admin', 'manager']),
+  csvUpload.single('file'),
+  async (req, res) => {
+    const workspaceId = resolveWorkspaceId(req, res);
+    if (!workspaceId) return;
+    if (!req.file) return res.status(400).json({ error: 'CSV file required (field name: file).' });
+    try {
+      const result = await importService.importVehicles(workspaceId, req.file.buffer);
+      res.json(result);
+    } catch (e) {
+      console.error('[import/vehicles]', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  }
+);
+
 /* ── Core repair order routes ── */
 app.get('/api/repair-orders', requireAuth(), async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
