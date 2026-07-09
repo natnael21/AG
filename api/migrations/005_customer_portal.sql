@@ -104,7 +104,7 @@ SELECT
   c.full_name as customer_name,
   c.email as customer_email,
   c.phone as customer_phone,
-  v.year, v.make, v.model, v.license_plate,
+  v.year, v.make, v.model, v.plate,
   u.name as confirmed_by_name
 FROM appointments a
 JOIN customers c ON a.customer_id = c.id
