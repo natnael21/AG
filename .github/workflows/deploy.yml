@@ -1,5 +1,9 @@
 name: Deploy Production
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  API_HEALTHCHECK_URL: ${{ secrets.API_HEALTHCHECK_URL }}
+
 on:
   workflow_dispatch:
   push:
@@ -51,6 +55,6 @@ jobs:
           ssh "$EC2_USER@$EC2_HOST" "bash '$EC2_DEPLOY_PATH/releases/$RELEASE_ID/scripts/deploy-ec2.sh' '$EC2_DEPLOY_PATH' '$RELEASE_ID'"
 
       - name: Healthcheck
-        if: ${{ secrets.API_HEALTHCHECK_URL != '' }}
+        if: ${{ env.API_HEALTHCHECK_URL != '' }}
         run: |
-          curl --fail --retry 5 --retry-delay 5 "${{ secrets.API_HEALTHCHECK_URL }}"
+          curl --fail --retry 5 --retry-delay 5 "${{ env.API_HEALTHCHECK_URL }}"
