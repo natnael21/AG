@@ -149,9 +149,21 @@ async function provisionSignup(pool, signupId, reviewerId) {
     uVals.push(`$${u++}`); 
     uParams.push(passwordHash);
     
-    uCols.push('role');          
-    uVals.push(`$${u++}`); 
-    uParams.push('super_admin');
+    /* The shop owner is a manager of their own workspace, not a platform
+       super_admin.
+
+       This previously assigned 'super_admin'. resolveWorkspaceId() skips the
+       workspace allowlist entirely for that role, and /api/workspaces and
+       /api/admin/signups return everything to it — so every approved shop
+       could read and write every other shop's customers, vehicles and repair
+       orders, and review other shops' signup requests. `manager` carries full
+       control of their own workspace (users, parts, repair orders, reports,
+       portal provisioning, CSV import) and nothing outside it, which is the
+       split the roles were documented with. Reserve 'super_admin' for AG
+       platform staff, who are created directly rather than through signup. */
+    uCols.push('role');
+    uVals.push(`$${u++}`);
+    uParams.push('manager');
     
     uCols.push('workspace_ids');
     if (wsIdsIsInt) { 

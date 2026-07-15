@@ -125,14 +125,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--navy);min-height:100vh;di
         onkeydown="if(event.key==='Enter')doLogin()"/>
       <div style="text-align:right;margin-top:8px"><button class="link-btn" onclick="showPanel('panel-forgot')">Forgot password?</button></div>
       <button class="btn-main" id="login-btn" onclick="doLogin()">Sign in →</button>
-      <div id="demo-login-section">
-        <div class="divider">or try a demo account <span style="opacity:.45">(localhost only)</span></div>
-        <div class="demo-grid">
-          <div class="demo-btn" onclick="demoLogin('super_admin')"><span class="demo-icon">🌐</span><span style="font-weight:500">Super admin</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">All workspaces</div></div>
-          <div class="demo-btn" onclick="demoLogin('manager')"><span class="demo-icon">🏢</span><span style="font-weight:500">Manager</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">AmeriBenz</div></div>
-          <div class="demo-btn" onclick="demoLogin('service_advisor')"><span class="demo-icon">🔧</span><span style="font-weight:500">Service advisor</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">AmeriBenz</div></div>
-          <div class="demo-btn" onclick="demoLogin('technician')"><span class="demo-icon">⚙️</span><span style="font-weight:500">Technician</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">AmeriBenz</div></div>
-        </div>
+      <div class="divider">are you a customer?</div>
+      <div style="text-align:center">
+        <a href="portal-login.html" style="font-size:.78rem;color:var(--accent);text-decoration:none">Track your repairs in the customer portal →</a>
       </div>
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:.75rem;color:rgba(255,255,255,.3)">New to AG Shop Pro?</span>
@@ -315,14 +310,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--navy);min-height:100vh;di
 <script>
 (function(){
   const s = AUTH.getSession();
-  if(s && s.role && (s.token || AUTH.isDemoSession(s))) window.location.replace(AUTH.ROLE_PORTAL[s.role] || 'manager.html');
+  if(s && s.role && s.token) window.location.replace(AUTH.ROLE_PORTAL[s.role] || 'manager.html');
   const p = new URLSearchParams(window.location.search);
   if(p.get('token')) window.location.replace('reset.html?token=' + encodeURIComponent(p.get('token')));
   if(p.get('signup')) showPanel('panel-signup');
-  if(!AUTH.isDemoHost()){
-    var _d = document.getElementById('demo-login-section');
-    if(_d) _d.style.display = 'none';
-  }
 })();
 
 let currentStep = 1;
@@ -339,17 +330,11 @@ function showPanel(id){
 function clearMsgs(){ document.querySelectorAll('.msg').forEach(m => m.classList.remove('show')); }
 function showMsg(id, text){ const el = document.getElementById(id); el.textContent = text; el.classList.add('show'); }
 
+/* The role is resolved by the server on sign in. Looking it up from the email
+   as you type would confirm which addresses have accounts, so it doesn't. */
 function onEmailInput(v){
   const hint = document.getElementById('role-hint');
-  if(!AUTH.isDemoHost()){
-    if(v.length>4&&v.includes('@')) hint.textContent='→ Your role is assigned on your account';
-    else hint.textContent='';
-    return;
-  }
-  const u = AUTH.getUsers().find(x => x.email.toLowerCase() === v.toLowerCase());
-  if(u){ const lbl={super_admin:'Super Admin',manager:'Manager',service_advisor:'Service Advisor',technician:'Technician'}; const ws = AUTH.getWS().filter(w=>u.workspaces.map(Number).includes(Number(w.id))); hint.textContent='→ '+lbl[u.role]+' · '+ws.length+' workspace(s)'; }
-  else if(v.length>4&&v.includes('@')) hint.textContent='→ Role detected on sign in';
-  else hint.textContent='';
+  hint.textContent = (v.length>4 && v.includes('@')) ? '→ Your role is assigned on your account' : '';
 }
 
 async function doLogin(){
@@ -363,13 +348,6 @@ async function doLogin(){
   const r=await AUTH.loginWithApi(email,pw);
   if(r.ok){window.location.replace(AUTH.ROLE_PORTAL[r.role]||'manager.html');}
   else{btn.textContent='Sign in →';btn.disabled=false;showMsg('login-error',r.error);}
-}
-
-function demoLogin(role){
-  if(!AUTH.isDemoHost()) return;
-  const map={super_admin:'demo@admin.com',manager:'demo@manager.com',service_advisor:'demo@service.com',technician:'demo@tech.com'};
-  const r=AUTH.login(map[role],'demo');
-  if(r.ok) window.location.replace(AUTH.ROLE_PORTAL[r.role]);
 }
 
 async function doForgot(){
