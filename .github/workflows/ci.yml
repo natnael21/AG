@@ -6,6 +6,8 @@ on:
     branches:
       - main
       - develop
+      # staging deploys straight to preprod, so it must be tested too.
+      - staging
 
 jobs:
   detect:

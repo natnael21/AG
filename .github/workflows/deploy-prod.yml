@@ -7,6 +7,14 @@ on:
   push:
     branches: [main]
 
+# Two pushes in quick succession would otherwise rsync into the same release
+# tree and flip the `current` symlink concurrently. Deploys queue instead;
+# cancel-in-progress is deliberately false so a half-finished prod deploy is
+# never abandoned mid-way.
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy-prod:
     name: Deploy -> agshopro.com
@@ -32,6 +40,7 @@ jobs:
           rm: true
 
       - name: Run deploy script on EC2
+        id: deploy
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -47,8 +56,13 @@ jobs:
           curl --fail --retry 5 --retry-delay 5 --max-time 15 \
             https://agshopro.com/api/health
 
+      # Only roll back when a release actually went live and then failed
+      # verification. `if: failure()` alone also fired when checkout or SCP
+      # failed -- at which point `current` still points at the last good
+      # release, so rollback.sh would step production back to the release
+      # *before* it, causing an outage from a deploy that never happened.
       - name: Rollback on failure
-        if: ${{ failure() }}
+        if: ${{ failure() && steps.deploy.outcome == 'success' }}
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
