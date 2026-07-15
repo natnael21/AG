@@ -47,8 +47,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .source-m1{background:#ebf8ff;color:#2a4365;border:1px solid #bee3f8}
 .loading{text-align:center;padding:40px;color:var(--muted);font-size:.82rem}
 .sync-row{display:flex;align-items:center;gap:6px;padding:6px 16px;border-bottom:1px solid var(--border);font-size:.72rem}
-.sync-dot{width:7px;height:7px;border-radius:50%}
+.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .sync-green{background:var(--green)}
+.sync-amber{background:var(--yellow,#b7791f)}
 .sync-gray{background:#cbd5e0}
 table.data-table{width:100%;border-collapse:collapse}
 table.data-table th{padding:6px 14px;text-align:left;font-size:.6rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;background:#f8fafc}
@@ -58,16 +59,16 @@ table.data-table tr:hover td{background:#f8fafc}
 </head>
 <body>
 <script src="auth.js"></script>
+<script src="api.js"></script>
 <script>
 (function(){ if(!AUTH.requireRoles(['manager', 'service_advisor', 'super_admin'])) return; })();
 </script>
 
 <div class="page-hdr">
   <div>
-    <div class="page-title">Burn rate & revenue — AmeriBenz</div>
+    <div class="page-title">Burn rate &amp; revenue — <span id="shop-name">—</span></div>
     <div class="page-sub">
-      <span class="source-badge source-sq">● Square live</span>&nbsp;
-      <span class="source-badge source-m1">● Mitchell 1 synced</span>
+      <span class="source-badge source-m1">● From completed repair orders</span>
     </div>
   </div>
   <div class="period-btns">
@@ -92,12 +93,12 @@ table.data-table tr:hover td{background:#f8fafc}
     <div class="stat-sub" id="stat-net-sub"></div>
   </div>
   <div class="stat">
-    <div class="stat-lbl">Square fees</div>
+    <div class="stat-lbl">Parts spend</div>
     <div class="stat-val dn" id="stat-fees">—</div>
     <div class="stat-sub" id="stat-fees-sub"></div>
   </div>
   <div class="stat">
-    <div class="stat-lbl">Payments</div>
+    <div class="stat-lbl">Completed ROs</div>
     <div class="stat-val" id="stat-count">—</div>
     <div class="stat-sub" id="stat-count-sub"></div>
   </div>
@@ -110,8 +111,7 @@ table.data-table tr:hover td{background:#f8fafc}
 
 <!-- Sync status -->
 <div class="card" style="margin-bottom:14px">
-  <div class="sync-row"><div class="sync-dot sync-green"></div><span><strong>Square</strong> — webhook active · Last payment: <span id="last-payment-time">—</span></span><span style="margin-left:auto;color:var(--muted)">Real-time</span></div>
-  <div class="sync-row"><div class="sync-dot sync-green"></div><span><strong>Mitchell 1</strong> — incremental sync active · Last run: <span id="last-sync-time">—</span></span><span style="margin-left:auto;color:var(--muted)">Every 15 min</span></div>
+  <div id="integration-status"></div>
 </div>
 
 <div class="g3">
@@ -134,7 +134,7 @@ table.data-table tr:hover td{background:#f8fafc}
 
 <!-- Category breakdown -->
 <div class="card" style="margin-bottom:14px">
-  <div class="card-hdr">Transaction category breakdown <span style="font-size:.65rem;font-weight:400;color:var(--muted)">From Square item names + Mitchell RO data</span></div>
+  <div class="card-hdr">Parts revenue breakdown <span style="font-size:.65rem;font-weight:400;color:var(--muted)">From repair order parts lines</span></div>
   <div id="category-list">
     <div class="loading">Loading Square data...</div>
   </div>
@@ -144,7 +144,7 @@ table.data-table tr:hover td{background:#f8fafc}
 <div class="g2">
   <!-- Parts & labor from Mitchell -->
   <div class="card">
-    <div class="card-hdr">Cost breakdown <span style="font-size:.65rem;font-weight:400;color:var(--muted)">From Mitchell 1 ROs</span><span class="source-badge source-m1" style="font-size:.62rem">Mitchell 1</span></div>
+    <div class="card-hdr">Cost breakdown <span style="font-size:.65rem;font-weight:400;color:var(--muted)">From completed repair orders</span></div>
     <div style="padding:14px">
       <div id="cost-breakdown"><div class="loading">Loading...</div></div>
     </div>
@@ -152,183 +152,124 @@ table.data-table tr:hover td{background:#f8fafc}
 
   <!-- Recent transactions -->
   <div class="card">
-    <div class="card-hdr">Recent transactions <span class="source-badge source-sq" style="font-size:.62rem">Square live</span></div>
+    <div class="card-hdr">Recent completed repair orders</div>
     <div id="recent-transactions"><div class="loading">Loading...</div></div>
   </div>
 </div>
 
 <script>
-const API = '/api/analytics';
 let currentPeriod = 30;
 let revenueChart = null;
 let splitChart   = null;
-let lastData     = null;
 
-const CAT_COLORS = {
-  labor_revenue:  '#3182ce',
-  parts_revenue:  '#38a169',
-  diagnostic_fee: '#d69e2e',
-  sublet:         '#805ad5',
-  supply_charge:  '#e53e3e',
-  deposit:        '#dd6b20',
-  square_fee:     '#718096',
-  refund:         '#c53030',
-  uncategorized:  '#a0aec0',
-};
+/* Colours for the parts-revenue breakdown, assigned by position. */
+const CAT_PALETTE = ['#3182ce','#38a169','#d69e2e','#805ad5','#e53e3e','#dd6b20','#319795','#b83280','#718096','#a0aec0'];
 
-const CAT_LABELS = {
-  labor_revenue:  'Labor revenue',
-  parts_revenue:  'Parts revenue',
-  diagnostic_fee: 'Diagnostic fees',
-  sublet:         'Sublet',
-  supply_charge:  'Shop supplies',
-  deposit:        'Deposits',
-  square_fee:     'Square fees',
-  refund:         'Refunds',
-  uncategorized:  'Uncategorized',
-};
+const el = (id) => document.getElementById(id);
 
+function fmtD(dollars) {
+  const v = Number(dollars);
+  if (!Number.isFinite(v)) return '—';
+  return '$' + Math.round(v).toLocaleString('en-US');
+}
+
+function timeAgo(iso) {
+  if (!iso) return '—';
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return '—';
+  const mins = Math.floor((Date.now() - t) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs / 24) + 'd ago';
+}
+
+/**
+ * Load and render. Any failure is surfaced as a real error state with Retry.
+ * This page used to fall back to randomly generated demo figures on error,
+ * which made a dead endpoint look like a healthy dashboard.
+ */
 async function loadData(days) {
+  setBusy(true);
   try {
-    /* In production this calls: GET /api/analytics/burn-rate?days=N */
-    /* For demo we use mock data that mirrors what the real API returns */
-    const data = await fetchBurnRate(days);
-    lastData = data;
+    const data = await API.get('/api/analytics/burn-rate', { days });
+    clearError();
     renderAll(data, days);
   } catch (err) {
-    console.error('Failed to load burn rate:', err);
-    /* Fall through to demo data */
-    const demo = getDemoData(days);
-    lastData = demo;
-    renderAll(demo, days);
+    if (err.message === 'Session expired' || err.message === 'Unauthorized') return;
+    showError(err.message, days);
+  } finally {
+    setBusy(false);
   }
 }
 
-async function fetchBurnRate(days) {
-  const session = AUTH.getSession && AUTH.getSession();
-  if (session && session.token) {
-    const qs = new URLSearchParams({ days: String(days) });
-    if (session.activeWorkspaceId != null) qs.set('workspaceId', String(session.activeWorkspaceId));
-    const res = await fetch(`${API}/burn-rate?${qs}`, {
-      headers: { Authorization: `Bearer ${session.token}` },
-      credentials: 'same-origin',
-    });
-    if (!res.ok) throw new Error('API error');
-    return res.json();
-  }
-  await new Promise(r => setTimeout(r, 600));
-  return getDemoData(days);
+function setBusy(busy) {
+  const row = el('stats-row');
+  if (row) row.style.opacity = busy ? '0.55' : '1';
 }
 
-function getDemoData(days) {
-  const mult = days / 30;
-  const now  = new Date();
-
-  /* Build daily array */
-  const dailyArray = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const dayOfWeek = d.getDay();
-    const weekday   = dayOfWeek > 0 && dayOfWeek < 6;
-    const base      = weekday ? 650 + Math.random() * 800 : 200 + Math.random() * 300;
-    dailyArray.push({
-      date:  d.toISOString().slice(0,10),
-      gross: Math.round(base),
-      net:   Math.round(base * 0.973),
-      count: Math.ceil(base / 180)
-    });
-  }
-
-  const grossRevenue = dailyArray.reduce((s,d) => s + d.gross, 0);
-  const netRevenue   = Math.round(grossRevenue * 0.973);
-  const squareFees   = grossRevenue - netRevenue;
-
-  return {
-    period:       `Last ${days} days`,
-    grossRevenue,
-    netRevenue,
-    squareFees,
-    refunds:      Math.round(grossRevenue * 0.012),
-    paymentCount: dailyArray.reduce((s,d) => s + d.count, 0),
-    laborRevenue:  Math.round(netRevenue * 0.62),
-    partsRevenue:  Math.round(netRevenue * 0.28),
-    diagnosticFees: Math.round(netRevenue * 0.05),
-    otherRevenue:  Math.round(netRevenue * 0.05),
-    partsSpend:    Math.round(grossRevenue * 0.35),
-    laborCost:     Math.round(grossRevenue * 0.22),
-    netMargin:     Math.round(netRevenue * 0.38),
-    marginPct:     '38.0',
-    dailyArray,
-    comparison: {
-      previousPeriodRevenue: Math.round(grossRevenue * 0.88),
-      monthOverMonthPct:     '13.6',
-      trend:                 'up'
-    },
-    categoryBreakdown: [
-      { category:'labor_revenue',  label:'Labor revenue',   gross: Math.round(grossRevenue*.62), pctOfTotal:'62.0', count: Math.round(dailyArray.reduce((s,d)=>s+d.count,0)*.55) },
-      { category:'parts_revenue',  label:'Parts revenue',   gross: Math.round(grossRevenue*.28), pctOfTotal:'28.0', count: Math.round(dailyArray.reduce((s,d)=>s+d.count,0)*.28) },
-      { category:'diagnostic_fee', label:'Diagnostic fees', gross: Math.round(grossRevenue*.05), pctOfTotal:'5.0',  count: Math.round(dailyArray.reduce((s,d)=>s+d.count,0)*.1)  },
-      { category:'square_fee',     label:'Square fees',     gross: squareFees,                   pctOfTotal:(squareFees/grossRevenue*100).toFixed(1), count: dailyArray.reduce((s,d)=>s+d.count,0) },
-      { category:'refund',         label:'Refunds',         gross: Math.round(grossRevenue*.012),pctOfTotal:'1.2',  count: 3 },
-      { category:'uncategorized',  label:'Uncategorized',   gross: Math.round(grossRevenue*.018),pctOfTotal:'1.8',  count: Math.round(dailyArray.reduce((s,d)=>s+d.count,0)*.07) },
-    ],
-    recentTransactions: [
-      { id:'pmnt-001', paid_at: new Date(Date.now()-1800000).toISOString(), amount_cents:234000, net_cents:227724, category:'labor_revenue',  card_brand:'VISA',   last4:'4242', status:'completed' },
-      { id:'pmnt-002', paid_at: new Date(Date.now()-7200000).toISOString(), amount_cents:89000,  net_cents:86631,  category:'parts_revenue',  card_brand:'MC',     last4:'8888', status:'completed' },
-      { id:'pmnt-003', paid_at: new Date(Date.now()-18000000).toISOString(),amount_cents:6500,   net_cents:6319,   category:'diagnostic_fee', card_brand:'AMEX',   last4:'1001', status:'completed' },
-      { id:'pmnt-004', paid_at: new Date(Date.now()-86400000).toISOString(), amount_cents:178000, net_cents:173148, category:'labor_revenue',  card_brand:'VISA',   last4:'5555', status:'completed' },
-      { id:'pmnt-005', paid_at: new Date(Date.now()-172800000).toISOString(),amount_cents:32000,  net_cents:31133,  category:'parts_revenue',  card_brand:'DISC',   last4:'3030', status:'completed' },
-    ]
-  };
+function clearError() {
+  const box = el('burn-error');
+  if (box) box.remove();
 }
 
-function fmt(cents) {
-  return '$' + (cents/100).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
-}
-function fmtD(dollars) {
-  return '$' + Math.round(dollars).toLocaleString('en-US');
-}
-function timeAgo(iso) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff/60000);
-  if(mins < 60) return mins + 'm ago';
-  const hrs = Math.floor(mins/60);
-  if(hrs < 24) return hrs + 'h ago';
-  return Math.floor(hrs/24) + 'd ago';
+function showError(message, days) {
+  clearError();
+  const box = document.createElement('div');
+  box.id = 'burn-error';
+  box.style.cssText = 'background:#fed7d7;color:#822727;padding:12px 14px;border-radius:10px;margin-bottom:14px;font-size:.8rem;display:flex;align-items:center;gap:12px';
+  box.innerHTML = '<span style="flex:1"></span>';
+  box.firstChild.textContent = message;
+
+  const retry = document.createElement('button');
+  retry.textContent = 'Retry';
+  retry.style.cssText = 'padding:6px 14px;border:1px solid #822727;border-radius:6px;background:#fff;color:#822727;cursor:pointer;font-family:inherit;font-size:.75rem';
+  retry.addEventListener('click', () => loadData(days));
+  box.appendChild(retry);
+
+  const row = el('stats-row');
+  row.parentNode.insertBefore(box, row);
+
+  /* Never leave stale or invented numbers on screen behind an error. */
+  ['stat-gross','stat-net','stat-fees','stat-count','stat-margin'].forEach((id) => { if (el(id)) el(id).textContent = '—'; });
+  ['stat-gross-sub','stat-net-sub','stat-fees-sub','stat-count-sub','stat-margin-sub'].forEach((id) => { if (el(id)) el(id).textContent = ''; });
+  ['category-list','cost-breakdown','recent-transactions','integration-status'].forEach((id) => {
+    if (el(id)) el(id).innerHTML = '<div class="loading">Unavailable</div>';
+  });
+  if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
+  if (splitChart)   { splitChart.destroy();   splitChart = null; }
 }
 
 function renderAll(data, days) {
-  /* Stats */
-  document.getElementById('stat-gross').textContent = fmtD(data.grossRevenue);
-  document.getElementById('stat-net').textContent   = fmtD(data.netRevenue);
-  document.getElementById('stat-fees').textContent  = fmtD(data.squareFees);
-  document.getElementById('stat-count').textContent = data.paymentCount.toLocaleString();
-  document.getElementById('stat-margin').textContent = fmtD(data.netMargin);
+  const s = AUTH.getSession();
+  el('shop-name').textContent = (s && s.activeWorkspaceName) || 'this shop';
 
-  const mom = data.comparison.monthOverMonthPct;
-  if(mom) {
-    const up = parseFloat(mom) >= 0;
-    const cls = up ? 'up' : 'dn';
-    const arrow = up ? '↑' : '↓';
-    ['stat-gross-sub','stat-net-sub'].forEach(id => {
-      document.getElementById(id).innerHTML = `<span class="${cls}">${arrow} ${Math.abs(mom)}% vs prev period</span>`;
-    });
-  }
-  document.getElementById('stat-fees-sub').textContent = 'Card processing';
-  document.getElementById('stat-count-sub').textContent = `${days}d period`;
-  document.getElementById('stat-margin-sub').innerHTML = `<span class="${parseFloat(data.marginPct)>=30?'up':'dn'}">${data.marginPct}% margin</span>`;
+  el('stat-gross').textContent  = fmtD(data.grossRevenue);
+  el('stat-net').textContent    = fmtD(data.netRevenue);
+  el('stat-fees').textContent   = fmtD(data.partsSpend);
+  el('stat-count').textContent  = Number(data.paymentCount || 0).toLocaleString();
+  el('stat-margin').textContent = fmtD(data.netMargin);
 
-  /* Sync times */
-  document.getElementById('last-payment-time').textContent = timeAgo(data.recentTransactions?.[0]?.paid_at || new Date().toISOString());
-  document.getElementById('last-sync-time').textContent = '3 min ago';
+  /* Only claim a comparison when there was a previous period to compare to. */
+  const changePct = data.comparison ? data.comparison.changePct : null;
+  ['stat-gross-sub','stat-net-sub'].forEach((id) => {
+    if (changePct === null || changePct === undefined) {
+      el(id).innerHTML = '<span style="color:var(--muted)">No prior period to compare</span>';
+    } else {
+      const up = parseFloat(changePct) >= 0;
+      el(id).innerHTML = '<span class="' + (up ? 'up' : 'dn') + '">' + (up ? '↑' : '↓') + ' ' +
+        Math.abs(parseFloat(changePct)).toFixed(1) + '% vs prev period</span>';
+    }
+  });
 
-  /* Trend badge */
-  const trend = data.comparison.trend;
-  document.getElementById('trend-badge').innerHTML = trend === 'up'
-    ? `<span class="badge b-green">↑ ${data.comparison.monthOverMonthPct}% vs prev</span>`
-    : `<span class="badge b-red">↓ ${Math.abs(data.comparison.monthOverMonthPct)}% vs prev</span>`;
+  el('stat-fees-sub').textContent  = 'Cost of parts used';
+  el('stat-count-sub').textContent = days + 'd period';
+  el('stat-margin-sub').innerHTML  =
+    '<span class="' + (parseFloat(data.marginPct) >= 30 ? 'up' : 'dn') + '">' + API.escape(data.marginPct) + '% margin</span>';
 
+  renderIntegrationStatus(data);
+  renderTrendBadge(data);
   renderRevenueChart(data);
   renderSplitChart(data);
   renderCategoryList(data);
@@ -336,180 +277,152 @@ function renderAll(data, days) {
   renderRecentTransactions(data);
 }
 
+/* State the truth about what is and isn't connected. */
+function renderIntegrationStatus(data) {
+  const host = el('integration-status');
+  if (!host) return;
+  const connected = data.paymentsIntegration === 'connected';
+  const latest = data.recentTransactions && data.recentTransactions[0];
+
+  host.innerHTML =
+    '<div class="sync-row"><div class="sync-dot ' + (connected ? 'sync-green' : 'sync-amber') + '"></div>' +
+      '<span><strong>Payment processor</strong> — ' +
+      (connected ? 'connected' : 'not connected. Revenue below is booked from completed repair orders, so card fees and refunds are not included.') +
+      '</span></div>' +
+    '<div class="sync-row"><div class="sync-dot sync-green"></div>' +
+      '<span><strong>Repair orders</strong> — last completed: ' + API.escape(timeAgo(latest && latest.completedAt)) + '</span></div>';
+}
+
+function renderTrendBadge(data) {
+  const badge = el('trend-badge');
+  const changePct = data.comparison ? data.comparison.changePct : null;
+  if (changePct === null || changePct === undefined) { badge.innerHTML = ''; return; }
+  const up = parseFloat(changePct) >= 0;
+  badge.innerHTML = '<span class="badge ' + (up ? 'b-green' : 'b-red') + '">' + (up ? '↑ ' : '↓ ') +
+    Math.abs(parseFloat(changePct)).toFixed(1) + '% vs prev</span>';
+}
+
 function renderRevenueChart(data) {
-  const ctx = document.getElementById('revenue-chart').getContext('2d');
-  if(revenueChart) revenueChart.destroy();
-
-  const labels = data.dailyArray.map(d => {
-    const dt = new Date(d.date);
-    return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  });
-  const values = data.dailyArray.map(d => d.net);
-
-  /* Show every Nth label to avoid crowding */
-  const step = Math.ceil(labels.length / 10);
+  const ctx = el('revenue-chart').getContext('2d');
+  const daily = data.dailyArray || [];
+  if (revenueChart) revenueChart.destroy();
 
   revenueChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels,
-      datasets: [{
-        data:            values,
-        borderColor:     '#e94560',
-        backgroundColor: 'rgba(233,69,96,.08)',
-        tension:         0.3,
-        fill:            true,
-        pointRadius:     0,
-        pointHoverRadius: 4,
-      }]
+      labels: daily.map((d) => new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+      datasets: [
+        { label: 'Gross', data: daily.map((d) => d.gross), borderColor: '#3182ce', backgroundColor: 'rgba(49,130,206,.08)', fill: true, tension: .3, pointRadius: 0, borderWidth: 2 },
+        { label: 'Net of parts', data: daily.map((d) => d.net), borderColor: '#38a169', backgroundColor: 'transparent', fill: false, tension: .3, pointRadius: 0, borderWidth: 2, borderDash: [4, 3] },
+      ],
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: {
-        callbacks: { label: ctx => '$' + Math.round(ctx.raw).toLocaleString() }
-      }},
-      scales: {
-        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 10 } } },
-        y: { grid: { color: '#f1f5f9' }, ticks: {
-          font: { size: 10 },
-          callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)
-        }}
-      }
-    }
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { boxWidth: 10, font: { size: 10 } } } },
+      scales: { y: { beginAtZero: true, ticks: { callback: (v) => '$' + Number(v).toLocaleString(), font: { size: 10 } } }, x: { ticks: { font: { size: 9 }, maxTicksLimit: 10 } } },
+    },
   });
 }
 
 function renderSplitChart(data) {
-  const ctx = document.getElementById('split-chart').getContext('2d');
-  if(splitChart) splitChart.destroy();
+  const ctx = el('split-chart').getContext('2d');
+  if (splitChart) splitChart.destroy();
 
-  const breakdown = data.categoryBreakdown || [];
-  const revCats = breakdown.filter(c =>
-    c.category !== 'square_fee' && c.category !== 'refund' && c.category !== 'uncategorized' && c.gross > 0
-  );
-
-  if (!revCats.length) {
-    splitChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: { labels: ['No data'], datasets: [{ data: [1], backgroundColor: ['#e2e8f0'], borderWidth: 2, borderColor: '#fff' }] },
-      options: { responsive: true, maintainAspectRatio: true, cutout: '65%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
-    });
+  const parts = Number(data.partsRevenue || 0);
+  const labor = Number(data.laborRevenue || 0);
+  if (parts + labor === 0) {
+    if (ctx.canvas.parentNode) ctx.canvas.parentNode.innerHTML = '<div class="loading">No revenue in this period</div>';
     return;
   }
 
   splitChart = new Chart(ctx, {
     type: 'doughnut',
-    data: {
-      labels:   revCats.map(c => c.label),
-      datasets: [{
-        data:            revCats.map(c => c.gross),
-        backgroundColor: revCats.map(c => CAT_COLORS[c.category] || '#a0aec0'),
-        borderWidth:     2,
-        borderColor:     '#fff',
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      cutout: '65%',
-      plugins: {
-        legend: { position:'bottom', labels:{ font:{size:10}, boxWidth:10, padding:8 } },
-        tooltip: { callbacks:{ label: ctx => `${ctx.label}: $${Math.round(ctx.raw).toLocaleString()}` }}
-      }
-    }
+    data: { labels: ['Labor', 'Parts'], datasets: [{ data: [labor, parts], backgroundColor: ['#3182ce', '#38a169'], borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } },
   });
 }
 
 function renderCategoryList(data) {
-  const breakdown = data.categoryBreakdown || [];
-  if (!breakdown.length) {
-    document.getElementById('category-list').innerHTML = '<div class="loading">No category data yet — connect Square or sync transactions.</div>';
-    return;
-  }
-  const maxGross = Math.max(...breakdown.map(c => c.gross));
-  const html = breakdown.map(cat => {
-    const pct = maxGross > 0 ? (cat.gross / maxGross * 100) : 0;
-    const color = CAT_COLORS[cat.category] || '#a0aec0';
-    const isExpense = cat.category === 'square_fee' || cat.category === 'refund';
-    return `
-      <div class="cat-row">
-        <div class="cat-swatch" style="background:${color}"></div>
-        <div class="cat-name">${cat.label}</div>
-        <div style="font-size:.68rem;color:var(--muted);width:60px;flex-shrink:0">${cat.count} txns</div>
-        <div class="cat-bar-wrap">
-          <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-        </div>
-        <div class="cat-amount" style="color:${isExpense?'var(--red)':'var(--text)'}">${isExpense?'-':''}${fmtD(cat.gross)}</div>
-        <div class="cat-pct">${cat.pctOfTotal}%</div>
-      </div>
-    `;
+  const rows = data.categoryBreakdown || [];
+  if (!rows.length) { el('category-list').innerHTML = '<div class="loading">No parts sold in this period</div>'; return; }
+
+  const max = Math.max.apply(null, rows.map((r) => Number(r.revenue)));
+  el('category-list').innerHTML = rows.map((cat, i) => {
+    const pct = max > 0 ? (Number(cat.revenue) / max * 100).toFixed(0) : 0;
+    const color = CAT_PALETTE[i % CAT_PALETTE.length];
+    return '' +
+      '<div class="cat-row">' +
+        '<div class="cat-name"><span class="cat-dot" style="background:' + color + '"></span>' + API.escape(cat.label) + '</div>' +
+        '<div class="cat-bar-wrap"><div class="cat-bar-track"><div class="cat-bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div></div>' +
+        '<div class="cat-amount">' + fmtD(cat.revenue) + '</div>' +
+        '<div class="cat-pct">' + API.escape(cat.pct) + '%</div>' +
+      '</div>';
   }).join('');
-  document.getElementById('category-list').innerHTML = html || '<div class="loading">No data</div>';
 }
 
 function renderCostBreakdown(data) {
+  const gross = Number(data.grossRevenue || 0);
   const items = [
-    { label:'Parts spend (Mitchell)', val: data.partsSpend, color: '#c53030', pct: data.grossRevenue > 0 ? (data.partsSpend/data.grossRevenue*100).toFixed(0) : 0 },
-    { label:'Labor cost',             val: data.laborCost,  color: '#d69e2e', pct: data.grossRevenue > 0 ? (data.laborCost/data.grossRevenue*100).toFixed(0)  : 0 },
-    { label:'Square fees',            val: data.squareFees, color: '#718096', pct: data.grossRevenue > 0 ? (data.squareFees/data.grossRevenue*100).toFixed(0) : 0 },
-    { label:'Refunds',                val: data.refunds,    color: '#e53e3e', pct: data.grossRevenue > 0 ? (data.refunds/data.grossRevenue*100).toFixed(0)    : 0 },
+    { label: 'Parts spend', val: Number(data.partsSpend || 0), color: '#c53030' },
   ];
-  const total = items.reduce((s,i) => s + i.val, 0);
 
-  const html = items.map(item => `
-    <div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px">
-        <span>${item.label}</span>
-        <span style="font-weight:500;color:var(--red)">${fmtD(item.val)} <span style="color:var(--muted);font-weight:400">(${item.pct}%)</span></span>
-      </div>
-      <div style="height:6px;background:#edf2f7;border-radius:50px;overflow:hidden">
-        <div style="height:100%;width:${item.pct}%;background:${item.color};border-radius:50px;transition:width .6s ease"></div>
-      </div>
-    </div>
-  `).join('') + `
-    <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.78rem">
-      <span>Net margin</span>
-      <strong style="color:var(--green)">${fmtD(data.netMargin)} (${data.marginPct}%)</strong>
-    </div>
-  `;
-  document.getElementById('cost-breakdown').innerHTML = html;
+  /* Only shown once a payment processor is connected; reporting 0 would read
+     as "no fees" rather than "not measured". */
+  if (data.squareFees !== null && data.squareFees !== undefined) items.push({ label: 'Card processing fees', val: Number(data.squareFees), color: '#718096' });
+  if (data.refunds !== null && data.refunds !== undefined) items.push({ label: 'Refunds', val: Number(data.refunds), color: '#e53e3e' });
+
+  const html = items.map((item) => {
+    const pct = gross > 0 ? (item.val / gross * 100).toFixed(0) : 0;
+    return '' +
+      '<div style="margin-bottom:10px">' +
+        '<div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px">' +
+          '<span>' + API.escape(item.label) + '</span>' +
+          '<span style="font-weight:500;color:var(--red)">' + fmtD(item.val) + ' <span style="color:var(--muted);font-weight:400">(' + pct + '%)</span></span>' +
+        '</div>' +
+        '<div style="height:6px;background:#edf2f7;border-radius:50px;overflow:hidden">' +
+          '<div style="height:100%;width:' + pct + '%;background:' + item.color + ';border-radius:50px;transition:width .6s ease"></div>' +
+        '</div>' +
+      '</div>';
+  }).join('') +
+  '<div style="padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.78rem">' +
+    '<span>Labor revenue</span><strong>' + fmtD(data.laborRevenue) + '</strong>' +
+  '</div>' +
+  '<div style="padding-top:8px;display:flex;justify-content:space-between;font-size:.78rem">' +
+    '<span>Net margin</span><strong style="color:var(--green)">' + fmtD(data.netMargin) + ' (' + API.escape(data.marginPct) + '%)</strong>' +
+  '</div>' +
+  (data.paymentsIntegration !== 'connected'
+    ? '<div style="margin-top:10px;font-size:.68rem;color:var(--muted);line-height:1.5">Card fees and refunds are not included: no payment processor is connected.</div>'
+    : '');
+
+  el('cost-breakdown').innerHTML = html;
 }
 
 function renderRecentTransactions(data) {
   const txns = (data.recentTransactions || []).slice(0, 8);
-  if(!txns.length) { document.getElementById('recent-transactions').innerHTML = '<div class="loading">No recent transactions</div>'; return; }
+  if (!txns.length) { el('recent-transactions').innerHTML = '<div class="loading">No completed repair orders in this period</div>'; return; }
 
-  const html = `<table class="data-table">
-    <thead><tr><th>Time</th><th>Amount</th><th>Category</th><th>Card</th></tr></thead>
-    <tbody>` +
-    txns.map(t => `
-      <tr>
-        <td style="color:var(--muted)">${timeAgo(t.paid_at)}</td>
-        <td style="font-weight:500">${fmt(t.net_cents)}</td>
-        <td><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:${CAT_COLORS[t.category]||'#a0aec0'};flex-shrink:0"></span>${CAT_LABELS[t.category]||t.category}</span></td>
-        <td style="color:var(--muted)">${t.card_brand} ···${t.last4}</td>
-      </tr>
-    `).join('') +
+  el('recent-transactions').innerHTML = '<table class="data-table">' +
+    '<thead><tr><th>Completed</th><th>RO</th><th>Customer</th><th>Amount</th></tr></thead><tbody>' +
+    txns.map((t) => '' +
+      '<tr>' +
+        '<td style="color:var(--muted)">' + API.escape(timeAgo(t.completedAt)) + '</td>' +
+        '<td style="font-weight:500">' + API.escape(t.roNumber) + '</td>' +
+        '<td>' + API.escape(t.customerName || '—') + '</td>' +
+        '<td style="font-weight:500">' + fmtD(t.amount) + '</td>' +
+      '</tr>').join('') +
     '</tbody></table>';
-  document.getElementById('recent-transactions').innerHTML = html;
 }
 
 function setPeriod(days, btn) {
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.period-btn').forEach((b) => b.classList.remove('active'));
   btn.classList.add('active');
   currentPeriod = days;
   loadData(days);
 }
 
-function refreshData() {
-  loadData(currentPeriod);
-}
+function refreshData() { loadData(currentPeriod); }
 
-/* Initial load */
 loadData(30);
-
-/* Auto-refresh every 5 minutes */
 setInterval(() => loadData(currentPeriod), 300000);
 </script>
 </body>

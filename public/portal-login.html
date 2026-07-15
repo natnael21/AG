@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AG Shop Pro — Customer Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0a1628;--navy2:#111f35;--accent:#e94560;--gold:#c9a84c;--bg:#f0f2f7;--card:#fff;--border:#e2e8f0;--text:#1a2035;--muted:#718096;--red:#c53030}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--text);font-size:14px;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.wrap{width:100%;max-width:400px}
+.brand{text-align:center;margin-bottom:22px}
+.brand-name{font-size:1.3rem;font-weight:600;color:#fff}
+.brand-name span{color:var(--accent)}
+.brand-sub{font-size:.72rem;color:rgba(255,255,255,.45);margin-top:3px;letter-spacing:.05em}
+.card{background:var(--card);border-radius:16px;padding:26px}
+.card-title{font-size:1.05rem;font-weight:600;margin-bottom:4px}
+.card-sub{font-size:.78rem;color:var(--muted);margin-bottom:20px}
+.field{margin-bottom:14px}
+label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:6px}
+input,select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:.88rem;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+input:focus,select:focus{outline:none;border-color:var(--accent);background:#fff}
+input[data-invalid],select[data-invalid]{border-color:var(--red)}
+.field-error{color:var(--red);font-size:.72rem;margin-top:4px}
+.btn{width:100%;padding:12px;border-radius:8px;border:none;font-size:.9rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:var(--accent);color:#fff;transition:opacity .2s}
+.btn:hover{opacity:.9}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.alert{background:#fed7d7;color:#822727;padding:10px 12px;border-radius:8px;font-size:.78rem;margin-bottom:14px;display:none}
+.alert.show{display:block}
+.foot{text-align:center;margin-top:16px;font-size:.72rem;color:var(--muted)}
+.foot a{color:var(--accent);text-decoration:none}
+.staff-link{text-align:center;margin-top:18px;font-size:.72rem}
+.staff-link a{color:rgba(255,255,255,.5);text-decoration:none}
+.staff-link a:hover{color:#fff}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-name">AG <span>Shop Pro</span></div>
+    <div class="brand-sub">CUSTOMER PORTAL</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Sign in</div>
+    <div class="card-sub">Track your repairs, book appointments and view your service history.</div>
+
+    <div class="alert" id="alert"></div>
+
+    <form id="login-form" novalidate>
+      <div class="field">
+        <label for="workspaceId">Shop</label>
+        <select id="workspaceId" name="workspaceId" required>
+          <option value="">Loading shops…</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required/>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" placeholder="Your password" required/>
+      </div>
+      <button type="submit" class="btn">Sign in</button>
+    </form>
+
+    <div class="foot">
+      Don't have access yet? Ask your shop to enable your portal account.
+    </div>
+  </div>
+
+  <div class="staff-link"><a href="login.html">Shop staff sign in →</a></div>
+</div>
+
+<script src="portal-api.js"></script>
+<script>
+(function () {
+  const form = document.getElementById('login-form');
+  const alertBox = document.getElementById('alert');
+  const shopSelect = document.getElementById('workspaceId');
+
+  function showAlert(message) {
+    alertBox.textContent = message;
+    alertBox.classList.add('show');
+  }
+
+  function clearAlert() {
+    alertBox.classList.remove('show');
+  }
+
+  /* Already signed in? Go straight through. */
+  if (PORTAL.getSession()) {
+    window.location.replace('portal.html');
+    return;
+  }
+
+  /* Populate the shop picker from the real workspace list. */
+  (async function loadShops() {
+    try {
+      const shops = await PORTAL.workspaces();
+      if (!shops.length) {
+        shopSelect.innerHTML = '<option value="">No shops available</option>';
+        showAlert('No shops are available for portal sign in right now.');
+        return;
+      }
+      shopSelect.innerHTML = '<option value="">Select your shop…</option>' +
+        shops.map((w) => `<option value="${PORTAL.escape(w.id)}">${PORTAL.escape(w.name)}</option>`).join('');
+    } catch (e) {
+      shopSelect.innerHTML = '<option value="">Could not load shops</option>';
+      showAlert(e.message);
+    }
+  })();
+
+  PORTAL.onSubmit(form, async (data) => {
+    clearAlert();
+    const result = await PORTAL.login(data.email, data.password, Number(data.workspaceId));
+    if (!result.ok) {
+      showAlert(result.error);
+      return;
+    }
+    window.location.replace('portal.html');
+  }, {
+    validate(data) {
+      const errors = {};
+      if (!data.workspaceId) errors.workspaceId = 'Please choose your shop.';
+      if (!data.email || !data.email.includes('@')) errors.email = 'Enter a valid email address.';
+      if (!data.password) errors.password = 'Enter your password.';
+      return errors;
+    },
+  });
+})();
+</script>
+</body>
+</html>

@@ -145,6 +145,14 @@ table.data-table tr:hover td{background:#f8fafc;cursor:pointer}
 .sms-detail{font-size:.68rem;color:var(--muted);flex:2}
 .sms-confidence{font-size:.68rem;color:var(--green);flex:1}
 
+/* FORMS */
+.line-form{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap}
+.line-form input,.line-form select{padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:.72rem;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--text);min-width:0}
+.line-form input:focus,.line-form select:focus{outline:none;border-color:var(--accent)}
+.line-form [data-invalid]{border-color:#fc8181}
+.filter-bar{margin-bottom:12px;display:flex;gap:8px}
+.filter-bar input,.filter-bar select{padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--text)}
+
 /* TOAST */
 .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:11px 18px;border-radius:10px;font-size:.78rem;z-index:9999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none;max-width:300px}
 .toast.show{opacity:1;transform:translateY(0)}
@@ -152,45 +160,12 @@ table.data-table tr:hover td{background:#f8fafc;cursor:pointer}
 </head>
 <body>
 <script src="auth.js"></script>
+<script src="api.js"></script>
 <script>
 (function(){
-  var s = AUTH.requireRoles(['manager', 'super_admin']);
-  if(!s) return;
-  // Update sidebar user info
-  document.addEventListener('DOMContentLoaded', function(){
-    var n = document.getElementById('sidebar-username');
-    var sh = document.getElementById('sidebar-shopname');
-    if(n) n.textContent = s.name || 'User';
-    if(sh) sh.textContent = s.activeWorkspaceName || s.shop || '';
-  });
+  if(!AUTH.requireRoles(['manager', 'super_admin'])) return;
 })();
-function logout(){ AUTH.logout(); }
-
-/* Workspace switcher */
-(function initWS(){
-  const s = AUTH.getSession();
-  if(!s) return;
-  const myWS = AUTH.getMyWorkspaces(s);
-  const sel = document.getElementById('ws-switcher');
-  if(!sel) return;
-  sel.innerHTML = myWS.map(w =>
-    `<option value="${w.id}" ${w.id === s.activeWorkspaceId ? 'selected' : ''}>${w.name}</option>`
-  ).join('');
-  // hide switcher if only 1 workspace
-  if(myWS.length <= 1) sel.style.display = 'none';
-})();
-
-function switchWS(wsId){
-  AUTH.switchWorkspace(wsId);
-  const s = AUTH.getSession();
-  const sh = document.getElementById('sidebar-shopname');
-  if(sh) sh.textContent = s.activeWorkspaceName || '';
-  toast('Switched to ' + (s.activeWorkspaceName || wsId));
-}
 </script>
-
-
-<div class="toast" id="toast"></div>
 
 <div class="sidebar">
   <div class="sidebar-top">
@@ -202,26 +177,25 @@ function switchWS(wsId){
       </div>
     </div>
   </div>
-  <select class="shop-select" id="ws-switcher" onchange="switchWS(this.value)">
-    <option>Loading...</option>
-  </select>
+  <select class="shop-select" id="ws-switcher" aria-label="Active workspace"></select>
   <div class="nav-section">Main</div>
-  <div class="nav-item active" onclick="showPage('dashboard',this)">▦ Dashboard</div>
-  <div class="nav-item" onclick="showPage('ros',this)">✦ Repair orders</div>
-  <div class="nav-item" onclick="showPage('workflow',this)">⟳ Workflow view</div>
-  <div class="nav-item" onclick="showPage('reminders',this)">🔔 Reminders <span class="nav-badge">3</span></div>
-  <div class="nav-item" onclick="showPage('calls',this)">📞 Call log</div>
+  <div class="nav-item active" data-page="dashboard">▦ Dashboard</div>
+  <div class="nav-item" data-page="ros">✦ Repair orders</div>
+  <div class="nav-item" data-page="workflow">⟳ Workflow view</div>
+  <div class="nav-item" data-page="appointments">🔔 Appointments <span class="nav-badge" id="appt-badge" hidden></span></div>
   <div class="nav-section">Finance</div>
-  <div class="nav-item" onclick="showPage('invoices',this)">◆ Invoices</div>
-  <div class="nav-item" onclick="showPage('burnrate',this)">📊 Burn rate</div>
+  <div class="nav-item" data-page="financials">📊 Financials</div>
   <div class="nav-section">Team</div>
-  <div class="nav-item" onclick="showPage('techs',this)">👥 Tech board</div>
-  <div class="nav-item" onclick="showPage('sms',this)">💬 SMS automation</div>
-  <div class="nav-item" onclick="showPage('customers',this)">◎ Customers</div>
+  <div class="nav-item" data-page="techs">👥 Technicians</div>
+  <div class="nav-item" data-page="parts">◆ Parts inventory</div>
+  <div class="nav-item" data-page="customers">◎ Customers</div>
   <div class="sidebar-footer">
-    <div class="user-dot">MG</div>
-    <div style="flex:1;min-width:0"><div style="color:rgba(255,255,255,.6);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="sidebar-username">Maria Gonzalez</div><div id="sidebar-shopname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Capitol Auto Body</div></div>
-    <button onclick="logout()" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:.7rem;flex-shrink:0" title="Sign out">⬡ Out</button>
+    <div class="user-dot" id="sidebar-initials">··</div>
+    <div style="flex:1;min-width:0">
+      <div style="color:rgba(255,255,255,.6);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="sidebar-username"></div>
+      <div id="sidebar-shopname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+    </div>
+    <button id="logout-btn" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:.7rem;flex-shrink:0" title="Sign out">⬡ Out</button>
   </div>
 </div>
 
@@ -229,190 +203,119 @@ function switchWS(wsId){
   <div class="topbar">
     <div class="topbar-left">
       <h1 id="page-title">Dashboard</h1>
-      <p id="page-sub">Monday, April 27, 2026 · Capitol Auto Body</p>
+      <p id="page-sub"></p>
     </div>
     <div class="topbar-right">
-      <button class="btn btn-accent" onclick="showPage('ros',document.querySelectorAll('.nav-item')[1])">+ New RO</button>
+      <button class="btn" id="refresh-btn">↻ Refresh</button>
     </div>
   </div>
   <div class="content-area">
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div class="alert-bar">⚠️ <strong>Idle alert:</strong> Kevin Lee has been inactive 47 min — no active RO assigned<button class="alert-btn" onclick="toast('RO-1040 assigned to Kevin Lee')">Assign RO →</button></div>
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">Open ROs</div><div class="stat-value">14</div><div class="stat-sub stat-up">↑ 2 today</div></div>
-        <div class="stat-card"><div class="stat-label">April revenue</div><div class="stat-value">$18,420</div><div class="stat-sub stat-up">↑ 12% vs March</div></div>
-        <div class="stat-card"><div class="stat-label">Parts spend</div><div class="stat-value">$6,840</div><div class="stat-sub stat-down">↑ 8% over budget</div></div>
-        <div class="stat-card"><div class="stat-label">Avg RO value</div><div class="stat-value">$1,315</div><div class="stat-sub">14 completed</div></div>
-      </div>
+      <div id="dash-alert-host"></div>
+      <div id="dash-stats"></div>
       <div class="grid3">
         <div class="card">
-          <div class="card-header">Active repair orders <button class="btn btn-sm" onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])">Workflow view →</button></div>
+          <div class="card-header">Active repair orders <button class="btn btn-sm" data-page="ros">All repair orders →</button></div>
           <table class="data-table">
-            <thead><tr><th>RO#</th><th>Customer</th><th>Vehicle</th><th>Tech</th><th>Status</th><th>Total</th></tr></thead>
-            <tbody>
-              <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1041</td><td>Marcus Johnson</td><td>2019 BMW 3</td><td>Alex T.</td><td><span class="badge badge-blue">In progress</span></td><td>$2,340</td></tr>
-              <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1040</td><td>Sarah Kim</td><td>2021 Camry</td><td>James R.</td><td><span class="badge badge-yellow">Estimate</span></td><td>$890</td></tr>
-              <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1038</td><td>Lisa Park</td><td>2020 F-150</td><td>Mike S.</td><td><span class="badge badge-red">Waiting parts</span></td><td>$3,200</td></tr>
-              <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1037</td><td>Tom Williams</td><td>2017 Malibu</td><td>James R.</td><td><span class="badge badge-blue">In progress</span></td><td>$620</td></tr>
-            </tbody>
+            <thead><tr><th>RO#</th><th>Customer</th><th>Vehicle</th><th>Concern</th><th>Status</th><th>Total</th></tr></thead>
+            <tbody id="dash-ros"></tbody>
           </table>
         </div>
         <div>
           <div class="card">
-            <div class="card-header">Technician status</div>
-            <div style="padding:8px 10px">
-              <div class="tech-card"><div class="tech-avatar" style="background:#bee3f8;color:#2a4365">AT</div><div style="flex:1"><div class="tech-name">Alex Torres</div><div class="tech-sub">RO-1041 · BMW</div></div><span class="badge badge-green">Active</span></div>
-              <div class="tech-card"><div class="tech-avatar" style="background:#c6f6d5;color:#276749">JR</div><div style="flex:1"><div class="tech-name">James Reed</div><div class="tech-sub">RO-1037 · Malibu</div></div><span class="badge badge-green">Active</span></div>
-              <div class="tech-card"><div class="tech-avatar" style="background:#fefcbf;color:#744210">MS</div><div style="flex:1"><div class="tech-name">Mike Santos</div><div class="tech-sub">Waiting on parts</div></div><span class="badge badge-yellow">Idle</span></div>
-              <div class="tech-card idle-warning"><div class="tech-avatar" style="background:#fed7d7;color:#822727">KL</div><div style="flex:1"><div class="tech-name">Kevin Lee</div><div class="tech-sub" style="color:var(--red)">⚠ Idle 47 min</div></div><span class="badge badge-red">Alert</span></div>
-            </div>
+            <div class="card-header">Technician performance</div>
+            <div style="padding:8px 10px" id="dash-techs"></div>
           </div>
           <div class="card">
-            <div class="card-header">Overdue reminders</div>
-            <div class="reminder-row"><div class="reminder-dot r-overdue"></div><div><div class="reminder-title">Parts arrived — Lisa Park</div><div class="reminder-detail">F-150 headlight received</div></div><div class="reminder-time">2h ago</div></div>
-            <div class="reminder-row"><div class="reminder-dot r-soon"></div><div><div class="reminder-title">Estimate expiry — Tom W.</div><div class="reminder-detail">Expires in 2 hours</div></div><div class="reminder-time">Today</div></div>
+            <div class="card-header">Upcoming appointments</div>
+            <div id="dash-appts"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- WORKFLOW -->
+    <!-- WORKFLOW / RO DETAIL -->
     <div class="page" id="page-workflow">
       <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px">
-        <button class="btn btn-sm" onclick="prevRO()">← Prev RO</button>
-        <span style="font-size:.82rem;font-weight:600" id="ro-label">RO-1041 · Marcus Johnson · 2019 BMW 3 Series</span>
-        <button class="btn btn-sm" onclick="nextRO()">Next RO →</button>
+        <button class="btn btn-sm" id="ro-prev">← Prev RO</button>
+        <span style="font-size:.82rem;font-weight:600" id="ro-label">—</span>
+        <button class="btn btn-sm" id="ro-next">Next RO →</button>
       </div>
-      <div class="card">
-        <div class="card-header">Pipeline — <span id="stage-label">In Progress</span> <span style="font-size:.65rem;font-weight:400;color:var(--muted)">Click any stage to update</span></div>
-        <div class="workflow-container">
-          <div class="workflow-svg-wrap">
-            <svg width="100%" viewBox="0 0 680 170" role="img"><title>RO workflow pipeline with animated car</title><desc>Animated car driving through repair stages from estimate to paid</desc>
-              <defs>
-                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </marker>
-              </defs>
-              <!-- Road -->
-              <rect x="20" y="105" width="640" height="16" rx="4" fill="#edf2f7"/>
-              <line x1="20" y1="113" x2="660" y2="113" stroke="#cbd5e0" stroke-width="1.5" class="road-dashes"/>
-              <!-- Stage nodes -->
-              <g class="pipeline-node" onclick="setStage(0,this)">
-                <rect id="sn0" x="20" y="24" width="74" height="36" rx="8" fill="#c6f6d5" stroke="#9ae6b4" stroke-width="1"/>
-                <text x="57" y="46" text-anchor="middle" font-size="10" fill="#276749" font-family="DM Sans,sans-serif" font-weight="600">Estimate</text>
-              </g>
-              <g class="pipeline-node" onclick="setStage(1,this)">
-                <rect id="sn1" x="114" y="24" width="74" height="36" rx="8" fill="#c6f6d5" stroke="#9ae6b4" stroke-width="1"/>
-                <text x="151" y="46" text-anchor="middle" font-size="10" fill="#276749" font-family="DM Sans,sans-serif" font-weight="600">Approved</text>
-              </g>
-              <g class="pipeline-node" onclick="setStage(2,this)">
-                <rect id="sn2" x="208" y="18" width="88" height="48" rx="8" fill="#bee3f8" stroke="#4299e1" stroke-width="2"/>
-                <text x="252" y="38" text-anchor="middle" font-size="10" fill="#2a4365" font-family="DM Sans,sans-serif" font-weight="700">In Progress</text>
-                <text x="252" y="52" text-anchor="middle" font-size="8" fill="#4299e1" font-family="DM Sans,sans-serif">● current stage</text>
-              </g>
-              <g class="pipeline-node" onclick="setStage(3,this)">
-                <rect id="sn3" x="316" y="24" width="84" height="36" rx="8" fill="#edf2f7" stroke="#e2e8f0" stroke-width="1"/>
-                <text x="358" y="46" text-anchor="middle" font-size="10" fill="#4a5568" font-family="DM Sans,sans-serif" font-weight="500">Wait Parts</text>
-              </g>
-              <g class="pipeline-node" onclick="setStage(4,this)">
-                <rect id="sn4" x="420" y="24" width="74" height="36" rx="8" fill="#edf2f7" stroke="#e2e8f0" stroke-width="1"/>
-                <text x="457" y="46" text-anchor="middle" font-size="10" fill="#4a5568" font-family="DM Sans,sans-serif" font-weight="500">Completed</text>
-              </g>
-              <g class="pipeline-node" onclick="setStage(5,this)">
-                <rect id="sn5" x="514" y="24" width="68" height="36" rx="8" fill="#edf2f7" stroke="#e2e8f0" stroke-width="1"/>
-                <text x="548" y="46" text-anchor="middle" font-size="10" fill="#4a5568" font-family="DM Sans,sans-serif" font-weight="500">Invoiced</text>
-              </g>
-              <g class="pipeline-node" onclick="setStage(6,this)">
-                <rect id="sn6" x="602" y="24" width="58" height="36" rx="8" fill="#edf2f7" stroke="#e2e8f0" stroke-width="1"/>
-                <text x="631" y="46" text-anchor="middle" font-size="10" fill="#4a5568" font-family="DM Sans,sans-serif" font-weight="500">Paid ✓</text>
-              </g>
-              <!-- Car -->
-              <g id="car" class="car-animate" style="transform:translateX(200px)">
-                <rect x="0" y="120" width="48" height="22" rx="5" fill="#e94560"/>
-                <rect x="8" y="113" width="32" height="15" rx="3" fill="#e94560" opacity=".9"/>
-                <rect x="10" y="115" width="12" height="10" rx="2" fill="rgba(255,255,255,.4)"/>
-                <rect x="24" y="115" width="12" height="10" rx="2" fill="rgba(255,255,255,.4)"/>
-                <circle cx="12" cy="143" r="5.5" fill="#2d3748"/>
-                <circle cx="12" cy="143" r="2.5" fill="#718096"/>
-                <circle cx="36" cy="143" r="5.5" fill="#2d3748"/>
-                <circle cx="36" cy="143" r="2.5" fill="#718096"/>
-                <rect x="42" y="124" width="5" height="6" rx="1" fill="#fefcbf" opacity=".9"/>
-              </g>
-            </svg>
-          </div>
-        </div>
-        <div class="status-controls">
-          <span style="font-size:.7rem;color:var(--muted)">Move to:</span>
-          <button class="stage-btn" onclick="setStage(0)">Estimate</button>
-          <button class="stage-btn" onclick="setStage(1)">Approved</button>
-          <button class="stage-btn current" id="sb2" onclick="setStage(2)">In Progress</button>
-          <button class="stage-btn" onclick="setStage(3)">Wait Parts</button>
-          <button class="stage-btn" onclick="setStage(4)">Completed</button>
-          <button class="stage-btn" onclick="setStage(5)">Invoiced</button>
-          <button class="stage-btn" onclick="setStage(6)">Paid ✓</button>
-          <button class="stage-btn blocked-btn" onclick="flagBlocked()">🚫 Flag Blocked</button>
-        </div>
-      </div>
-      <!-- COMMENT THREAD -->
-      <div class="card">
-        <div class="card-header">Comments & history <span style="font-size:.65rem;font-weight:400;color:var(--muted)">Auto-timestamped on post</span></div>
-        <div class="comment-feed" id="comment-feed">
-          <div class="comment-card">
-            <div class="comment-meta">
-              <span class="comment-author">Maria Gonzalez</span>
-              <span class="badge badge-blue" style="font-size:.6rem">status update</span>
-              <span class="comment-time">Apr 27 · 9:14 AM</span>
-            </div>
-            <div class="comment-text">RO moved to <strong>In Progress</strong> — Alex Torres assigned to front bumper replacement.</div>
-          </div>
-          <div class="comment-card">
-            <div class="comment-meta">
-              <span class="comment-author">Alex Torres</span>
-              <span class="badge badge-gray" style="font-size:.6rem">tech note</span>
-              <span class="comment-time">Apr 27 · 10:32 AM</span>
-            </div>
-            <div class="comment-text">Front bumper removed. Secondary damage found on radiator support — needs manager approval before proceeding. Parts ordered: bumper cover + headlight assembly.</div>
-          </div>
-          <div class="comment-card">
-            <div class="comment-meta">
-              <span class="comment-author">Maria Gonzalez</span>
-              <span class="badge badge-purple" style="font-size:.6rem">customer msg</span>
-              <span class="comment-time">Apr 27 · 11:05 AM</span>
-            </div>
-            <div class="comment-text">Called Marcus re: radiator support damage. Customer approved additional repair — verbal authorization confirmed. Updated estimate sent by email.</div>
-          </div>
-        </div>
-        <div class="comment-compose">
-          <input class="comment-input" id="comment-input" placeholder="Add comment, tech note, or status update..." onkeydown="if(event.key==='Enter')addComment()"/>
-          <select style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:.72rem;background:var(--card);color:var(--text);font-family:'DM Sans',sans-serif">
-            <option>Internal note</option><option>Status update</option><option>Tech note</option><option>Customer message</option><option>Parts update</option>
-          </select>
-          <button class="btn btn-accent btn-sm" onclick="addComment()">Post</button>
-        </div>
-      </div>
-      <!-- LABOR & PARTS -->
-      <div class="grid2">
+      <div id="ro-detail-host">
         <div class="card">
-          <div class="card-header">Labor lines <button class="btn btn-sm btn-accent" onclick="toast('Labor line added')">+ Add</button></div>
-          <table class="data-table">
-            <thead><tr><th>Description</th><th>Tech</th><th>Hrs</th><th>Total</th><th>Status</th></tr></thead>
-            <tbody>
-              <tr><td>Front bumper replacement</td><td>Alex T.</td><td>3.5</td><td>$420</td><td><span class="badge badge-blue">Active</span></td></tr>
-              <tr><td>Hood realignment</td><td>Alex T.</td><td>2.0</td><td>$240</td><td><span class="badge badge-yellow">Pending</span></td></tr>
-              <tr><td>Headlight assembly</td><td>Alex T.</td><td>1.5</td><td>$180</td><td><span class="badge badge-yellow">Pending</span></td></tr>
-            </tbody>
-          </table>
+          <div class="card-header">Pipeline — <span id="stage-label">—</span> <span style="font-size:.65rem;font-weight:400;color:var(--muted)">Click any stage to update</span></div>
+          <div class="workflow-container">
+            <div class="workflow-svg-wrap">
+              <svg width="100%" viewBox="0 0 680 170" role="img"><title>RO workflow pipeline with animated car</title><desc>Animated car driving through repair stages for the selected repair order</desc>
+                <defs>
+                  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </marker>
+                </defs>
+                <!-- Road -->
+                <rect x="20" y="105" width="640" height="16" rx="4" fill="#edf2f7"/>
+                <line x1="20" y1="113" x2="660" y2="113" stroke="#cbd5e0" stroke-width="1.5" class="road-dashes"/>
+                <!-- Stage nodes (rendered from the repair order's real status) -->
+                <g id="pipeline-nodes"></g>
+                <!-- Car -->
+                <g id="car" class="car-animate" style="transform:translateX(46px)">
+                  <rect x="0" y="120" width="48" height="22" rx="5" fill="#e94560"/>
+                  <rect x="8" y="113" width="32" height="15" rx="3" fill="#e94560" opacity=".9"/>
+                  <rect x="10" y="115" width="12" height="10" rx="2" fill="rgba(255,255,255,.4)"/>
+                  <rect x="24" y="115" width="12" height="10" rx="2" fill="rgba(255,255,255,.4)"/>
+                  <circle cx="12" cy="143" r="5.5" fill="#2d3748"/>
+                  <circle cx="12" cy="143" r="2.5" fill="#718096"/>
+                  <circle cx="36" cy="143" r="5.5" fill="#2d3748"/>
+                  <circle cx="36" cy="143" r="2.5" fill="#718096"/>
+                  <rect x="42" y="124" width="5" height="6" rx="1" fill="#fefcbf" opacity=".9"/>
+                </g>
+              </svg>
+            </div>
+          </div>
+          <div class="status-controls" id="stage-controls"></div>
         </div>
         <div class="card">
-          <div class="card-header">Parts lines <button class="btn btn-sm btn-accent" onclick="toast('Part added')">+ Add</button></div>
+          <div class="card-header">Order summary</div>
+          <div style="padding:14px 16px" id="ro-summary"></div>
+        </div>
+        <!-- LABOR & PARTS -->
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header">Labor lines</div>
+            <table class="data-table">
+              <thead><tr><th>Description</th><th>Tech</th><th>Hrs</th><th>Rate</th><th>Total</th></tr></thead>
+              <tbody id="labor-lines"></tbody>
+            </table>
+            <form class="line-form" id="labor-form">
+              <input name="description" placeholder="Description" style="flex:2 1 140px" required/>
+              <select name="technicianId" id="labor-tech" style="flex:1 1 110px"><option value="">Me</option></select>
+              <input name="hours" type="number" step="0.01" min="0.01" placeholder="Hrs" style="flex:0 1 70px" required/>
+              <input name="hourlyRate" type="number" step="0.01" min="0" placeholder="Rate" style="flex:0 1 80px" required/>
+              <button class="btn btn-accent btn-sm" type="submit">+ Add labor</button>
+            </form>
+          </div>
+          <div class="card">
+            <div class="card-header">Parts lines</div>
+            <table class="data-table">
+              <thead><tr><th>Part#</th><th>Description</th><th>Qty</th><th>Unit</th><th>Total</th></tr></thead>
+              <tbody id="parts-lines"></tbody>
+            </table>
+            <form class="line-form" id="parts-form">
+              <input name="partNumber" placeholder="Part #" style="flex:1 1 90px" required/>
+              <input name="partName" placeholder="Part name" style="flex:2 1 120px" required/>
+              <input name="quantity" type="number" step="1" min="1" value="1" placeholder="Qty" style="flex:0 1 60px" required/>
+              <input name="unitPrice" type="number" step="0.01" min="0" placeholder="Price" style="flex:0 1 80px" required/>
+              <button class="btn btn-accent btn-sm" type="submit">+ Add part</button>
+            </form>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">Time entries</div>
           <table class="data-table">
-            <thead><tr><th>Part#</th><th>Description</th><th>Status</th><th>Price</th></tr></thead>
-            <tbody>
-              <tr><td style="font-family:monospace;font-size:.68rem">51117370763</td><td>Front bumper cover</td><td><span class="badge badge-green">Received</span></td><td>$520</td></tr>
-              <tr><td style="font-family:monospace;font-size:.68rem">63117388990</td><td>Headlight assembly</td><td><span class="badge badge-yellow">Ordered</span></td><td>$410</td></tr>
-            </tbody>
+            <thead><tr><th>Technician</th><th>Started</th><th>Ended</th><th>Minutes</th><th>Description</th></tr></thead>
+            <tbody id="time-entries"></tbody>
           </table>
         </div>
       </div>
@@ -420,167 +323,99 @@ function switchWS(wsId){
 
     <!-- RO LIST -->
     <div class="page" id="page-ros">
-      <div style="margin-bottom:12px;display:flex;gap:8px">
-        <input style="flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif" placeholder="Search ROs by customer, vehicle, VIN..."/>
-        <select style="padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif;background:var(--card)"><option>All status</option><option>Estimate</option><option>In Progress</option><option>Waiting Parts</option><option>Completed</option><option>Paid</option></select>
-        <select style="padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif;background:var(--card)"><option>All techs</option><option>Alex Torres</option><option>James Reed</option><option>Mike Santos</option></select>
+      <div class="filter-bar">
+        <input id="ro-search" style="flex:1" placeholder="Search ROs by RO#, customer, vehicle, concern..."/>
+        <select id="ro-status-filter">
+          <option value="">All status</option>
+          <option value="draft">Draft</option>
+          <option value="open">Open</option>
+          <option value="in_progress">In Progress</option>
+          <option value="awaiting_parts">Awaiting Parts</option>
+          <option value="ready">Ready</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
       </div>
       <div class="card">
         <table class="data-table">
-          <thead><tr><th>RO#</th><th>Customer</th><th>Vehicle</th><th>Complaint</th><th>Tech</th><th>Status</th><th>Total</th><th>Created</th></tr></thead>
-          <tbody>
-            <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1041</td><td>Marcus Johnson</td><td>2019 BMW 3 Series</td><td>Front end collision</td><td>Alex T.</td><td><span class="badge badge-blue">In progress</span></td><td>$2,340</td><td style="color:var(--muted)">Apr 23</td></tr>
-            <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1040</td><td>Sarah Kim</td><td>2021 Toyota Camry</td><td>Rear bumper scratch</td><td>James R.</td><td><span class="badge badge-yellow">Estimate</span></td><td>$890</td><td style="color:var(--muted)">Apr 23</td></tr>
-            <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1038</td><td>Lisa Park</td><td>2020 Ford F-150</td><td>Engine knock, CEL</td><td>Mike S.</td><td><span class="badge badge-red">Waiting parts</span></td><td>$3,200</td><td style="color:var(--muted)">Apr 21</td></tr>
-            <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1037</td><td>Tom Williams</td><td>2017 Chevy Malibu</td><td>Brake pads + rotors</td><td>James R.</td><td><span class="badge badge-blue">In progress</span></td><td>$620</td><td style="color:var(--muted)">Apr 21</td></tr>
-            <tr onclick="showPage('workflow',document.querySelectorAll('.nav-item')[2])"><td style="font-weight:600">RO-1036</td><td>Patricia Moore</td><td>2016 Nissan Altima</td><td>Transmission flush</td><td>Mike S.</td><td><span class="badge badge-green">Completed</span></td><td>$380</td><td style="color:var(--muted)">Apr 20</td></tr>
-          </tbody>
+          <thead><tr><th>RO#</th><th>Customer</th><th>Vehicle</th><th>Concern</th><th>Priority</th><th>Status</th><th>Total</th><th>Created</th></tr></thead>
+          <tbody id="ros-table"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- REMINDERS -->
-    <div class="page" id="page-reminders">
-      <div class="card">
-        <div class="card-header" style="background:#fff5f5;color:#822727">⚠ Overdue (2)</div>
-        <div class="reminder-row"><div class="reminder-dot r-overdue"></div><div style="flex:1"><div class="reminder-title">Call Lisa Park — parts arrived</div><div class="reminder-detail">F-150 headlight assembly received · RO-1038</div></div><div class="reminder-time">2h ago</div><button class="btn btn-accent btn-sm" style="margin-left:8px" onclick="toast('Calling Lisa Park...')">Call</button></div>
-        <div class="reminder-row"><div class="reminder-dot r-overdue"></div><div style="flex:1"><div class="reminder-title">Payment follow-up — David Chen</div><div class="reminder-detail">INV-2039 sent 5 days ago · $2,890 unpaid</div></div><div class="reminder-time">Yesterday</div><button class="btn btn-sm" style="margin-left:8px" onclick="toast('SMS reminder sent to David Chen')">SMS</button></div>
+    <!-- APPOINTMENTS -->
+    <div class="page" id="page-appointments">
+      <div class="filter-bar">
+        <select id="appt-status-filter">
+          <option value="">All status</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="in_progress">In progress</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
       </div>
       <div class="card">
-        <div class="card-header">Due today (1)</div>
-        <div class="reminder-row"><div class="reminder-dot r-soon"></div><div style="flex:1"><div class="reminder-title">Estimate expiry — Tom Williams</div><div class="reminder-detail">Malibu brake estimate expires at 5pm</div></div><div class="reminder-time">5:00 PM</div><button class="btn btn-sm" style="margin-left:8px" onclick="toast('SMS sent to Tom Williams')">SMS</button></div>
-      </div>
-      <div class="card">
-        <div class="card-header">Upcoming</div>
-        <div class="reminder-row"><div class="reminder-dot r-ok"></div><div style="flex:1"><div class="reminder-title">Appointment reminder — Jennifer Wu</div><div class="reminder-detail">Send SMS reminder · Appt tomorrow 11:30 AM</div></div><div class="reminder-time">Tomorrow 9 AM</div></div>
-        <div class="reminder-row"><div class="reminder-dot r-ok"></div><div style="flex:1"><div class="reminder-title">Lost customer outreach — Robert Davis</div><div class="reminder-detail">No visit in 8 months · ML suggests oil change promo</div></div><div class="reminder-time">Apr 29</div><button class="btn btn-accent btn-sm" style="margin-left:8px" onclick="toast('SMS promo sent to Robert Davis')">Send SMS</button></div>
-      </div>
-    </div>
-
-    <!-- CALL LOG -->
-    <div class="page" id="page-calls">
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">Calls today</div><div class="stat-value">12</div></div>
-        <div class="stat-card"><div class="stat-label">Answered</div><div class="stat-value">9</div><div class="stat-sub stat-up">75% answer rate</div></div>
-        <div class="stat-card"><div class="stat-label">Avg duration</div><div class="stat-value">3:42</div></div>
-        <div class="stat-card"><div class="stat-label">Missed</div><div class="stat-value">3</div><div class="stat-sub stat-down">Need callback</div></div>
-      </div>
-      <div class="card">
-        <div class="card-header">Recent calls — Capitol Auto Body (301) 555-0100</div>
-        <div class="call-row"><div class="call-avatar" style="background:#c6f6d5;color:#276749">📞</div><div style="flex:1"><div class="call-name">Marcus Johnson · (240) 555-0142</div><div class="call-detail">RO-1041 parts update · Answered by Maria G.</div></div><div class="call-right"><div class="call-duration">4:12</div><div class="call-time">10:42 AM</div></div></div>
-        <div class="call-row"><div class="call-avatar" style="background:#fed7d7;color:#822727">📵</div><div style="flex:1"><div class="call-name">Unknown · (571) 555-0334</div><div class="call-detail">Missed — no voicemail</div></div><div class="call-right"><div class="call-duration">—</div><div class="call-time">10:18 AM</div></div></div>
-        <div class="call-row"><div class="call-avatar" style="background:#c6f6d5;color:#276749">📞</div><div style="flex:1"><div class="call-name">Lisa Park · (571) 555-0221</div><div class="call-detail">Parts ETA inquiry · Front desk</div></div><div class="call-right"><div class="call-duration">2:33</div><div class="call-time">9:55 AM</div></div></div>
-        <div class="call-row"><div class="call-avatar" style="background:#bee3f8;color:#2a4365">📞</div><div style="flex:1"><div class="call-name">New caller · (202) 555-0881</div><div class="call-detail">Collision repair inquiry · Converted to lead</div></div><div class="call-right"><div class="call-duration">5:47</div><div class="call-time">9:12 AM</div></div></div>
-      </div>
-      <div class="card">
-        <div class="card-header">Transcript — Marcus Johnson · 10:42 AM</div>
-        <div style="padding:14px;font-size:.78rem;line-height:1.9;color:var(--muted)">
-          <div><strong style="color:var(--text)">Maria G.:</strong> Capitol Auto Body, this is Maria, how can I help?</div>
-          <div><strong style="color:var(--text)">Marcus J.:</strong> Hi, this is Marcus Johnson, calling about my BMW on Monday. Just checking status.</div>
-          <div><strong style="color:var(--text)">Maria G.:</strong> Hi Marcus! Pulling up your RO now. Alex has the bumper off — we found secondary damage on the radiator support. I left you a voicemail about that earlier.</div>
-          <div><strong style="color:var(--text)">Marcus J.:</strong> Yeah I saw it. What's the extra cost?</div>
-          <div><strong style="color:var(--text)">Maria G.:</strong> Around $280 additional for the radiator support. Do you want to authorize that?</div>
-          <div><strong style="color:var(--text)">Marcus J.:</strong> Yes, go ahead. When is it done?</div>
-          <div><strong style="color:var(--text)">Maria G.:</strong> Wednesday at the latest — waiting on one part arriving tomorrow.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- BURN RATE -->
-    <div class="page" id="page-burnrate">
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">Revenue (April)</div><div class="stat-value">$18,420</div></div>
-        <div class="stat-card"><div class="stat-label">Parts spend</div><div class="stat-value">$6,840</div><div class="stat-sub stat-down">37% of revenue</div></div>
-        <div class="stat-card"><div class="stat-label">Labor cost</div><div class="stat-value">$4,200</div><div class="stat-sub">23% of revenue</div></div>
-        <div class="stat-card"><div class="stat-label">Net margin</div><div class="stat-value">$7,380</div><div class="stat-sub stat-up">40% margin</div></div>
-      </div>
-      <div class="card">
-        <div class="card-header">Cash burn breakdown — April 2026</div>
-        <div style="padding:16px">
-          <div class="burn-row"><div class="burn-label-row"><span>Parts & supplies</span><span style="font-weight:600">$6,840 · 37% <span style="color:var(--red)">(over budget by $840)</span></span></div><div class="burn-track"><div class="burn-fill" style="width:37%;background:#e53e3e"></div></div></div>
-          <div class="burn-row"><div class="burn-label-row"><span>Technician labor</span><span style="font-weight:600">$4,200 · 23%</span></div><div class="burn-track"><div class="burn-fill" style="width:23%;background:#d4a017"></div></div></div>
-          <div class="burn-row"><div class="burn-label-row"><span>Overhead (rent, utilities)</span><span style="font-weight:600">$3,200 · 17%</span></div><div class="burn-track"><div class="burn-fill" style="width:17%;background:#3182ce"></div></div></div>
-          <div class="burn-row"><div class="burn-label-row"><span>Software & tools</span><span style="font-weight:600">$800 · 4%</span></div><div class="burn-track"><div class="burn-fill" style="width:4%;background:#6b46c1"></div></div></div>
-          <div style="margin-top:16px;padding:14px;background:#f8fafc;border-radius:10px;font-size:.78rem">
-            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Parts budget (monthly)</span><span>$6,000</span></div>
-            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Actual spend</span><span style="color:var(--red);font-weight:600">$6,840</span></div>
-            <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">Over budget</span><span style="color:var(--red);font-weight:700">$840 (14%)</span></div>
-          </div>
-          <div style="margin-top:14px;padding:14px;background:#f0fff4;border:1px solid #9ae6b4;border-radius:10px;font-size:.78rem">
-            <div style="font-weight:600;color:#276749;margin-bottom:6px">💡 Cash reserve recommendation</div>
-            <div style="color:var(--muted)">To cover 30 days of operations, maintain at least <strong style="color:var(--text)">$14,240</strong> in your business account (parts + labor + overhead buffer).</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- INVOICES -->
-    <div class="page" id="page-invoices">
-      <div class="card">
-        <div class="card-header">All invoices <button class="btn btn-sm btn-accent" onclick="toast('New invoice created')">+ New invoice</button></div>
         <table class="data-table">
-          <thead><tr><th>Invoice#</th><th>RO#</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:600">INV-2041</td><td>RO-1039</td><td>David Chen</td><td>Apr 22</td><td>$1,150</td><td><span class="badge badge-green">Paid</span></td><td><button class="btn btn-sm" onclick="toast('Invoice viewed')">View</button></td></tr>
-            <tr><td style="font-weight:600">INV-2040</td><td>RO-1036</td><td>Patricia Moore</td><td>Apr 20</td><td>$380</td><td><span class="badge badge-blue">Sent</span></td><td><button class="btn btn-sm" onclick="toast('Invoice resent to Patricia Moore')">Resend</button></td></tr>
-            <tr><td style="font-weight:600">INV-2039</td><td>RO-1034</td><td>Jennifer Wu</td><td>Apr 18</td><td>$2,890</td><td><span class="badge badge-green">Paid</span></td><td><button class="btn btn-sm" onclick="toast('Receipt downloaded')">Receipt</button></td></tr>
-            <tr><td style="font-weight:600">INV-2038</td><td>RO-1033</td><td>Carlos Mendez</td><td>Apr 17</td><td>$540</td><td><span class="badge badge-yellow">Draft</span></td><td><button class="btn btn-sm btn-accent" onclick="toast('Invoice sent + Square payment link generated')">Send & close</button></td></tr>
-          </tbody>
+          <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Vehicle</th><th>Concern</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="appts-table"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- TECH BOARD -->
+    <!-- FINANCIALS -->
+    <div class="page" id="page-financials">
+      <div id="fin-stats"></div>
+      <div class="card">
+        <div class="card-header">Revenue mix</div>
+        <div style="padding:16px" id="fin-mix"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Revenue trend — last 12 months</div>
+        <table class="data-table">
+          <thead><tr><th>Month</th><th>ROs</th><th>Customers</th><th>Parts</th><th>Labor</th><th>Total</th></tr></thead>
+          <tbody id="fin-trends"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TECHNICIANS -->
     <div class="page" id="page-techs">
-      <div class="alert-bar">⚠️ <strong>Kevin Lee</strong> idle 47 minutes — no active RO. Assign or investigate.<button class="alert-btn" onclick="toast('RO-1040 assigned to Kevin Lee')">Assign RO-1040</button></div>
-      <div class="grid2">
-        <div class="card"><div class="card-header">Alex Torres <span class="badge badge-green">Active</span></div><div style="padding:12px 14px"><div style="font-size:.78rem;margin-bottom:6px"><strong>Current RO:</strong> RO-1041 · BMW front end repair</div><div style="font-size:.72rem;color:var(--muted)">Clocked in: 7:58 AM · Hours today: 2.4h</div></div></div>
-        <div class="card"><div class="card-header">James Reed <span class="badge badge-green">Active</span></div><div style="padding:12px 14px"><div style="font-size:.78rem;margin-bottom:6px"><strong>Current RO:</strong> RO-1037 · Chevy brake job</div><div style="font-size:.72rem;color:var(--muted)">Clocked in: 8:02 AM · Hours today: 2.4h</div></div></div>
-        <div class="card"><div class="card-header">Mike Santos <span class="badge badge-yellow">Idle</span></div><div style="padding:12px 14px"><div style="font-size:.78rem;margin-bottom:6px"><strong>Status:</strong> Waiting on parts for RO-1038</div><div style="font-size:.72rem;color:var(--muted)">Parts ETA: tomorrow</div></div></div>
-        <div class="card" style="border-color:#fc8181"><div class="card-header" style="background:#fff5f5;color:#822727">Kevin Lee <span class="badge badge-red">⚠ Idle 47min</span></div><div style="padding:12px 14px"><div style="font-size:.78rem;margin-bottom:6px"><strong>Status:</strong> No active RO — unconfirmed lunch</div><button class="btn btn-accent btn-sm" onclick="toast('RO-1040 assigned to Kevin Lee · SMS sent')">Assign RO-1040</button></div></div>
+      <div class="card">
+        <div class="card-header">Technician performance <span style="font-size:.65rem;font-weight:400;color:var(--muted)">Labor booked against completed repair orders</span></div>
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>ROs completed</th><th>Hours</th><th>Tracked</th><th>Customers</th><th>Labor revenue</th><th>Revenue / RO</th></tr></thead>
+          <tbody id="techs-table"></tbody>
+        </table>
       </div>
     </div>
 
-    <!-- SMS AUTOMATION -->
-    <div class="page" id="page-sms">
+    <!-- PARTS -->
+    <div class="page" id="page-parts">
       <div class="card">
-        <div class="card-header">Lost customer outreach — ML suggested <span style="font-size:.65rem;font-weight:400;color:var(--muted)">Based on Mitchell data + service history</span></div>
+        <div class="card-header">Low stock parts <span style="font-size:.65rem;font-weight:400;color:var(--muted)">On hand at or below minimum stock</span></div>
         <table class="data-table">
-          <thead><tr><th>Customer</th><th>Last visit</th><th>Last service</th><th>ML suggestion</th><th>Confidence</th><th>Action</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:600">Robert Davis</td><td>8 months ago</td><td>Oil change</td><td>Oil change due</td><td><span style="color:var(--green);font-weight:600">High</span></td><td><button class="btn btn-sm btn-accent" onclick="toast('SMS sent to Robert Davis')">Send SMS</button></td></tr>
-            <tr><td style="font-weight:600">Jennifer Wu</td><td>6 months ago</td><td>Brake inspection</td><td>Brake service due</td><td><span style="color:var(--yellow);font-weight:600">Medium</span></td><td><button class="btn btn-sm btn-accent" onclick="toast('SMS sent to Jennifer Wu')">Send SMS</button></td></tr>
-            <tr><td style="font-weight:600">Carlos Mendez</td><td>5 months ago</td><td>Transmission flush</td><td>General checkup</td><td><span style="color:var(--muted);font-weight:600">Low</span></td><td><button class="btn btn-sm" onclick="toast('Reviewed — will decide later')">Review</button></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="card">
-        <div class="card-header">Scheduled SMS queue</div>
-        <table class="data-table">
-          <thead><tr><th>Customer</th><th>Message</th><th>Scheduled</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            <tr><td>Jennifer Wu</td><td>Appointment reminder</td><td>Tomorrow 9:00 AM</td><td><span class="badge badge-blue">Scheduled</span></td><td><button class="btn btn-sm" onclick="toast('SMS cancelled')">Cancel</button></td></tr>
-            <tr><td>Marcus Johnson</td><td>Parts arrived notification</td><td>On parts receipt</td><td><span class="badge badge-yellow">Pending</span></td><td></td></tr>
-            <tr><td>Robert Davis</td><td>Service promo</td><td>Apr 29 10:00 AM</td><td><span class="badge badge-gray">Draft</span></td><td><button class="btn btn-sm btn-accent" onclick="toast('SMS scheduled for Apr 29')">Schedule</button></td></tr>
-          </tbody>
+          <thead><tr><th>Part#</th><th>Name</th><th>Category</th><th>On hand</th><th>Minimum</th><th>Deficit</th><th>Location</th></tr></thead>
+          <tbody id="parts-table"></tbody>
         </table>
       </div>
     </div>
 
     <!-- CUSTOMERS -->
     <div class="page" id="page-customers">
-      <div style="margin-bottom:12px"><input style="width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif" placeholder="Search customers by name, phone, email..."/></div>
+      <div class="card">
+        <div class="card-header">At-risk customers <span style="font-size:.65rem;font-weight:400;color:var(--muted)">No repair order in the last 90 days</span></div>
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Last service</th><th>ROs</th><th>Total spent</th><th>Status</th></tr></thead>
+          <tbody id="atrisk-table"></tbody>
+        </table>
+      </div>
+      <div class="filter-bar"><input id="cust-search" style="flex:1" placeholder="Search customers by name, phone, email..."/></div>
       <div class="card">
         <table class="data-table">
-          <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Vehicles</th><th>Total spent</th><th>Last visit</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:600">Marcus Johnson</td><td>(240) 555-0142</td><td>marcus.j@email.com</td><td>2</td><td>$4,820</td><td style="color:var(--muted)">Apr 23</td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr><td style="font-weight:600">Sarah Kim</td><td>(301) 555-0198</td><td>sarah.kim@email.com</td><td>1</td><td>$1,240</td><td style="color:var(--muted)">Apr 23</td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr><td style="font-weight:600">David Chen</td><td>(202) 555-0173</td><td>d.chen@email.com</td><td>1</td><td>$3,110</td><td style="color:var(--muted)">Apr 22</td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr><td style="font-weight:600">Lisa Park</td><td>(571) 555-0221</td><td>lisa.park@email.com</td><td>3</td><td>$7,650</td><td style="color:var(--muted)">Apr 21</td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr><td style="font-weight:600">Tom Williams</td><td>(443) 555-0187</td><td>tom.w@email.com</td><td>1</td><td>$980</td><td style="color:var(--muted)">Apr 21</td><td><span class="badge badge-green">Active</span></td></tr>
-            <tr><td style="font-weight:600">Robert Davis</td><td>(240) 555-0199</td><td>r.davis@email.com</td><td>1</td><td>$420</td><td style="color:var(--muted);color:var(--red)">8 months ago</td><td><span class="badge badge-red">Lost</span></td></tr>
-          </tbody>
+          <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Vehicles</th><th>ROs</th><th>Total spent</th><th>Last visit</th></tr></thead>
+          <tbody id="customers-table"></tbody>
         </table>
       </div>
     </div>
@@ -589,66 +424,800 @@ function switchWS(wsId){
 </div>
 
 <script>
-const stagePositions = [8, 102, 196, 304, 406, 502, 590];
-const stageNames = ['Estimate','Approved','In Progress','Waiting Parts','Completed','Invoiced','Paid'];
-let currentStage = 2;
+/* ============================================================
+   Manager portal — every panel below is backed by a real API
+   call. Panels the API cannot back (invoicing, SMS/email
+   campaigns, call logs, comment threads, expense burn-rate)
+   were removed rather than mocked.
+   ============================================================ */
 
-function showPage(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  if (el) el.classList.add('active');
-  const titles = {dashboard:'Dashboard',workflow:'Workflow view',ros:'Repair orders',reminders:'Reminders',calls:'Call log',invoices:'Invoices',burnrate:'Burn rate',techs:'Technician board',sms:'SMS automation',customers:'Customers'};
-  document.getElementById('page-title').textContent = titles[id] || id;
+const esc = (v) => API.escape(v);
+const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+
+/* A TIME column arrives as a bare 'HH:MM:SS' string, which no Date-based
+   formatter will touch. Render it as a clock time without inventing a date. */
+function clock(value) {
+  const m = /^(\d{2}):(\d{2})/.exec(String(value || ''));
+  if (!m) return value ? String(value) : '—';
+  const h = Number(m[1]);
+  const suffix = h < 12 ? 'AM' : 'PM';
+  return `${((h + 11) % 12) + 1}:${m[2]} ${suffix}`;
 }
 
-function setStage(n) {
-  currentStage = n;
-  const car = document.getElementById('car');
-  car.style.transform = 'translateX(' + (stagePositions[n] - 4) + 'px)';
-  document.getElementById('stage-label').textContent = stageNames[n];
-  document.querySelectorAll('.stage-btn').forEach((b,i) => {
-    b.classList.toggle('current', i === n);
-    b.classList.remove('blocked-btn');
+/* Workflow stages, mirroring the API's transition table. `cancelled` is a
+   terminal exit rather than a point on the road, so it is not a node. */
+const STAGES = [
+  { key: 'draft',          label: 'Draft' },
+  { key: 'open',           label: 'Open' },
+  { key: 'in_progress',    label: 'In Progress' },
+  { key: 'awaiting_parts', label: 'Awaiting Parts' },
+  { key: 'ready',          label: 'Ready' },
+  { key: 'completed',      label: 'Completed' },
+];
+const NODE_X = [20, 128, 236, 344, 452, 560];
+const NODE_W = 100;
+const CAR_X  = [46, 154, 262, 370, 478, 586];
+
+const STATUS_BADGE = {
+  draft: 'badge-gray', open: 'badge-purple', in_progress: 'badge-blue',
+  awaiting_parts: 'badge-red', ready: 'badge-orange', completed: 'badge-green',
+  cancelled: 'badge-gray',
+};
+const APPT_BADGE = {
+  pending: 'badge-yellow', confirmed: 'badge-blue', in_progress: 'badge-blue',
+  completed: 'badge-green', cancelled: 'badge-gray',
+};
+
+const badge = (status, map) =>
+  `<span class="badge ${(map || STATUS_BADGE)[status] || 'badge-gray'}">${esc(API.statusLabel(status))}</span>`;
+
+const initials = (name) => String(name || '')
+  .trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '··';
+
+const AVATARS = [
+  'background:#bee3f8;color:#2a4365', 'background:#c6f6d5;color:#276749',
+  'background:#fefcbf;color:#744210', 'background:#e9d8fd;color:#553c9a',
+  'background:#feebc8;color:#7b341e',
+];
+
+/* Page state. Cleared wholesale on a workspace switch so nothing from the
+   previous tenant can survive into the next. */
+let state = {};
+function resetState() {
+  state = { roList: null, roIndex: 0, roDetail: null, techOptions: null };
+}
+resetState();
+
+/* Drop every cache. Pages already rendered for the previous workspace must be
+   re-queried before they are shown again, or a switch would leave one tenant's
+   rows on another tenant's screen. */
+function resetAll() {
+  resetState();
+  loadedPages.clear();
+}
+
+/* ── Session / chrome ── */
+
+function initChrome() {
+  const s = AUTH.getSession();
+  if (!s) return;
+  document.getElementById('sidebar-username').textContent = s.name || '';
+  document.getElementById('sidebar-initials').textContent = initials(s.name);
+  document.getElementById('logout-btn').addEventListener('click', () => AUTH.logout());
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    resetAll();
+    loadApptBadge();
+    loadPage(currentPage);
   });
-  document.querySelectorAll('.stage-btn')[7].classList.add('blocked-btn');
-  addComment('Status updated to <strong>' + stageNames[n] + '</strong>', 'status update');
-  toast('→ ' + stageNames[n] + ' · Timestamp saved');
+  renderWorkspaceLabel();
 }
 
-function flagBlocked() {
-  toast('⚠ RO flagged as BLOCKED — manager and super admin notified');
-  addComment('🚫 <strong>BLOCKED</strong> — flagged by manager. Awaiting resolution.', 'status update');
+function renderWorkspaceLabel() {
+  const s = AUTH.getSession();
+  document.getElementById('sidebar-shopname').textContent = (s && s.activeWorkspaceName) || '';
+  document.getElementById('page-sub').textContent =
+    [API.date(new Date()), (s && s.activeWorkspaceName) || ''].filter(Boolean).join(' · ');
 }
 
-function prevRO() { toast('← RO-1040 · Sarah Kim · 2021 Toyota Camry'); }
-function nextRO() { toast('→ RO-1042 · Robert Davis · 2022 Kia Telluride'); }
+function initWorkspaceSwitcher() {
+  const s = AUTH.getSession();
+  const sel = document.getElementById('ws-switcher');
+  if (!s || !sel) return;
+  const myWS = AUTH.getMyWorkspaces(s);
+  sel.innerHTML = myWS
+    .map((w) => `<option value="${esc(w.id)}"${String(w.id) === String(s.activeWorkspaceId) ? ' selected' : ''}>${esc(w.name)}</option>`)
+    .join('');
+  if (myWS.length <= 1) sel.style.display = 'none';
 
-function addComment(text, type) {
-  if (!text) {
-    const inp = document.getElementById('comment-input');
-    text = inp.value.trim();
-    if (!text) return;
-    inp.value = '';
-    type = 'internal note';
+  /* Switching tenant must re-query, not relabel: drop every cache and reload
+     the visible page against the newly active workspace. */
+  sel.addEventListener('change', () => {
+    const ws = AUTH.switchWorkspace(sel.value);
+    if (!ws) { API.toast('That workspace is not available to you.', 'error'); return; }
+    resetAll();
+    renderWorkspaceLabel();
+    loadApptBadge();
+    loadPage(currentPage);
+    API.toast(`Switched to ${ws.name}`, 'success');
+  });
+}
+
+/* ── Navigation ── */
+
+const TITLES = {
+  dashboard: 'Dashboard', ros: 'Repair orders', workflow: 'Workflow view',
+  appointments: 'Appointments', financials: 'Financials', techs: 'Technicians',
+  parts: 'Parts inventory', customers: 'Customers',
+};
+
+let currentPage = 'dashboard';
+const loadedPages = new Set();
+
+function showPage(id) {
+  currentPage = id;
+  document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach((n) => n.classList.toggle('active', n.dataset.page === id));
+  const page = document.getElementById('page-' + id);
+  if (page) page.classList.add('active');
+  document.getElementById('page-title').textContent = TITLES[id] || id;
+  loadPage(id);
+}
+
+const LOADERS = {
+  dashboard: loadDashboard, ros: loadROs, workflow: loadWorkflow,
+  appointments: loadAppointments, financials: loadFinancials, techs: loadTechs,
+  parts: loadParts, customers: loadCustomers,
+};
+
+function loadPage(id, { force } = {}) {
+  if (force) loadedPages.delete(id);
+  if (loadedPages.has(id)) return;
+  loadedPages.add(id);
+  const fn = LOADERS[id];
+  if (fn) fn();
+}
+
+/* ── Dashboard ── */
+
+async function loadDashboard() {
+  loadDashAlert();
+  loadDashStats();
+  loadDashROs();
+  loadDashTechs();
+  loadDashAppts();
+}
+
+async function loadDashAlert() {
+  const host = document.getElementById('dash-alert-host');
+  const parts = await API.load(host, () => API.parts({ lowStock: 'true' }));
+  if (!parts) return;                       // API.load rendered the error + Retry
+  if (!parts.length) { host.innerHTML = ''; return; }
+  const names = parts.slice(0, 3).map((p) => p.name).join(', ');
+  host.innerHTML =
+    `<div class="alert-bar">⚠️ <strong>Low stock:</strong> ${parts.length} part${parts.length === 1 ? '' : 's'} at or below minimum — ${esc(names)}${parts.length > 3 ? '…' : ''}` +
+    '<button class="alert-btn" data-page="parts">View inventory →</button></div>';
+}
+
+async function loadDashStats() {
+  const el = document.getElementById('dash-stats');
+  const data = await API.load(el, async () => {
+    const [kpis, fin] = await Promise.all([API.shopKPIs(), API.financialSummary()]);
+    return { kpis: kpis || {}, fin: fin || {} };
+  });
+  if (!data) return;
+  const { kpis, fin } = data;
+  const onTime = kpis.on_time_completion_rate;
+  el.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Active ROs</div>
+        <div class="stat-value">${num(kpis.active_orders)}</div>
+        <div class="stat-sub${num(kpis.orders_waiting_parts) ? ' stat-down' : ''}">${num(kpis.orders_waiting_parts)} awaiting parts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total revenue</div>
+        <div class="stat-value">${esc(API.money(kpis.total_revenue))}</div>
+        <div class="stat-sub">${num(kpis.completed_orders)} of ${num(kpis.total_repair_orders)} completed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg ticket</div>
+        <div class="stat-value">${esc(API.money(kpis.avg_ticket_size))}</div>
+        <div class="stat-sub">Parts ${esc(API.money(fin.parts_revenue))} · Labor ${esc(API.money(fin.labor_revenue))}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">On-time rate</div>
+        <div class="stat-value">${onTime == null ? '—' : num(onTime).toFixed(0) + '%'}</div>
+        <div class="stat-sub">${kpis.avg_completion_days == null ? 'No completions yet' : 'Avg ' + num(kpis.avg_completion_days).toFixed(1) + ' days to complete'}</div>
+      </div>
+    </div>`;
+}
+
+function roRow(ro, { withPriority } = {}) {
+  return `<tr data-ro-id="${esc(ro.id)}">
+    <td style="font-weight:600">${esc(ro.ro_number)}</td>
+    <td>${esc(ro.customer_name)}</td>
+    <td>${esc(API.vehicleLabel(ro))}</td>
+    <td>${esc(ro.concern || '—')}</td>
+    ${withPriority ? `<td>${esc(API.statusLabel(ro.priority))}</td>` : ''}
+    <td>${badge(ro.status)}</td>
+    <td>${esc(API.money(ro.total_final))}</td>
+    ${withPriority ? `<td style="color:var(--muted)">${esc(API.date(ro.created_at))}</td>` : ''}
+  </tr>`;
+}
+
+async function loadDashROs() {
+  const el = document.getElementById('dash-ros');
+  const ros = await API.load(el, () => API.repairOrders(), { colspan: 6, empty: 'No repair orders yet.' });
+  if (!ros || !ros.length) return;
+  /* Share the fetched list so clicking through to the workflow view can page
+     prev/next without a second round trip. */
+  if (!state.roList) state.roList = ros;
+  const active = ros.filter((r) => ['open', 'in_progress', 'awaiting_parts', 'ready'].includes(r.status));
+  if (!active.length) { API.showEmpty(el, 'No active repair orders.', 6); return; }
+  el.innerHTML = active.slice(0, 8).map((ro) => roRow(ro)).join('');
+}
+
+async function loadDashTechs() {
+  const el = document.getElementById('dash-techs');
+  const techs = await API.load(el, () => API.techPerformance(), { empty: 'No technicians in this workspace.' });
+  if (!techs || !techs.length) return;
+  el.innerHTML = techs.slice(0, 6).map((t, i) => {
+    const done = num(t.repair_orders_completed);
+    return `<div class="tech-card${done === 0 ? ' idle-warning' : ''}">
+      <div class="tech-avatar" style="${AVATARS[i % AVATARS.length]}">${esc(initials(t.name))}</div>
+      <div style="flex:1">
+        <div class="tech-name">${esc(t.name)}</div>
+        <div class="tech-sub">${done} RO${done === 1 ? '' : 's'} · ${num(t.total_hours).toFixed(1)}h booked</div>
+      </div>
+      <span class="badge ${done ? 'badge-green' : 'badge-gray'}">${esc(API.money(t.labor_revenue))}</span>
+    </div>`;
+  }).join('');
+}
+
+async function loadDashAppts() {
+  const el = document.getElementById('dash-appts');
+  const appts = await API.load(el, () => API.get('/api/appointments', { status: 'confirmed' }), { empty: 'No confirmed appointments.' });
+  if (!appts || !appts.length) return;
+  el.innerHTML = appts.slice(0, 5).map((a) => `
+    <div class="reminder-row">
+      <div class="reminder-dot r-ok"></div>
+      <div style="flex:1">
+        <div class="reminder-title">${esc(a.customer_name)}</div>
+        <div class="reminder-detail">${esc(API.vehicleLabel(a))} · ${esc(a.concern || '—')}</div>
+      </div>
+      <div class="reminder-time">${esc(API.date(a.preferred_date))}${a.preferred_time ? '<br/>' + esc(clock(a.preferred_time)) : ''}</div>
+    </div>`).join('');
+}
+
+/* ── Repair orders list ── */
+
+async function loadROs() {
+  const el = document.getElementById('ros-table');
+  const status = document.getElementById('ro-status-filter').value;
+  const ros = await API.load(el, () => API.repairOrders(status ? { status } : undefined), {
+    colspan: 8, empty: 'No repair orders match this filter.',
+  });
+  if (!ros) return;
+  state.roList = ros;
+  renderROs();
+}
+
+function renderROs() {
+  const el = document.getElementById('ros-table');
+  const term = document.getElementById('ro-search').value.trim().toLowerCase();
+  const rows = (state.roList || []).filter((ro) => !term || [
+    ro.ro_number, ro.customer_name, API.vehicleLabel(ro), ro.concern, ro.plate,
+  ].some((f) => String(f || '').toLowerCase().includes(term)));
+
+  if (!rows.length) { API.showEmpty(el, 'No repair orders match this filter.', 8); return; }
+  el.innerHTML = rows.map((ro) => roRow(ro, { withPriority: true })).join('');
+}
+
+/* ── Workflow / RO detail ── */
+
+async function loadWorkflow() {
+  /* #ro-summary is the load target rather than the whole detail host: API.load
+     overwrites its target's innerHTML, which would tear out the pipeline, the
+     line tables and the add-line forms. */
+  const host = document.getElementById('ro-summary');
+  if (!state.roList) {
+    const ros = await API.load(host, () => API.repairOrders());
+    if (!ros) return;
+    state.roList = ros;
   }
-  const now = new Date();
-  const time = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-  const typeColors = {'status update':'badge-blue','tech note':'badge-gray','customer message':'badge-purple','internal note':'badge-gray','parts update':'badge-orange'};
-  const feed = document.getElementById('comment-feed');
-  const div = document.createElement('div');
-  div.className = 'comment-card';
-  div.innerHTML = `<div class="comment-meta"><span class="comment-author">You</span><span class="badge ${typeColors[type]||'badge-gray'}" style="font-size:.6rem">${type}</span><span class="comment-time">Apr 27 · ${time}</span></div><div class="comment-text">${text}</div>`;
-  feed.appendChild(div);
-  feed.scrollTop = feed.scrollHeight;
+  if (!state.roList.length) {
+    document.getElementById('ro-label').textContent = 'No repair orders in this workspace';
+    API.showEmpty(host, 'Create a repair order to use the workflow view.');
+    return;
+  }
+  if (state.roIndex >= state.roList.length) state.roIndex = 0;
+  await loadRODetail(state.roList[state.roIndex].id);
 }
 
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
+async function openRO(id) {
+  const idx = (state.roList || []).findIndex((r) => String(r.id) === String(id));
+  if (idx >= 0) state.roIndex = idx;
+  /* Mark the page loaded before showing it so showPage() does not also kick off
+     loadWorkflow() and race this fetch for the same panels. */
+  loadedPages.add('workflow');
+  showPage('workflow');
+  await loadRODetail(id);
 }
+
+async function loadRODetail(id) {
+  const ro = await API.load(document.getElementById('ro-summary'), () => API.repairOrder(id));
+  if (!ro) return;
+  state.roDetail = ro;
+  renderRODetail(ro);
+  loadTechOptions();
+}
+
+function renderRODetail(ro) {
+  document.getElementById('ro-label').textContent =
+    `${ro.ro_number} · ${ro.customer_name} · ${API.vehicleLabel(ro)}`;
+  document.getElementById('stage-label').textContent = API.statusLabel(ro.status);
+
+  renderPipeline(ro.status);
+  renderStageControls(ro.status);
+  renderROSummary(ro);
+  renderLaborLines(ro.labor || []);
+  renderPartsLines(ro.parts || []);
+  renderTimeEntries(ro.timeEntries || []);
+}
+
+function renderPipeline(status) {
+  const ci = STAGES.findIndex((s) => s.key === status);
+  const g = document.getElementById('pipeline-nodes');
+
+  g.innerHTML = STAGES.map((stage, i) => {
+    const done = ci >= 0 && i < ci;
+    const cur = i === ci;
+    const fill = cur ? '#bee3f8' : done ? '#c6f6d5' : '#edf2f7';
+    const stroke = cur ? '#4299e1' : done ? '#9ae6b4' : '#e2e8f0';
+    const text = cur ? '#2a4365' : done ? '#276749' : '#4a5568';
+    const y = cur ? 18 : 24;
+    const h = cur ? 48 : 36;
+    const cx = NODE_X[i] + NODE_W / 2;
+    return `<g class="pipeline-node" data-stage="${stage.key}" role="button" tabindex="0">
+      <rect x="${NODE_X[i]}" y="${y}" width="${NODE_W}" height="${h}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="${cur ? 2 : 1}"/>
+      <text x="${cx}" y="${cur ? 38 : 46}" text-anchor="middle" font-size="10" fill="${text}" font-family="DM Sans,sans-serif" font-weight="${cur ? 700 : done ? 600 : 500}">${esc(stage.label)}</text>
+      ${cur ? `<text x="${cx}" y="52" text-anchor="middle" font-size="8" fill="#4299e1" font-family="DM Sans,sans-serif">● current stage</text>` : ''}
+    </g>`;
+  }).join('');
+
+  /* A cancelled order is off the road entirely: park the car at the start. */
+  document.getElementById('car').style.transform = `translateX(${CAR_X[ci >= 0 ? ci : 0]}px)`;
+}
+
+function renderStageControls(status) {
+  const el = document.getElementById('stage-controls');
+  const buttons = STAGES.map((s) =>
+    `<button class="stage-btn${s.key === status ? ' current' : ''}" data-stage="${s.key}">${esc(s.label)}</button>`
+  ).join('');
+  el.innerHTML =
+    '<span style="font-size:.7rem;color:var(--muted)">Move to:</span>' + buttons +
+    `<button class="stage-btn blocked-btn" data-stage="cancelled"${status === 'cancelled' ? ' disabled' : ''}>🚫 Cancel RO</button>` +
+    (status === 'cancelled' ? '<span class="badge badge-gray" style="margin-left:6px">This repair order is cancelled</span>' : '');
+}
+
+/* The API owns the workflow rules: an illegal move comes back as a 409 with a
+   specific message, which we surface verbatim rather than pre-guessing it. */
+async function setStage(key) {
+  const ro = state.roDetail;
+  if (!ro || key === ro.status) return;
+  const buttons = document.querySelectorAll('#stage-controls .stage-btn');
+  buttons.forEach((b) => { b.disabled = true; });
+  try {
+    await API.setROStatus(ro.id, key);
+    API.toast(`${ro.ro_number} → ${API.statusLabel(key)}`, 'success');
+    /* Keep the list identity (prev/next paging depends on it) but reflect the
+       new status, and force the pages that summarise it to re-query. */
+    const entry = (state.roList || []).find((r) => String(r.id) === String(ro.id));
+    if (entry) entry.status = key;
+    loadedPages.delete('ros');
+    loadedPages.delete('dashboard');
+    await loadRODetail(ro.id);
+  } catch (e) {
+    if (e.message !== 'Session expired' && e.message !== 'Unauthorized') {
+      API.toast(e.message, 'error');
+    }
+    buttons.forEach((b) => { b.disabled = false; });
+  }
+}
+
+function renderROSummary(ro) {
+  const rows = [
+    ['Status', API.statusLabel(ro.status)],
+    ['Priority', API.statusLabel(ro.priority)],
+    ['Concern', ro.concern || '—'],
+    ['Vehicle', `${API.vehicleLabel(ro)}${ro.plate ? ' · ' + ro.plate : ''}${ro.vin ? ' · VIN ' + ro.vin : ''}`],
+    ['Customer', [ro.customer_name, ro.customer_phone, ro.customer_email].filter(Boolean).join(' · ')],
+    ['Created', API.dateTime(ro.created_at)],
+    ['Estimated completion', API.date(ro.estimated_completion)],
+    ['Actual completion', API.date(ro.actual_completion)],
+  ];
+  const partsTotal = (ro.parts || []).reduce((s, p) => s + num(p.line_total), 0);
+  const laborTotal = (ro.labor || []).reduce((s, l) => s + num(l.line_total), 0);
+
+  document.getElementById('ro-summary').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+      `<div style="font-size:.78rem;line-height:1.9">${rows.map(([k, v]) =>
+        `<div><span style="color:var(--muted)">${esc(k)}:</span> ${esc(v)}</div>`).join('')}</div>` +
+      '<div id="ro-totals" style="padding:14px;background:#f8fafc;border-radius:10px;font-size:.78rem;align-self:start">' +
+        totalsHTML({
+          parts_total: partsTotal,
+          labor_total: laborTotal,
+          total_estimate: ro.total_estimate,
+          total_final: ro.total_final,
+        }) +
+      '</div>' +
+    '</div>';
+}
+
+function totalsHTML(t) {
+  const line = (label, value, strong) =>
+    `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+       <span style="color:var(--muted)">${esc(label)}</span>
+       <span style="${strong ? 'font-weight:700' : ''}">${esc(API.money(value))}</span>
+     </div>`;
+  return line('Parts total', t.parts_total) + line('Labor total', t.labor_total) +
+         line('Estimate', t.total_estimate) + line('Order total', t.total_final, true);
+}
+
+function renderLaborLines(lines) {
+  const el = document.getElementById('labor-lines');
+  if (!lines.length) { API.showEmpty(el, 'No labor lines yet.', 5); return; }
+  el.innerHTML = lines.map((l) => `<tr>
+    <td>${esc(l.description)}</td>
+    <td>${esc(l.technician_name || '—')}</td>
+    <td>${num(l.hours).toFixed(2)}</td>
+    <td>${esc(API.money(l.hourly_rate))}</td>
+    <td>${esc(API.money(l.line_total))}</td>
+  </tr>`).join('');
+}
+
+function renderPartsLines(lines) {
+  const el = document.getElementById('parts-lines');
+  if (!lines.length) { API.showEmpty(el, 'No parts lines yet.', 5); return; }
+  el.innerHTML = lines.map((p) => `<tr>
+    <td style="font-family:monospace;font-size:.68rem">${esc(p.part_number)}</td>
+    <td>${esc(p.part_name)}</td>
+    <td>${num(p.quantity)}</td>
+    <td>${esc(API.money(p.unit_price))}</td>
+    <td>${esc(API.money(p.line_total))}</td>
+  </tr>`).join('');
+}
+
+function renderTimeEntries(entries) {
+  const el = document.getElementById('time-entries');
+  if (!entries.length) { API.showEmpty(el, 'No time tracked on this repair order.', 5); return; }
+  el.innerHTML = entries.map((t) => `<tr>
+    <td>${esc(t.technician_name)}</td>
+    <td>${esc(API.dateTime(t.start_time))}</td>
+    <td>${t.end_time ? esc(API.dateTime(t.end_time)) : '<span class="badge badge-blue">Clocked in</span>'}</td>
+    <td>${t.duration_minutes == null ? '—' : num(t.duration_minutes)}</td>
+    <td>${esc(t.description || '—')}</td>
+  </tr>`).join('');
+}
+
+async function loadTechOptions() {
+  const sel = document.getElementById('labor-tech');
+  if (state.techOptions) { sel.innerHTML = state.techOptions; return; }
+  let users;
+  try {
+    users = await API.workspaceUsers();
+  } catch (e) {
+    if (e.message !== 'Session expired' && e.message !== 'Unauthorized') API.toast(e.message, 'error');
+    return;
+  }
+  state.techOptions = '<option value="">Me</option>' + (users || [])
+    .filter((u) => u.active)
+    .map((u) => `<option value="${esc(u.id)}">${esc(u.name)}</option>`)
+    .join('');
+  sel.innerHTML = state.techOptions;
+}
+
+function applyTotals(totals) {
+  const el = document.getElementById('ro-totals');
+  if (el && totals) el.innerHTML = totalsHTML(totals);
+}
+
+function initROForms() {
+  API.onSubmit(document.getElementById('labor-form'), async (data) => {
+    if (!state.roDetail) throw new Error('Open a repair order first.');
+    const res = await API.addLabor(state.roDetail.id, {
+      technicianId: data.technicianId || undefined,
+      description: data.description,
+      hours: data.hours,
+      hourlyRate: data.hourlyRate,
+    });
+    document.getElementById('labor-form').reset();
+    loadedPages.delete('dashboard');
+    /* Refetch first, then paint the totals the write returned: the reload would
+       otherwise overwrite them with a separately-read copy. */
+    await loadRODetail(state.roDetail.id);
+    applyTotals(res.totals);
+    API.toast(`Labor line added — order total ${API.money(res.totals && res.totals.total_final)}`, 'success');
+  }, {
+    validate: (d) => {
+      const e = {};
+      if (!d.description.trim()) e.description = 'Description is required.';
+      if (!(Number(d.hours) > 0)) e.hours = 'Hours must be greater than 0.';
+      if (!(Number(d.hourlyRate) >= 0)) e.hourlyRate = 'Enter an hourly rate.';
+      return e;
+    },
+  });
+
+  API.onSubmit(document.getElementById('parts-form'), async (data) => {
+    if (!state.roDetail) throw new Error('Open a repair order first.');
+    const res = await API.addPart(state.roDetail.id, {
+      partNumber: data.partNumber,
+      partName: data.partName,
+      quantity: data.quantity,
+      unitPrice: data.unitPrice,
+    });
+    document.getElementById('parts-form').reset();
+    document.getElementById('parts-form').querySelector('[name=quantity]').value = '1';
+    loadedPages.delete('dashboard');
+    loadedPages.delete('parts');
+    await loadRODetail(state.roDetail.id);
+    applyTotals(res.totals);
+    API.toast(`Part added — order total ${API.money(res.totals && res.totals.total_final)}`, 'success');
+  }, {
+    validate: (d) => {
+      const e = {};
+      if (!d.partNumber.trim()) e.partNumber = 'Part number is required.';
+      if (!d.partName.trim()) e.partName = 'Part name is required.';
+      if (!(Number(d.quantity) >= 1)) e.quantity = 'Quantity must be at least 1.';
+      if (!(Number(d.unitPrice) >= 0)) e.unitPrice = 'Enter a unit price.';
+      return e;
+    },
+  });
+}
+
+function stepRO(delta) {
+  if (!state.roList || !state.roList.length) return;
+  state.roIndex = (state.roIndex + delta + state.roList.length) % state.roList.length;
+  loadRODetail(state.roList[state.roIndex].id);
+}
+
+/* ── Appointments ── */
+
+async function loadApptBadge() {
+  const badgeEl = document.getElementById('appt-badge');
+  try {
+    const pending = await API.get('/api/appointments', { status: 'pending' });
+    const n = (pending || []).length;
+    badgeEl.textContent = n;
+    badgeEl.hidden = n === 0;
+  } catch (e) {
+    badgeEl.hidden = true;   // the Appointments page surfaces the error in full
+  }
+}
+
+async function loadAppointments() {
+  const el = document.getElementById('appts-table');
+  const status = document.getElementById('appt-status-filter').value;
+  const appts = await API.load(el, () => API.get('/api/appointments', status ? { status } : undefined), {
+    colspan: 7, empty: 'No appointments match this filter.',
+  });
+  if (!appts || !appts.length) return;
+  el.innerHTML = appts.map((a) => `<tr>
+    <td>${esc(API.date(a.preferred_date))}</td>
+    <td>${esc(clock(a.preferred_time))}</td>
+    <td style="font-weight:600">${esc(a.customer_name)}</td>
+    <td>${esc(API.vehicleLabel(a))}${a.plate ? ' · ' + esc(a.plate) : ''}</td>
+    <td>${esc(a.concern || '—')}</td>
+    <td>${badge(a.status, APPT_BADGE)}</td>
+    <td>${['pending', 'confirmed'].includes(a.status)
+      ? `<button class="btn btn-sm${a.status === 'pending' ? ' btn-accent' : ''}" data-appt="${esc(a.id)}" data-appt-status="${a.status === 'pending' ? 'confirmed' : 'completed'}">${a.status === 'pending' ? 'Confirm' : 'Complete'}</button>`
+      : ''}</td>
+  </tr>`).join('');
+}
+
+async function setApptStatus(id, status, btn) {
+  btn.disabled = true;
+  try {
+    await API.patch(`/api/appointments/${id}`, { status });
+    API.toast(`Appointment ${API.statusLabel(status).toLowerCase()}.`, 'success');
+    loadedPages.delete('dashboard');
+    loadApptBadge();
+    loadPage('appointments', { force: true });
+  } catch (e) {
+    if (e.message !== 'Session expired' && e.message !== 'Unauthorized') API.toast(e.message, 'error');
+    btn.disabled = false;
+  }
+}
+
+/* ── Financials ── */
+
+async function loadFinancials() {
+  const el = document.getElementById('fin-stats');
+  const fin = await API.load(el, () => API.financialSummary());
+  if (!fin) return;
+
+  el.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total revenue</div><div class="stat-value">${esc(API.money(fin.total_revenue))}</div><div class="stat-sub">${num(fin.total_repair_orders)} repair orders</div></div>
+      <div class="stat-card"><div class="stat-label">Parts revenue</div><div class="stat-value">${esc(API.money(fin.parts_revenue))}</div><div class="stat-sub">${pctOf(fin.parts_revenue, fin.total_revenue)} of revenue</div></div>
+      <div class="stat-card"><div class="stat-label">Labor revenue</div><div class="stat-value">${esc(API.money(fin.labor_revenue))}</div><div class="stat-sub">${num(fin.total_labor_hours).toFixed(1)} hours booked</div></div>
+      <div class="stat-card"><div class="stat-label">Avg RO value</div><div class="stat-value">${esc(API.money(fin.avg_repair_order_value))}</div><div class="stat-sub">${num(fin.unique_customers)} customers</div></div>
+    </div>`;
+
+  const mix = [
+    ['Parts revenue', fin.parts_revenue, '#3182ce'],
+    ['Labor revenue', fin.labor_revenue, '#d4a017'],
+  ];
+  const orders = [
+    ['Completed', fin.completed_orders, '#2f855a'],
+    ['In progress', fin.in_progress_orders, '#3182ce'],
+    ['Open', fin.open_orders, '#6b46c1'],
+    ['Cancelled', fin.cancelled_orders, '#e53e3e'],
+  ];
+  document.getElementById('fin-mix').innerHTML =
+    mix.map(([label, value, color]) => burnRow(label, API.money(value), pctNum(value, fin.total_revenue), color)).join('') +
+    '<div style="margin:16px 0 10px;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Repair orders by status</div>' +
+    orders.map(([label, value, color]) => burnRow(label, num(value), pctNum(value, fin.total_repair_orders), color)).join('');
+
+  loadTrends();
+}
+
+function burnRow(label, valueText, pct, color) {
+  return `<div class="burn-row">
+    <div class="burn-label-row"><span>${esc(label)}</span><span style="font-weight:600">${esc(valueText)} · ${pct.toFixed(0)}%</span></div>
+    <div class="burn-track"><div class="burn-fill" style="width:${Math.max(0, Math.min(100, pct))}%;background:${color}"></div></div>
+  </div>`;
+}
+
+const pctNum = (part, total) => (num(total) === 0 ? 0 : (num(part) / num(total)) * 100);
+const pctOf = (part, total) => `${pctNum(part, total).toFixed(0)}%`;
+
+async function loadTrends() {
+  const el = document.getElementById('fin-trends');
+  const rows = await API.load(el, () => API.revenueTrends({ months: 12 }), {
+    colspan: 6, empty: 'No revenue recorded yet.',
+  });
+  if (!rows || !rows.length) return;
+  el.innerHTML = rows.map((r) => `<tr>
+    <td style="font-weight:600">${esc(API.date(r.month))}</td>
+    <td>${num(r.repair_orders)}</td>
+    <td>${num(r.unique_customers)}</td>
+    <td>${esc(API.money(r.parts_revenue))}</td>
+    <td>${esc(API.money(r.labor_revenue))}</td>
+    <td style="font-weight:600">${esc(API.money(r.total_revenue))}</td>
+  </tr>`).join('');
+}
+
+/* ── Technicians ── */
+
+async function loadTechs() {
+  const el = document.getElementById('techs-table');
+  const techs = await API.load(el, () => API.techPerformance(), {
+    colspan: 7, empty: 'No technicians in this workspace.',
+  });
+  if (!techs || !techs.length) return;
+  el.innerHTML = techs.map((t) => `<tr>
+    <td style="font-weight:600">${esc(t.name)}</td>
+    <td>${num(t.repair_orders_completed)}</td>
+    <td>${num(t.total_hours).toFixed(1)}</td>
+    <td>${num(t.total_tracked_minutes)} min</td>
+    <td>${num(t.unique_customers_served)}</td>
+    <td>${esc(API.money(t.labor_revenue))}</td>
+    <td>${esc(API.money(t.revenue_per_order))}</td>
+  </tr>`).join('');
+}
+
+/* ── Parts ── */
+
+async function loadParts() {
+  const el = document.getElementById('parts-table');
+  const parts = await API.load(el, () => API.parts({ lowStock: 'true' }), {
+    colspan: 7, empty: 'Every part is above its minimum stock level.',
+  });
+  if (!parts || !parts.length) return;
+  el.innerHTML = parts.map((p) => `<tr>
+    <td style="font-family:monospace;font-size:.68rem">${esc(p.part_number)}</td>
+    <td style="font-weight:600">${esc(p.name)}</td>
+    <td>${esc(p.category || '—')}</td>
+    <td><span class="badge ${num(p.quantity_on_hand) === 0 ? 'badge-red' : 'badge-yellow'}">${num(p.quantity_on_hand)}</span></td>
+    <td>${num(p.minimum_stock)}</td>
+    <td style="color:var(--red);font-weight:600">${num(p.stock_deficit)}</td>
+    <td>${esc(p.location || '—')}</td>
+  </tr>`).join('');
+}
+
+/* ── Customers ── */
+
+async function loadCustomers() {
+  loadAtRisk();
+  loadCustomerList();
+}
+
+async function loadAtRisk() {
+  const el = document.getElementById('atrisk-table');
+  const analytics = await API.load(el, () => API.customerAnalytics(), { colspan: 6 });
+  if (!analytics) return;
+
+  /* 'Inactive' = no RO in 180 days, 'Recent' = 90–180 days. Both are the
+     shop's real churn risk; the API computes the window, not the page. */
+  const atRisk = analytics
+    .filter((c) => c.customer_status === 'Inactive' || c.customer_status === 'Recent')
+    .sort((a, b) => num(b.total_spent) - num(a.total_spent));
+
+  if (!atRisk.length) { API.showEmpty(el, 'No at-risk customers — everyone has visited in the last 90 days.', 6); return; }
+  el.innerHTML = atRisk.map((c) => `<tr>
+    <td style="font-weight:600">${esc(c.full_name)}</td>
+    <td>${esc(c.email || '—')}</td>
+    <td style="color:${c.customer_status === 'Inactive' ? 'var(--red)' : 'var(--muted)'}">${esc(API.date(c.last_service_date))}</td>
+    <td>${num(c.total_repair_orders)}</td>
+    <td>${esc(API.money(c.total_spent))}</td>
+    <td><span class="badge ${c.customer_status === 'Inactive' ? 'badge-red' : 'badge-yellow'}">${esc(c.customer_status)}</span></td>
+  </tr>`).join('');
+}
+
+async function loadCustomerList() {
+  const el = document.getElementById('customers-table');
+  const term = document.getElementById('cust-search').value.trim();
+  const rows = await API.load(el, () => API.customers(term ? { search: term } : undefined), {
+    colspan: 7, empty: term ? 'No customers match that search.' : 'No customers yet.',
+  });
+  if (!rows || !rows.length) return;
+  el.innerHTML = rows.map((c) => `<tr>
+    <td style="font-weight:600">${esc(c.full_name)}</td>
+    <td>${esc(c.phone || '—')}</td>
+    <td>${esc(c.email || '—')}</td>
+    <td>${num(c.vehicle_count)}</td>
+    <td>${num(c.repair_order_count)}</td>
+    <td>${esc(API.money(c.total_spent))}</td>
+    <td style="color:var(--muted)">${esc(API.date(c.last_service_date))}</td>
+  </tr>`).join('');
+}
+
+/* ── Wiring ── */
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!AUTH.getSession()) return;
+
+  initChrome();
+  initWorkspaceSwitcher();
+  initROForms();
+
+  /* Delegated navigation: sidebar items and any in-page "go to page" button. */
+  document.body.addEventListener('click', (ev) => {
+    const nav = ev.target.closest('[data-page]');
+    if (nav) { showPage(nav.dataset.page); return; }
+
+    const roRowEl = ev.target.closest('tr[data-ro-id]');
+    if (roRowEl) { openRO(roRowEl.dataset.roId); return; }
+
+    const stageBtn = ev.target.closest('[data-stage]');
+    if (stageBtn && !stageBtn.disabled) { setStage(stageBtn.dataset.stage); return; }
+
+    const apptBtn = ev.target.closest('[data-appt]');
+    if (apptBtn) { setApptStatus(apptBtn.dataset.appt, apptBtn.dataset.apptStatus, apptBtn); }
+  });
+
+  document.getElementById('pipeline-nodes').addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    const node = ev.target.closest('[data-stage]');
+    if (node) { ev.preventDefault(); setStage(node.dataset.stage); }
+  });
+
+  document.getElementById('ro-prev').addEventListener('click', () => stepRO(-1));
+  document.getElementById('ro-next').addEventListener('click', () => stepRO(1));
+  document.getElementById('ro-status-filter').addEventListener('change', () => loadPage('ros', { force: true }));
+  document.getElementById('ro-search').addEventListener('input', debounce(renderROs, 200));
+  document.getElementById('appt-status-filter').addEventListener('change', () => loadPage('appointments', { force: true }));
+  document.getElementById('cust-search').addEventListener('input', debounce(loadCustomerList, 300));
+
+  loadApptBadge();
+  loadPage('dashboard');
+});
 </script>
 </body>
 </html>

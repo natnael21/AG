@@ -28,8 +28,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .topbar h1{font-size:.92rem;font-weight:600}
 .btn{padding:6px 12px;border-radius:8px;font-size:.72rem;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--border);background:var(--card);color:var(--text);transition:all .15s;font-weight:500}
 .btn:hover{background:var(--bg)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
 .btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
 .btn-gold{background:var(--gold);color:#0a1628;border-color:var(--gold)}
+.btn-danger{background:#fff5f5;color:#822727;border-color:#feb2b2}
 .btn-sm{padding:4px 9px;font-size:.68rem}
 .content{flex:1;overflow-y:auto;padding:14px 18px}
 .page{display:none}
@@ -38,7 +40,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px}
 .stat-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
 .stat-value{font-size:1.5rem;font-weight:600}
-.stat-sub{font-size:.65rem;margin-top:2px}
+.stat-sub{font-size:.65rem;margin-top:2px;color:var(--muted)}
 .stat-up{color:var(--green)}
 .stat-warn{color:var(--red)}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
@@ -46,8 +48,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 table.dt{width:100%;border-collapse:collapse}
 table.dt th{padding:6px 12px;text-align:left;font-size:.6rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;background:#f8fafc}
-table.dt td{padding:8px 12px;font-size:.75rem;border-top:1px solid var(--border)}
-table.dt tr:hover td{background:#f8fafc;cursor:pointer}
+table.dt td{padding:8px 12px;font-size:.75rem;border-top:1px solid var(--border);vertical-align:middle}
+table.dt tbody tr:hover td{background:#f8fafc}
 .badge{display:inline-flex;padding:2px 7px;border-radius:50px;font-size:.62rem;font-weight:600}
 .badge-green{background:#c6f6d5;color:#276749}
 .badge-yellow{background:#fefcbf;color:#744210}
@@ -64,82 +66,47 @@ table.dt tr:hover td{background:#f8fafc;cursor:pointer}
 .shop-stats{margin-left:auto;text-align:right}
 .shop-rev{font-size:.9rem;font-weight:600}
 .shop-rev-sub{font-size:.62rem;color:var(--muted)}
-.alert-row{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)}
-.alert-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
-.a-red{background:var(--red)}
-.a-yellow{background:var(--yellow)}
-.a-green{background:var(--green)}
-.alert-title{font-size:.75rem;font-weight:600}
-.alert-detail{font-size:.65rem;color:var(--muted);margin-top:1px}
 .burn-row{margin-bottom:10px}
 .burn-label-row{display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:4px}
 .burn-track{height:7px;background:#edf2f7;border-radius:50px;overflow:hidden}
 .burn-fill{height:100%;border-radius:50px;transition:width .6s}
 .form-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:.75rem;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .form-input:focus{outline:none;border-color:var(--gold)}
+.form-input[data-invalid]{border-color:var(--red);background:#fff5f5}
+.form-label{font-size:.62rem;color:var(--muted);margin-bottom:3px;display:block}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200}
 .modal-overlay.open{display:flex}
 .modal{background:#fff;border-radius:12px;width:500px;max-width:95vw;overflow:hidden;border:1px solid var(--border)}
+.modal-wide{width:660px}
 .modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .modal-header h3{font-size:.95rem;font-weight:600}
 .modal-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)}
 .modal-body{padding:20px;max-height:70vh;overflow-y:auto}
 .modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
-.steps-wrap{display:flex;align-items:center;margin-bottom:18px}
-.step-item{display:flex;align-items:center;gap:7px;flex:1}
-.step-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;border:1.5px solid var(--border);color:var(--muted);flex-shrink:0}
-.step-num.active{background:var(--accent);border-color:var(--accent);color:#fff}
-.step-num.done{background:var(--green);border-color:var(--green);color:#fff}
-.step-label{font-size:.72rem;color:var(--muted)}
-.step-label.active{color:var(--text);font-weight:600}
-.step-divider{flex:1;height:1px;background:var(--border);margin:0 6px}
-.mstep{display:none}
-.mstep.active{display:block}
-.role-card{border:1px solid var(--border);border-radius:9px;padding:11px;margin-bottom:7px;cursor:pointer;transition:all .15s}
-.role-card:hover,.role-card.selected{border-color:var(--accent);background:#fff5f5}
-.role-card-title{font-size:.78rem;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:7px}
-.role-card-desc{font-size:.68rem;color:var(--muted);line-height:1.5}
-.role-perms{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
-.role-perm-tag{font-size:.6rem;padding:2px 7px;border-radius:50px;background:#f8fafc;color:var(--muted);border:1px solid var(--border)}
-.perm-matrix{width:100%;border-collapse:collapse}
-.perm-matrix th{padding:8px 10px;font-size:.6rem;font-weight:600;color:var(--muted);text-align:center;background:#f8fafc;border:1px solid var(--border)}
-.perm-matrix th:first-child{text-align:left}
-.perm-matrix td{padding:7px 10px;font-size:.72rem;border:1px solid var(--border);text-align:center}
-.perm-matrix td:first-child{text-align:left;font-weight:600;background:#f8fafc}
-.perm-check{color:var(--green);font-size:13px}
-.perm-x{color:#cbd5e0;font-size:13px}
-.perm-partial{color:var(--yellow);font-size:.65rem;font-weight:700}
-.user-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:600;flex-shrink:0}
-.form-label{font-size:.62rem;color:var(--muted);margin-bottom:3px;display:block}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-.etl-upload-area{border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:10px}
+.user-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:600;flex-shrink:0;background:#edf2f7;color:#4a5568}
+.etl-upload-area{display:block;border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:10px}
 .etl-upload-area:hover{border-color:var(--gold)}
 .integration-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border)}
 .int-name{font-size:.78rem;font-weight:600}
 .int-desc{font-size:.65rem;color:var(--muted);margin-top:1px}
-.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:10px;font-size:.75rem;z-index:9999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
-.toast.show{opacity:1;transform:translateY(0)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:.75rem}
+.kv>span:nth-child(odd){color:var(--muted)}
+.pw-box{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:.8rem;word-break:break-all;user-select:all}
+.note{padding:9px 12px;border-radius:8px;font-size:.72rem;line-height:1.5}
+.note-ok{background:#c6f6d5;color:#276749}
+.note-bad{background:#fed7d7;color:#822727}
+.note-info{background:#ebf8ff;color:#2a4365}
+.row-actions{display:flex;gap:5px;flex-wrap:wrap}
+.filter-bar{display:flex;gap:8px;margin-bottom:12px}
 </style>
 </head>
 <body>
 <script src="auth.js"></script>
+<script src="api.js"></script>
 <script>
-(function(){
-  var s = AUTH.requireRoles(['super_admin']);
-  if(!s) return;
-  // Update sidebar user info
-  document.addEventListener('DOMContentLoaded', function(){
-    var n = document.getElementById('sidebar-username');
-    var sh = document.getElementById('sidebar-shopname');
-    if(n) n.textContent = s.name || 'User';
-    if(sh) sh.textContent = s.activeWorkspaceName || s.shop || '';
-    loadSignupQueue();
-  });
-})();
-function logout(){ AUTH.logout(); }
+(function(){ if(!AUTH.requireRoles(['super_admin'])) return; })();
 </script>
-
-<div class="toast" id="toast"></div>
 
 <div class="sidebar">
   <div class="sidebar-top">
@@ -152,168 +119,65 @@ function logout(){ AUTH.logout(); }
     </div>
   </div>
   <div class="nav-section">Platform</div>
-  <div class="nav-item active" onclick="showPage('overview',this)">▦ All shops</div>
-  <div class="nav-item" onclick="showPage('alerts',this)">⚠ Alerts <span class="nav-badge">4</span></div>
-  <div class="nav-item" onclick="showPage('billing',this)">💳 Billing</div>
-  <div class="nav-item" onclick="showPage('onboard',this)">+ Onboard shop</div>
+  <div class="nav-item active" data-page="workspaces">▦ All shops</div>
+  <div class="nav-item" data-page="onboard">+ Onboard shop <span class="nav-badge" id="signup-badge" style="display:none">0</span></div>
   <div class="nav-section">Analytics</div>
-  <div class="nav-item" onclick="showPage('revenue',this)">📊 Revenue</div>
-  <div class="nav-item" onclick="showPage('techs',this)">👥 All technicians</div>
+  <div class="nav-item" data-page="techs">👥 Technicians</div>
   <div class="nav-section">Data</div>
-  <div class="nav-item" onclick="showPage('etl',this)">🔄 ETL migration</div>
-  <div class="nav-item" onclick="showPage('integrations',this)">🔌 Integrations</div>
+  <div class="nav-item" data-page="etl">🔄 Data import</div>
   <div class="nav-section">Users</div>
-  <div class="nav-item" onclick="showPage('users',this)">👤 All users</div>
-  <div class="nav-item" onclick="showPage('roles',this)">🔒 Roles & access</div>
-  <div class="nav-item" onclick="showPage('invites',this)">✉ Pending invites</div>
-  <div class="nav-item" onclick="showPage('resets',this)">🔑 Password resets</div>
+  <div class="nav-item" data-page="users">👤 All users</div>
   <div class="nav-section">System</div>
-  <div class="nav-item" onclick="showPage('settings',this)">⚙ Settings</div>
+  <div class="nav-item" data-page="settings">⚙ Settings</div>
   <div class="sidebar-footer">
-    <div class="user-dot">NA</div>
-    <div style="flex:1;min-width:0"><div style="color:rgba(255,255,255,.6);font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="sidebar-username">Naod Mekonnen</div><div id="sidebar-shopname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">AG Holdings LLC</div></div>
-    <button onclick="logout()" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:.7rem;flex-shrink:0" title="Sign out">⬡ Out</button>
+    <div class="user-dot" id="sidebar-initials">—</div>
+    <div style="flex:1;min-width:0">
+      <div style="color:rgba(255,255,255,.6);font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="sidebar-username">—</div>
+      <div id="sidebar-shopname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+    </div>
+    <button id="signout-btn" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:.7rem;flex-shrink:0" title="Sign out">⬡ Out</button>
   </div>
 </div>
 
 <div class="main">
   <div class="topbar">
-    <h1 id="page-title">All shops overview</h1>
-    <div style="display:flex;gap:6px">
-      <span style="font-size:.72rem;color:var(--muted)">Apr 27, 2026</span>
-      <button class="btn btn-gold" onclick="showPage('onboard',document.querySelectorAll('.nav-item')[3])">+ Onboard shop</button>
+    <h1 id="page-title">All shops</h1>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:.72rem;color:var(--muted)" id="today"></span>
+      <label class="form-label" style="margin:0">Active shop</label>
+      <select class="form-input" id="ws-select" style="width:auto;min-width:170px;padding:5px 8px"></select>
     </div>
   </div>
   <div class="content">
 
-    <!-- ALL SHOPS -->
-    <div class="page active" id="page-overview">
+    <!-- ALL SHOPS (workspaces) -->
+    <div class="page active" id="page-workspaces">
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">Active shops</div><div class="stat-value">3</div><div class="stat-sub">3 more pending</div></div>
-        <div class="stat-card"><div class="stat-label">Platform MRR</div><div class="stat-value">$747</div><div class="stat-sub stat-up">↑ $149 this month</div></div>
-        <div class="stat-card"><div class="stat-label">Total ROs today</div><div class="stat-value">24</div><div class="stat-sub">Across all shops</div></div>
-        <div class="stat-card"><div class="stat-label">Active alerts</div><div class="stat-value stat-warn">4</div><div class="stat-sub stat-warn">2 idle techs</div></div>
+        <div class="stat-card"><div class="stat-label">Active shops</div><div class="stat-value" id="ov-shops">—</div><div class="stat-sub">Live workspaces</div></div>
+        <div class="stat-card"><div class="stat-label">Revenue (all shops)</div><div class="stat-value" id="ov-revenue">—</div><div class="stat-sub">Sum of repair order totals</div></div>
+        <div class="stat-card"><div class="stat-label">Repair orders</div><div class="stat-value" id="ov-ros">—</div><div class="stat-sub">All time, all shops</div></div>
+        <div class="stat-card"><div class="stat-label">Open ROs</div><div class="stat-value" id="ov-open">—</div><div class="stat-sub">Open, in progress or awaiting parts</div></div>
       </div>
       <div style="margin-bottom:10px;font-size:.78rem;font-weight:600">Shop performance</div>
-      <div class="shop-card" onclick="showPage('shop-detail',null)">
-        <div class="shop-status-dot" style="background:var(--green)"></div>
-        <div>
-          <div class="shop-name">Capitol Auto Body</div>
-          <div class="shop-meta">Silver Spring MD · 4 techs · Body shop · Pro plan</div>
-        </div>
-        <div style="flex:1;margin:0 12px">
-          <div class="burn-row" style="margin-bottom:0"><div class="burn-label-row" style="font-size:.62rem"><span style="color:var(--muted)">RO completion</span><span>71%</span></div><div class="burn-track"><div class="burn-fill" style="width:71%;background:var(--green)"></div></div></div>
-        </div>
-        <div class="shop-stats">
-          <div class="shop-rev">$18,420</div>
-          <div class="shop-rev-sub">Apr · 14 ROs</div>
-        </div>
-        <span class="badge badge-green">Active</span>
-      </div>
-      <div class="shop-card" onclick="showPage('shop-detail',null)">
-        <div class="shop-status-dot" style="background:var(--blue)"></div>
-        <div>
-          <div class="shop-name">Silver Spring Mechanics</div>
-          <div class="shop-meta">Silver Spring MD · 3 techs · Mechanic · Pro plan</div>
-        </div>
-        <div style="flex:1;margin:0 12px">
-          <div class="burn-row" style="margin-bottom:0"><div class="burn-label-row" style="font-size:.62rem"><span style="color:var(--muted)">RO completion</span><span>83%</span></div><div class="burn-track"><div class="burn-fill" style="width:83%;background:var(--blue)"></div></div></div>
-        </div>
-        <div class="shop-stats">
-          <div class="shop-rev">$11,240</div>
-          <div class="shop-rev-sub">Apr · 22 ROs</div>
-        </div>
-        <span class="badge badge-green">Active</span>
-      </div>
-      <div class="shop-card" onclick="showPage('shop-detail',null)">
-        <div class="shop-status-dot" style="background:var(--yellow)"></div>
-        <div>
-          <div class="shop-name">Bethesda Quick Lube</div>
-          <div class="shop-meta">Bethesda MD · 2 techs · Quick lube · Starter (trial)</div>
-        </div>
-        <div style="flex:1;margin:0 12px">
-          <div class="burn-row" style="margin-bottom:0"><div class="burn-label-row" style="font-size:.62rem"><span style="color:var(--muted)">RO completion</span><span>95%</span></div><div class="burn-track"><div class="burn-fill" style="width:95%;background:var(--yellow)"></div></div></div>
-        </div>
-        <div class="shop-stats">
-          <div class="shop-rev">$6,800</div>
-          <div class="shop-rev-sub">Apr · 48 ROs</div>
-        </div>
-        <span class="badge badge-blue">Trial</span>
-      </div>
-      <div class="shop-card" style="border-style:dashed;background:#f8fafc">
-        <div class="shop-status-dot" style="background:#cbd5e0"></div>
-        <div>
-          <div class="shop-name" style="color:var(--muted)">Shop 4 — data migration in progress</div>
-          <div class="shop-meta">Mitchell 1 CSV uploaded · 847 records mapping</div>
-        </div>
-        <div class="shop-stats"><div class="shop-rev" style="color:var(--muted)">—</div><div class="shop-rev-sub">Not yet live</div></div>
-        <span class="badge badge-gray">Pending</span>
-      </div>
+      <div id="workspace-list"></div>
     </div>
 
     <!-- SHOP DETAIL -->
     <div class="page" id="page-shop-detail">
-      <div style="margin-bottom:10px"><button class="btn btn-sm" onclick="showPage('overview',document.querySelectorAll('.nav-item')[0])">← All shops</button></div>
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">April revenue</div><div class="stat-value">$18,420</div><div class="stat-sub stat-up">↑ 12%</div></div>
-        <div class="stat-card"><div class="stat-label">Open ROs</div><div class="stat-value">14</div></div>
-        <div class="stat-card"><div class="stat-label">Tech utilization</div><div class="stat-value">78%</div></div>
-        <div class="stat-card"><div class="stat-label">Idle alerts</div><div class="stat-value stat-warn">1</div></div>
-      </div>
+      <div style="margin-bottom:10px"><button class="btn btn-sm" id="back-to-shops">← All shops</button></div>
+      <div class="stats-grid" id="sd-stats"></div>
       <div class="grid2">
         <div class="card">
-          <div class="card-header">Capitol Auto Body — team</div>
+          <div class="card-header" id="sd-team-title">Team</div>
           <table class="dt">
-            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Today</th></tr></thead>
-            <tbody>
-              <tr><td>Maria Gonzalez</td><td>Service advisor</td><td><span class="badge badge-green">Active</span></td><td>6 ROs</td></tr>
-              <tr><td>Alex Torres</td><td>Technician</td><td><span class="badge badge-green">Active</span></td><td>2.4h</td></tr>
-              <tr><td>James Reed</td><td>Technician</td><td><span class="badge badge-green">Active</span></td><td>2.4h</td></tr>
-              <tr><td>Mike Santos</td><td>Technician</td><td><span class="badge badge-yellow">Idle</span></td><td>0h</td></tr>
-              <tr><td>Kevin Lee</td><td>Technician</td><td><span class="badge badge-red">⚠ 47min</span></td><td>0h</td></tr>
-            </tbody>
+            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Last login</th></tr></thead>
+            <tbody id="sd-team-body"></tbody>
           </table>
         </div>
         <div class="card">
-          <div class="card-header">Burn rate (April)</div>
-          <div style="padding:12px 14px">
-            <div class="burn-row"><div class="burn-label-row"><span>Parts</span><span style="font-weight:600;color:var(--red)">$6,840 · over</span></div><div class="burn-track"><div class="burn-fill" style="width:37%;background:var(--red)"></div></div></div>
-            <div class="burn-row"><div class="burn-label-row"><span>Labor</span><span style="font-weight:600">$4,200</span></div><div class="burn-track"><div class="burn-fill" style="width:23%;background:var(--yellow)"></div></div></div>
-            <div class="burn-row"><div class="burn-label-row"><span>Overhead</span><span style="font-weight:600">$3,200</span></div><div class="burn-track"><div class="burn-fill" style="width:17%;background:var(--blue)"></div></div></div>
-            <div style="padding-top:8px;border-top:1px solid var(--border);font-size:.72rem;color:var(--muted)">Net margin: <strong style="color:var(--green)">$7,380 (40%)</strong></div>
-          </div>
+          <div class="card-header">Revenue breakdown</div>
+          <div style="padding:12px 14px" id="sd-financial"></div>
         </div>
-      </div>
-    </div>
-
-    <!-- ALERTS -->
-    <div class="page" id="page-alerts">
-      <div class="card">
-        <div class="card-header" style="background:#fff5f5;color:#822727">⚠ Platform alerts (4)</div>
-        <div class="alert-row"><div class="alert-dot a-red"></div><div style="flex:1"><div class="alert-title">Idle technician — Kevin Lee · Capitol Auto Body</div><div class="alert-detail">No active RO for 47 minutes</div></div><span class="badge badge-red">Idle</span></div>
-        <div class="alert-row"><div class="alert-dot a-red"></div><div style="flex:1"><div class="alert-title">Idle advisor — Front desk · Silver Spring Mechanics</div><div class="alert-detail">No RO activity for 1.5 hours</div></div><span class="badge badge-red">Idle</span></div>
-        <div class="alert-row"><div class="alert-dot a-yellow"></div><div style="flex:1"><div class="alert-title">Overdue invoice — INV-2039 · Capitol Auto Body</div><div class="alert-detail">$2,890 · Jennifer Wu · 5 days overdue</div></div><span class="badge badge-orange">Finance</span></div>
-        <div class="alert-row"><div class="alert-dot a-yellow"></div><div style="flex:1"><div class="alert-title">Parts budget exceeded — Capitol Auto Body</div><div class="alert-detail">$840 over monthly parts budget</div></div><span class="badge badge-orange">Budget</span></div>
-      </div>
-    </div>
-
-    <!-- BILLING -->
-    <div class="page" id="page-billing">
-      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="stat-card"><div class="stat-label">Monthly MRR</div><div class="stat-value">$747</div></div>
-        <div class="stat-card"><div class="stat-label">ARR (projected)</div><div class="stat-value">$8,964</div></div>
-        <div class="stat-card"><div class="stat-label">Churn rate</div><div class="stat-value stat-up">0%</div></div>
-      </div>
-      <div class="card">
-        <div class="card-header">Subscriptions</div>
-        <table class="dt">
-          <thead><tr><th>Shop</th><th>Plan</th><th>MRR</th><th>Users</th><th>Status</th><th>Next billing</th><th>Action</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:600">Capitol Auto Body</td><td>Pro</td><td>$299</td><td>5</td><td><span class="badge badge-green">Active</span></td><td>May 1</td><td><button class="btn btn-sm" onclick="t('Managing Capitol Auto Body subscription')">Manage</button></td></tr>
-            <tr><td style="font-weight:600">Silver Spring Mechanics</td><td>Pro</td><td>$299</td><td>4</td><td><span class="badge badge-green">Active</span></td><td>May 3</td><td><button class="btn btn-sm" onclick="t('Managing Silver Spring subscription')">Manage</button></td></tr>
-            <tr><td style="font-weight:600">Bethesda Quick Lube</td><td>Starter</td><td>$149</td><td>3</td><td><span class="badge badge-blue">Trial (13 days)</span></td><td>May 10</td><td><button class="btn btn-gold btn-sm" onclick="t('Upgrading Bethesda to Pro')">Upgrade</button></td></tr>
-          </tbody>
-        </table>
       </div>
     </div>
 
@@ -322,274 +186,118 @@ function logout(){ AUTH.logout(); }
       <div class="grid2">
         <div>
           <div class="card">
-            <div class="card-header">New shop details</div>
-            <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
-              <div class="form-row">
-                <div><label class="form-label">Shop name</label><input class="form-input" id="signup-shop" placeholder="Auto shop name"/></div>
-                <div><label class="form-label">Type</label><select class="form-input" id="signup-type"><option>Auto body</option><option>Mechanic</option><option>Quick lube</option><option>Both</option></select></div>
+            <div class="card-header">New shop signup request</div>
+            <form id="signup-form" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+              <div class="form-row" style="margin:0">
+                <div><label class="form-label">Shop name *</label><input class="form-input" name="shop" placeholder="Auto shop name"/></div>
+                <div><label class="form-label">Type</label><select class="form-input" name="type"><option value="">—</option><option>Auto body</option><option>Mechanic</option><option>Quick lube</option><option>Both</option></select></div>
               </div>
-              <div><label class="form-label">Address</label><input class="form-input" id="signup-address" placeholder="Street, city, state, zip"/></div>
-              <div class="form-row">
-                <div><label class="form-label">Phone</label><input class="form-input" id="signup-phone" placeholder="(000) 000-0000"/></div>
-                <div><label class="form-label">Email</label><input class="form-input" id="signup-email" placeholder="owner@shop.com" type="email"/></div>
+              <div class="form-row" style="margin:0">
+                <div><label class="form-label">Owner first name *</label><input class="form-input" name="first" placeholder="John"/></div>
+                <div><label class="form-label">Owner last name</label><input class="form-input" name="last" placeholder="Smith"/></div>
               </div>
-              <div class="form-row">
-                <div><label class="form-label">Owner first name</label><input class="form-input" id="signup-first" placeholder="John"/></div>
-                <div><label class="form-label">Owner last name</label><input class="form-input" id="signup-last" placeholder="Smith"/></div>
+              <div class="form-row" style="margin:0">
+                <div><label class="form-label">Email *</label><input class="form-input" name="email" type="email" placeholder="owner@shop.com"/></div>
+                <div><label class="form-label">Phone</label><input class="form-input" name="phone" placeholder="(000) 000-0000"/></div>
               </div>
-              <div><label class="form-label">Plan</label>
-                <select class="form-input" id="signup-plan"><option>Starter — $149/mo (3 users)</option><option>Pro — $299/mo (10 users)</option><option>Enterprise — $599/mo (unlimited)</option></select>
+              <div class="form-row" style="margin:0">
+                <div><label class="form-label">Technicians</label><input class="form-input" name="techs" placeholder="e.g. 4"/></div>
+                <div><label class="form-label">Total employees</label><input class="form-input" name="employees" placeholder="e.g. 7"/></div>
               </div>
-              <div class="form-row">
-                <div><label class="form-label">Labor rate ($/hr)</label><input class="form-input" id="signup-labor" type="number" value="120"/></div>
-                <div><label class="form-label">Tax rate (%)</label><input class="form-input" id="signup-tax" type="number" value="6.0"/></div>
+              <div class="form-row" style="margin:0">
+                <div><label class="form-label">Annual revenue</label><input class="form-input" name="revenue" placeholder="e.g. $1.2M"/></div>
+                <div><label class="form-label">Has service advisor</label><select class="form-input" name="advisor"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>
               </div>
-              <button class="btn btn-gold" onclick="submitOnboardSignup()">Submit onboarding request</button>
-            </div>
+              <div><label class="form-label">Current tools</label><input class="form-input" name="tools" placeholder="Mitchell 1, spreadsheets…"/></div>
+              <div><label class="form-label">Main pain point</label><input class="form-input" name="pain" placeholder="What are they trying to fix?"/></div>
+              <button class="btn btn-gold" type="submit" style="align-self:flex-start">Submit signup request</button>
+              <div class="note note-info">This creates a pending signup request. Approving it below provisions the workspace and the owner's account.</div>
+            </form>
           </div>
         </div>
         <div>
           <div class="card">
-            <div class="card-header">Pending signup approvals</div>
+            <div class="card-header">Signup queue <button class="btn btn-sm" id="signup-refresh">Refresh</button></div>
             <table class="dt">
               <thead><tr><th>Shop</th><th>Owner</th><th>Email</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead>
-              <tbody id="signup-queue-body">
-                <tr><td colspan="6" style="color:var(--muted)">Loading signup requests...</td></tr>
-              </tbody>
+              <tbody id="signup-queue-body"></tbody>
             </table>
-          </div>
-          <div class="card">
-            <div class="card-header">ETL data migration</div>
-            <div style="padding:14px">
-              <div style="margin-bottom:10px;font-size:.75rem;color:var(--muted)">Import existing customer, vehicle, and RO history from your current software.</div>
-              <div style="margin-bottom:10px">
-                <label class="form-label">Source system</label>
-                <select class="form-input"><option>Mitchell 1</option><option>Tekmetric</option><option>ShopWare</option><option>Generic CSV</option></select>
-              </div>
-              <div class="etl-upload-area" onclick="t('CSV upload dialog opened')">
-                <div style="font-size:1.5rem;margin-bottom:8px">📁</div>
-                <div style="font-size:.78rem;font-weight:600;margin-bottom:4px">Upload CSV export</div>
-                <div style="font-size:.68rem;color:var(--muted)">Drag and drop or click to browse · customers, vehicles, RO history</div>
-              </div>
-              <div style="font-size:.72rem;color:var(--muted);margin-bottom:10px">After upload you'll preview and map fields before importing live data.</div>
-              <button class="btn btn-accent btn-sm" onclick="t('Sample import preview — 847 records mapped successfully')">Preview import</button>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header">Active migrations</div>
-            <div style="padding:10px 14px">
-              <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
-                <div style="flex:1"><div style="font-size:.75rem;font-weight:600">Shop 4 · Mitchell 1</div><div style="font-size:.65rem;color:var(--muted)">847 records · mapping in progress</div></div>
-                <span class="badge badge-yellow">Processing</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;padding:7px 0">
-                <div style="flex:1"><div style="font-size:.75rem;font-weight:600">Capitol Auto Body · Mitchell 1</div><div style="font-size:.65rem;color:var(--muted)">2,341 records imported</div></div>
-                <span class="badge badge-green">Complete</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- REVENUE -->
-    <div class="page" id="page-revenue">
-      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="stat-card"><div class="stat-label">Platform MRR</div><div class="stat-value">$747</div><div class="stat-sub stat-up">↑ $149 this month</div></div>
-        <div class="stat-card"><div class="stat-label">Total shop revenue</div><div class="stat-value">$36,460</div><div class="stat-sub stat-up">↑ 9% vs March</div></div>
-        <div class="stat-card"><div class="stat-label">Shops at target</div><div class="stat-value">2/3</div></div>
-      </div>
-      <div class="card">
-        <div class="card-header">Monthly revenue — all shops</div>
-        <table class="dt">
-          <thead><tr><th>Shop</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>Trend</th><th>Plan</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:600">Capitol Auto Body</td><td>$12,400</td><td>$15,600</td><td>$16,400</td><td>$18,420</td><td style="color:var(--green);font-weight:600">↑ 12%</td><td><span class="badge badge-purple">Pro</span></td></tr>
-            <tr><td style="font-weight:600">Silver Spring Mech.</td><td>$8,200</td><td>$9,400</td><td>$10,800</td><td>$11,240</td><td style="color:var(--green);font-weight:600">↑ 4%</td><td><span class="badge badge-purple">Pro</span></td></tr>
-            <tr><td style="font-weight:600">Bethesda Quick Lube</td><td>—</td><td>—</td><td>$4,200</td><td>$6,800</td><td style="color:var(--green);font-weight:600">↑ 62%</td><td><span class="badge badge-blue">Starter</span></td></tr>
-            <tr style="background:#f8fafc"><td style="font-weight:700">Platform total</td><td>$20,600</td><td>$25,000</td><td>$31,400</td><td style="font-weight:700">$36,460</td><td style="color:var(--green);font-weight:700">↑ 16%</td><td></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ALL TECHS -->
+    <!-- TECHNICIANS -->
     <div class="page" id="page-techs">
       <div class="card">
-        <div class="card-header">All technicians — platform wide</div>
+        <div class="card-header">Technician performance — all shops <span style="font-size:.65rem;font-weight:400;color:var(--muted)">Completed repair orders only</span></div>
         <table class="dt">
-          <thead><tr><th>Name</th><th>Shop</th><th>Status</th><th>Apr ROs</th><th>Apr hours</th><th>Efficiency</th><th>Revenue</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:600">Alex Torres</td><td>Capitol Auto Body</td><td><span class="badge badge-green">Active</span></td><td>18</td><td>72h</td><td style="color:var(--green);font-weight:600">94%</td><td>$8,640</td></tr>
-            <tr><td style="font-weight:600">James Reed</td><td>Capitol Auto Body</td><td><span class="badge badge-green">Active</span></td><td>15</td><td>58h</td><td style="color:var(--blue);font-weight:600">88%</td><td>$6,960</td></tr>
-            <tr><td style="font-weight:600">Mike Santos</td><td>Capitol Auto Body</td><td><span class="badge badge-yellow">Idle</span></td><td>12</td><td>44h</td><td style="color:var(--yellow);font-weight:600">76%</td><td>$5,280</td></tr>
-            <tr style="background:#fff5f5"><td style="font-weight:600">Kevin Lee</td><td>Capitol Auto Body</td><td><span class="badge badge-red">⚠ Idle 47min</span></td><td>9</td><td>32h</td><td style="color:var(--yellow);font-weight:600">71%</td><td>$3,840</td></tr>
-            <tr><td style="font-weight:600">David Park</td><td>Silver Spring Mech.</td><td><span class="badge badge-green">Active</span></td><td>22</td><td>84h</td><td style="color:var(--green);font-weight:600">91%</td><td>$10,080</td></tr>
-            <tr><td style="font-weight:600">Chris Johnson</td><td>Bethesda Quick Lube</td><td><span class="badge badge-green">Active</span></td><td>48</td><td>76h</td><td style="color:var(--green);font-weight:600">97%</td><td>$6,800</td></tr>
-          </tbody>
+          <thead><tr><th>Name</th><th>Shop</th><th>Completed ROs</th><th>Labor hours</th><th>Tracked time</th><th>Labor revenue</th><th>Revenue / RO</th></tr></thead>
+          <tbody id="techs-body"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- ETL -->
+    <!-- DATA IMPORT -->
     <div class="page" id="page-etl">
-      <div class="card">
-        <div class="card-header">Import history</div>
-        <table class="dt">
-          <thead><tr><th>Shop</th><th>Source</th><th>File</th><th>Records</th><th>Imported</th><th>Errors</th><th>Status</th><th>Date</th></tr></thead>
-          <tbody>
-            <tr><td>Capitol Auto Body</td><td>Mitchell 1</td><td>capitol_m1_export.csv</td><td>2,341</td><td>2,338</td><td>3</td><td><span class="badge badge-green">Complete</span></td><td>Apr 15</td></tr>
-            <tr><td>Shop 4</td><td>Mitchell 1</td><td>shop4_customers.csv</td><td>847</td><td>612</td><td>12</td><td><span class="badge badge-yellow">Processing</span></td><td>Today</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="card">
-        <div class="card-header">New import</div>
-        <div style="padding:14px">
-          <div class="form-row">
-            <div><label class="form-label">Shop</label><select class="form-input"><option>Capitol Auto Body</option><option>Silver Spring Mechanics</option><option>Bethesda Quick Lube</option><option>Shop 4</option></select></div>
-            <div><label class="form-label">Source system</label><select class="form-input"><option>Mitchell 1</option><option>Tekmetric</option><option>ShopWare</option><option>Generic CSV</option></select></div>
-          </div>
-          <div class="etl-upload-area" onclick="t('File upload dialog opened')">
-            <div style="font-size:1.5rem;margin-bottom:8px">📁</div>
-            <div style="font-size:.78rem;font-weight:600">Upload CSV or JSON export</div>
-            <div style="font-size:.65rem;color:var(--muted);margin-top:4px">Customers · Vehicles · RO history · Payments</div>
-          </div>
-          <button class="btn btn-gold" onclick="t('Import queued — preview will appear in 30 seconds')">Start import</button>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header">Mitchell 1 integration <span style="font-size:.65rem;font-weight:400;color:var(--muted)">Read-only status</span></div>
+          <div id="mitchell-status"></div>
         </div>
-      </div>
-    </div>
-
-    <!-- INTEGRATIONS -->
-    <div class="page" id="page-integrations">
-      <div class="card">
-        <div class="card-header">Platform integrations</div>
-        <div class="integration-row"><div><div class="int-name">CCC One</div><div class="int-desc">Auto-import estimates as repair orders · Webhook configured</div></div><span class="badge badge-green">Connected</span></div>
-        <div class="integration-row"><div><div class="int-name">Mitchell Pro (labor times)</div><div class="int-desc">Auto-fill labor hours on RO creation</div></div><div style="display:flex;gap:6px;align-items:center"><input style="width:140px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.72rem" placeholder="API key"/><button class="btn btn-sm btn-accent" onclick="t('Mitchell Pro connected')">Connect</button></div></div>
-        <div class="integration-row"><div><div class="int-name">Square (payments)</div><div class="int-desc">Generate payment links · Real-time revenue webhook</div></div><span class="badge badge-green">Connected</span></div>
-        <div class="integration-row"><div><div class="int-name">Twilio (SMS + calls)</div><div class="int-desc">Customer SMS · Call transcription · Landline forwarding</div></div><div style="display:flex;gap:6px;align-items:center"><input style="width:140px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.72rem" placeholder="Account SID"/><button class="btn btn-sm btn-accent" onclick="t('Twilio connected')">Connect</button></div></div>
-        <div class="integration-row"><div><div class="int-name">Worldpac (parts ordering)</div><div class="int-desc">Search and order parts directly from RO parts lines</div></div><div style="display:flex;gap:6px;align-items:center"><input style="width:140px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:.72rem" placeholder="Account#"/><button class="btn btn-sm btn-accent" onclick="t('Worldpac connected')">Connect</button></div></div>
-      </div>
-    </div>
-
-
-    <!-- USERS PAGE -->
-    <div class="page" id="page-users">
-      <div class="acontent">
-        <div class="admin-stats">
-          <div class="admin-stat"><div class="admin-stat-label">Total users</div><div class="admin-stat-value">11</div></div>
-          <div class="admin-stat"><div class="admin-stat-label">Active</div><div class="admin-stat-value">9</div></div>
-          <div class="admin-stat"><div class="admin-stat-label">Pending invites</div><div class="admin-stat-value" style="color:#b7791f">2</div></div>
-          <div class="admin-stat"><div class="admin-stat-label">Resets (24h)</div><div class="admin-stat-value">1</div></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-          <input style="flex:1;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif" placeholder="Search users..."/>
-          <select style="padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;font-family:'DM Sans',sans-serif;background:var(--bg)"><option>All shops</option><option>Capitol Auto Body</option><option>Silver Spring Mechanics</option><option>Bethesda Quick Lube</option></select>
-          <button class="btn btn-sm btn-accent" onclick="openCreateModal()">+ Add user</button>
-        </div>
-        <div class="admin-card">
-          <div class="admin-card-header">All users <span style="font-size:.68rem;font-weight:400;color:var(--muted)">Click row to edit</span></div>
-          <table class="admin-table">
-            <thead><tr><th></th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Shop</th><th>Status</th><th>Last login</th><th>Actions</th></tr></thead>
-            <tbody>
-              <tr onclick="openEditModal('Naod','Mekonnen','naod@agholdingcorp.com','(301) 555-0100','Super admin','All shops')"><td><div class="user-avatar" style="background:#fefcbf;color:#744210">NA</div></td><td style="font-weight:600">Naod Mekonnen</td><td>naod@agholdingcorp.com</td><td>(301) 555-0100</td><td><span class="abadge abadge-blue">Super admin</span></td><td>All shops</td><td><span class="abadge abadge-green">Active</span></td><td style="color:var(--muted)">Today</td><td><button class="action-btn" onclick="event.stopPropagation();openEditModal('Naod','Mekonnen','naod@agholdingcorp.com','(301) 555-0100','Super admin','All shops')">Edit</button></td></tr>
-              <tr onclick="openEditModal('Maria','Gonzalez','maria.g@capitolauto.com','(240) 555-0120','Manager','Capitol Auto Body')"><td><div class="user-avatar" style="background:#e9d8fd;color:#553c9a">MG</div></td><td style="font-weight:600">Maria Gonzalez</td><td>maria.g@capitolauto.com</td><td>(240) 555-0120</td><td><span class="abadge abadge-blue">Manager</span></td><td>Capitol Auto Body</td><td><span class="abadge abadge-green">Active</span></td><td style="color:var(--muted)">Today</td><td><button class="action-btn" onclick="event.stopPropagation();openEditModal('Maria','Gonzalez','maria.g@capitolauto.com','(240) 555-0120','Manager','Capitol Auto Body')">Edit</button><button class="action-btn green" onclick="event.stopPropagation();t('Reset email sent to Maria Gonzalez')">Reset</button><button class="action-btn" style="background:#fefcbf;border-color:#f6e05e;color:#744210" onclick="event.stopPropagation();deactivateUser(this,'Maria Gonzalez')">Deactivate</button><button class="action-btn red" onclick="event.stopPropagation();deleteUser(this,'Maria Gonzalez')">Delete</button></td></tr>
-              <tr onclick="openEditModal('Alex','Torres','alex.torres@capitolauto.com','(240) 555-0181','Technician','Capitol Auto Body')"><td><div class="user-avatar" style="background:#bee3f8;color:#2a4365">AT</div></td><td style="font-weight:600">Alex Torres</td><td>alex.torres@capitolauto.com</td><td>(240) 555-0181</td><td><span class="abadge abadge-green">Technician</span></td><td>Capitol Auto Body</td><td><span class="abadge abadge-green">Active</span></td><td style="color:var(--muted)">Today</td><td><button class="action-btn" onclick="event.stopPropagation();openEditModal('Alex','Torres','alex.torres@capitolauto.com','(240) 555-0181','Technician','Capitol Auto Body')">Edit</button><button class="action-btn green" onclick="event.stopPropagation();t('Reset sent to Alex Torres')">Reset</button><button class="action-btn" style="background:#fefcbf;border-color:#f6e05e;color:#744210" onclick="event.stopPropagation();deactivateUser(this,'Alex Torres')">Deactivate</button><button class="action-btn red" onclick="event.stopPropagation();deleteUser(this,'Alex Torres')">Delete</button></td></tr>
-              <tr onclick="openEditModal('Kevin','Lee','kevin.lee@capitolauto.com','(443) 555-0197','Technician','Capitol Auto Body')"><td><div class="user-avatar" style="background:#fed7d7;color:#822727">KL</div></td><td style="font-weight:600">Kevin Lee</td><td>kevin.lee@capitolauto.com</td><td>(443) 555-0197</td><td><span class="abadge abadge-green">Technician</span></td><td>Capitol Auto Body</td><td><span class="abadge abadge-green">Active</span></td><td style="color:var(--muted)">2 days ago</td><td><button class="action-btn" onclick="event.stopPropagation();openEditModal('Kevin','Lee','kevin.lee@capitolauto.com','(443) 555-0197','Technician','Capitol Auto Body')">Edit</button><button class="action-btn green" onclick="event.stopPropagation();t('SMS reset sent to Kevin Lee')">Reset</button><button class="action-btn" style="background:#fefcbf;border-color:#f6e05e;color:#744210" onclick="event.stopPropagation();deactivateUser(this,'Kevin Lee')">Deactivate</button><button class="action-btn red" onclick="event.stopPropagation();deleteUser(this,'Kevin Lee')">Delete</button></td></tr>
-              <tr onclick="openEditModal('Sarah','Johnson','sarah.j@ssm.com','(240) 555-0245','Technician','Silver Spring Mechanics')"><td><div class="user-avatar" style="background:#fefcbf;color:#744210">SJ</div></td><td style="font-weight:600">Sarah Johnson</td><td>sarah.j@ssm.com</td><td>(240) 555-0245</td><td><span class="abadge abadge-green">Technician</span></td><td>Silver Spring Mech.</td><td><span class="abadge abadge-yellow">Pending invite</span></td><td style="color:var(--muted)">Never</td><td><button class="action-btn green" onclick="event.stopPropagation();t('Invite resent to sarah.j@ssm.com')">Resend invite</button><button class="action-btn red" onclick="event.stopPropagation();deleteUser(this,'Sarah Johnson')">Delete</button></td></tr>
-              <tr onclick="openEditModal('David','Park','david.park@ssm.com','(301) 555-0210','Service advisor','Silver Spring Mechanics')"><td><div class="user-avatar" style="background:#bee3f8;color:#2a4365">DP</div></td><td style="font-weight:600">David Park</td><td>david.park@ssm.com</td><td>(301) 555-0210</td><td><span class="abadge abadge-blue">Service advisor</span></td><td>Silver Spring Mech.</td><td><span class="abadge abadge-green">Active</span></td><td style="color:var(--muted)">Today</td><td><button class="action-btn" onclick="event.stopPropagation();openEditModal('David','Park','david.park@ssm.com','(301) 555-0210','Service advisor','Silver Spring Mechanics')">Edit</button><button class="action-btn green" onclick="event.stopPropagation();t('Reset sent to David Park')">Reset</button><button class="action-btn" style="background:#fefcbf;border-color:#f6e05e;color:#744210" onclick="event.stopPropagation();deactivateUser(this,'David Park')">Deactivate</button><button class="action-btn red" onclick="event.stopPropagation();deleteUser(this,'David Park')">Delete</button></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ROLES PAGE -->
-    <div class="page" id="page-roles">
-      <div class="acontent">
-        <div class="admin-card">
-          <div class="admin-card-header">Role permission matrix</div>
-          <div style="overflow-x:auto;padding:12px 14px">
-            <table class="perm-matrix">
-              <thead><tr><th style="min-width:170px">Permission</th><th>Super admin</th><th>Manager</th><th>Service advisor</th><th>Technician</th></tr></thead>
-              <tbody>
-                <tr><td>View all shops</td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td></tr>
-                <tr><td>Manage billing</td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td></tr>
-                <tr><td>Create / delete users</td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Own shop</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td></tr>
-                <tr><td>View all repair orders</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Own ROs</span></td><td><span class="perm-partial">Assigned</span></td></tr>
-                <tr><td>Create repair orders</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td></tr>
-                <tr><td>Approve estimates</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td></tr>
-                <tr><td>Update labor status</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Own lines</span></td></tr>
-                <tr><td>Clock in / out</td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td><td><span class="perm-check">✓</span></td></tr>
-                <tr><td>View financial data</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Invoices only</span></td><td><span class="perm-x">—</span></td></tr>
-                <tr><td>Send customer SMS</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td></tr>
-                <tr><td>ETL migration</td><td><span class="perm-check">✓</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td><td><span class="perm-x">—</span></td></tr>
-                <tr><td>View reports</td><td><span class="perm-check">✓</span></td><td><span class="perm-check">✓</span></td><td><span class="perm-partial">Limited</span></td><td><span class="perm-x">—</span></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- INVITES PAGE -->
-    <div class="page" id="page-invites">
-      <div class="acontent">
-        <div class="admin-card">
-          <div class="admin-card-header">Pending invites (2) <span style="font-size:.68rem;font-weight:400;color:var(--muted)">Links expire after 72 hours</span></div>
-          <table class="admin-table">
-            <thead><tr><th>Email</th><th>Phone</th><th>Role</th><th>Shop</th><th>Invited</th><th>Expires</th><th>Actions</th></tr></thead>
-            <tbody>
-              <tr><td>sarah.j@ssm.com</td><td>(240) 555-0245</td><td><span class="abadge abadge-green">Technician</span></td><td>Silver Spring</td><td style="color:var(--muted)">2h ago</td><td style="color:#b7791f">70h left</td><td><button class="action-btn green" onclick="t('Invite resent to sarah.j@ssm.com')">Resend</button><button class="action-btn red" onclick="t('Invite cancelled')">Cancel</button></td></tr>
-              <tr><td>chris.j@bethesda.com</td><td>(571) 555-0220</td><td><span class="abadge abadge-blue">Service advisor</span></td><td>Bethesda</td><td style="color:var(--muted)">1 day ago</td><td style="color:#c53030">22h left</td><td><button class="action-btn green" onclick="t('Invite resent to chris.j@bethesda.com')">Resend</button><button class="action-btn red" onclick="t('Invite cancelled')">Cancel</button></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="admin-card">
-          <div class="admin-card-header">How invites work</div>
-          <div style="padding:12px 14px;font-size:.78rem;color:var(--muted);line-height:1.9">
-            <div>1. Create a user with email and phone number</div>
-            <div>2. Invite email sent instantly with secure link to set password</div>
-            <div>3. User clicks link, sets password, logged in to their portal immediately</div>
-            <div>4. Expired invites can be resent — a new secure link is generated</div>
-            <div>5. Phone saved for SMS-based self-service password reset via Twilio</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PASSWORD RESETS PAGE -->
-    <div class="page" id="page-resets">
-      <div class="acontent">
-        <div class="grid2">
-          <div class="admin-card">
-            <div class="admin-card-header">Recent reset activity (24h)</div>
-            <table class="admin-table">
-              <thead><tr><th>User</th><th>Method</th><th>Time</th><th>Status</th></tr></thead>
-              <tbody>
-                <tr><td style="font-weight:600">Alex Torres</td><td>Email link</td><td style="color:var(--muted)">2h ago</td><td><span class="abadge abadge-green">Completed</span></td></tr>
-                <tr><td style="font-weight:600">Kevin Lee</td><td>SMS OTP</td><td style="color:var(--muted)">Yesterday</td><td><span class="abadge abadge-green">Completed</span></td></tr>
-                <tr><td style="font-weight:600">Sarah Johnson</td><td>Email link</td><td style="color:var(--muted)">3 days ago</td><td><span class="abadge abadge-yellow">Pending</span></td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="admin-card">
-            <div class="admin-card-header">Self-service reset methods</div>
-            <div style="padding:12px 14px;display:flex;flex-direction:column;gap:9px">
-              <div style="padding:9px 11px;background:#f8fafc;border-radius:8px"><div style="font-size:.78rem;font-weight:600;margin-bottom:3px">📧 Email reset link</div><div style="font-size:.7rem;color:var(--muted);line-height:1.5">User enters email on login. Secure link emailed instantly. Expires 1 hour.</div></div>
-              <div style="padding:9px 11px;background:#f8fafc;border-radius:8px"><div style="font-size:.78rem;font-weight:600;margin-bottom:3px">📱 SMS one-time code</div><div style="font-size:.7rem;color:var(--muted);line-height:1.5">User enters phone number. 6-digit OTP via Twilio. Expires 10 min. Phone must be on file.</div></div>
-              <div style="padding:9px 11px;background:#f8fafc;border-radius:8px"><div style="font-size:.78rem;font-weight:600;margin-bottom:3px">🔑 Admin-initiated reset</div><div style="font-size:.7rem;color:var(--muted);line-height:1.5">Super admin triggers from user table. User gets email or SMS based on preference.</div></div>
+        <div class="card">
+          <div class="card-header">Import CSV</div>
+          <form id="import-form" style="padding:14px">
+            <div style="margin-bottom:8px">
+              <label class="form-label">Import into</label>
+              <select class="form-input" name="kind" id="import-kind">
+                <option value="customers">Customers</option>
+                <option value="vehicles">Vehicles</option>
+              </select>
             </div>
-          </div>
+            <div class="note note-info" id="import-hint" style="margin-bottom:10px"></div>
+            <label class="etl-upload-area" for="import-file">
+              <div style="font-size:1.5rem;margin-bottom:8px">📁</div>
+              <div style="font-size:.78rem;font-weight:600;margin-bottom:4px">Choose CSV file</div>
+              <div style="font-size:.68rem;color:var(--muted)" id="import-filename">No file selected</div>
+            </label>
+            <input type="file" id="import-file" name="file" accept=".csv,text/csv" style="display:none"/>
+            <button class="btn btn-gold" type="submit">Import into <span id="import-ws-label">this shop</span></button>
+          </form>
         </div>
-        <div class="admin-card">
-          <div class="admin-card-header">Send manual reset</div>
-          <div style="padding:12px 14px;display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
-            <div style="flex:1;min-width:160px"><div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">User</div><select class="form-input" style="margin-bottom:0"><option>Alex Torres</option><option>Maria Gonzalez</option><option>Kevin Lee</option><option>James Reed</option></select></div>
-            <div style="flex:1;min-width:130px"><div style="font-size:.72rem;color:var(--muted);margin-bottom:4px">Method</div><select class="form-input" style="margin-bottom:0"><option>Email link</option><option>SMS OTP</option><option>Both</option></select></div>
-            <button class="btn btn-sm btn-accent" onclick="t('Password reset sent to selected user')">Send reset</button>
-          </div>
-        </div>
+      </div>
+      <div class="card" id="import-result-card" style="display:none">
+        <div class="card-header">Import result</div>
+        <div id="import-result" style="padding:14px"></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="page" id="page-users">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total users</div><div class="stat-value" id="u-total">—</div></div>
+        <div class="stat-card"><div class="stat-label">Active</div><div class="stat-value" id="u-active">—</div></div>
+        <div class="stat-card"><div class="stat-label">Deactivated</div><div class="stat-value" id="u-inactive">—</div></div>
+        <div class="stat-card"><div class="stat-label">Super admins</div><div class="stat-value" id="u-admins">—</div></div>
+      </div>
+      <div class="filter-bar">
+        <input class="form-input" style="flex:1" id="user-search" placeholder="Search by name or email…"/>
+        <select class="form-input" style="width:auto;min-width:150px" id="user-ws-filter"><option value="">All shops</option></select>
+        <select class="form-input" style="width:auto;min-width:130px" id="user-role-filter">
+          <option value="">All roles</option>
+          <option value="super_admin">Super admin</option>
+          <option value="manager">Manager</option>
+          <option value="service_advisor">Service advisor</option>
+          <option value="technician">Technician</option>
+        </select>
+        <button class="btn btn-accent" id="invite-btn">+ Invite user</button>
+      </div>
+      <div class="card">
+        <div class="card-header">All users</div>
+        <table class="dt">
+          <thead><tr><th></th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Shops</th><th>Status</th><th>Last login</th><th>Actions</th></tr></thead>
+          <tbody id="users-body"></tbody>
+        </table>
       </div>
     </div>
 
@@ -597,392 +305,1049 @@ function logout(){ AUTH.logout(); }
     <div class="page" id="page-settings">
       <div class="grid2">
         <div class="card">
-          <div class="card-header">Platform settings</div>
-          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
-            <div><label class="form-label">Platform name</label><input class="form-input" value="AG Shop Pro"/></div>
-            <div><label class="form-label">Support email</label><input class="form-input" value="support@agshopro.com"/></div>
-            <div><label class="form-label">Default timezone</label><select class="form-input"><option>America/New_York (EST)</option><option>America/Chicago (CST)</option><option>America/Los_Angeles (PST)</option></select></div>
-            <button class="btn btn-gold" style="align-self:flex-start" onclick="t('Settings saved')">Save settings</button>
-          </div>
+          <div class="card-header">My profile</div>
+          <form id="profile-form" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div><label class="form-label">Email</label><input class="form-input" id="profile-email" disabled/></div>
+            <div><label class="form-label">Name</label><input class="form-input" name="name"/></div>
+            <div><label class="form-label">Phone</label><input class="form-input" name="phone"/></div>
+            <div style="border-top:1px solid var(--border);padding-top:10px">
+              <div style="font-size:.75rem;font-weight:600;margin-bottom:8px">Change password</div>
+              <div class="form-row" style="margin:0">
+                <div><label class="form-label">Current password</label><input class="form-input" name="currentPassword" type="password" autocomplete="current-password"/></div>
+                <div><label class="form-label">New password</label><input class="form-input" name="newPassword" type="password" autocomplete="new-password"/></div>
+              </div>
+              <div style="font-size:.65rem;color:var(--muted);margin-top:5px">Leave both blank to keep your current password. Minimum 8 characters.</div>
+            </div>
+            <button class="btn btn-gold" type="submit" style="align-self:flex-start">Save changes</button>
+          </form>
         </div>
         <div class="card">
-          <div class="card-header">Super admins</div>
-          <table class="dt">
-            <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
-            <tbody>
-              <tr><td style="font-weight:600">Naod Mekonnen</td><td>naod@agholdingcorp.com</td><td><span class="badge badge-purple">Owner</span></td></tr>
-              <tr><td style="font-weight:600">Abraham Lema</td><td>abraham@agholdingcorp.com</td><td><span class="badge badge-blue">Admin</span></td></tr>
-            </tbody>
-          </table>
-          <div style="padding:10px 14px"><button class="btn btn-sm btn-accent" onclick="t('Admin invite sent')">+ Add admin</button></div>
+          <div class="card-header">Email delivery test</div>
+          <form id="email-test-form" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div class="note note-info">Sends a real approval-style email through the configured SMTP server so you can verify delivery.</div>
+            <div><label class="form-label">Send test email to</label><input class="form-input" name="email" type="email" placeholder="you@example.com"/></div>
+            <button class="btn btn-accent" type="submit" style="align-self:flex-start">Send test email</button>
+            <div id="email-test-result"></div>
+          </form>
         </div>
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- SIGNUP DETAIL MODAL -->
+<div class="modal-overlay" id="signup-modal">
+  <div class="modal modal-wide">
+    <div class="modal-header"><h3>Signup request</h3><button class="modal-close" data-close="signup-modal">✕</button></div>
+    <div class="modal-body" id="signup-detail-body"></div>
+    <div class="modal-footer"><button class="btn btn-sm" data-close="signup-modal">Close</button></div>
+  </div>
+</div>
+
+<!-- INVITE USER MODAL -->
+<div class="modal-overlay" id="invite-modal">
+  <div class="modal">
+    <div class="modal-header"><h3>Invite user</h3><button class="modal-close" data-close="invite-modal">✕</button></div>
+    <form id="invite-form">
+      <div class="modal-body">
+        <div class="form-row" style="margin:0">
+          <div><label class="form-label">Full name *</label><input class="form-input" name="name" placeholder="John Smith"/></div>
+          <div><label class="form-label">Phone</label><input class="form-input" name="phone" type="tel" placeholder="(240) 555-0100"/></div>
+        </div>
+        <div style="margin-top:10px"><label class="form-label">Email address *</label><input class="form-input" name="email" type="email" placeholder="john@yourshop.com"/></div>
+        <div class="form-row" style="margin:10px 0 0">
+          <div><label class="form-label">Shop *</label><select class="form-input" name="workspaceId" id="invite-ws"></select></div>
+          <div><label class="form-label">Role *</label>
+            <select class="form-input" name="role">
+              <option value="technician">Technician</option>
+              <option value="service_advisor">Service advisor</option>
+              <option value="manager">Manager</option>
+              <option value="super_admin">Super admin</option>
+            </select>
+          </div>
+        </div>
+        <div class="note note-info" style="margin-top:12px">The account is created immediately with a temporary password shown here. There is no invite email — hand the password over yourself.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" type="button" data-close="invite-modal">Cancel</button>
+        <button class="btn btn-sm btn-accent" type="submit">Create user</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MANAGE USER MODAL -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal">
+    <div class="modal-header"><h3 id="user-modal-title">Manage user</h3><button class="modal-close" data-close="user-modal">✕</button></div>
+    <div class="modal-body" id="user-modal-body"></div>
+    <div class="modal-footer"><button class="btn btn-sm" data-close="user-modal">Close</button></div>
+  </div>
+</div>
+
+<!-- RESULT MODAL -->
+<div class="modal-overlay" id="result-modal">
+  <div class="modal">
+    <div class="modal-header"><h3 id="result-title">Done</h3><button class="modal-close" data-close="result-modal">✕</button></div>
+    <div class="modal-body" id="result-body"></div>
+    <div class="modal-footer"><button class="btn btn-sm btn-accent" data-close="result-modal">Close</button></div>
   </div>
 </div>
 
 <script>
+/* ============================================================
+   Super admin console. Every panel on this page is backed by a
+   real endpoint; anything the API cannot answer is not shown.
+   ============================================================ */
+
+var State = { session: null, workspaces: [], users: [], currentPage: 'workspaces', shopId: null };
+
+var ROLE_LABELS = {
+  super_admin: 'Super admin',
+  manager: 'Manager',
+  service_advisor: 'Service advisor',
+  technician: 'Technician',
+};
+var ROLE_BADGE = {
+  super_admin: 'badge-purple',
+  manager: 'badge-blue',
+  service_advisor: 'badge-blue',
+  technician: 'badge-green',
+};
+
+/* ── Helpers ── */
+
+function isAuthError(e) {
+  return e && (e.message === 'Session expired' || e.message === 'Unauthorized');
+}
+function fail(e) {
+  if (!isAuthError(e)) API.toast(e.message || 'Something went wrong.', 'error');
+}
+function esc(v) { return API.escape(v); }
+function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+function initials(name) {
+  return String(name || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0] || '').join('').toUpperCase() || '?';
+}
+function wsName(id) {
+  const ws = State.workspaces.find((w) => String(w.id) === String(id));
+  return ws ? ws.name : 'Shop #' + id;
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function showResult(title, html) {
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-body').innerHTML = html;
+  openModal('result-modal');
+}
+function pwBlock(label, password) {
+  return '<div style="margin-top:12px"><div class="form-label">' + esc(label) + '</div>' +
+         '<div class="pw-box">' + esc(password || '—') + '</div></div>';
+}
+
+/* ── Navigation ── */
+
+var PAGE_TITLES = {
+  workspaces: 'All shops',
+  'shop-detail': 'Shop detail',
+  onboard: 'Onboard shop',
+  techs: 'Technician performance',
+  etl: 'Data import',
+  users: 'Users',
+  settings: 'Settings',
+};
+var PAGE_LOADERS = {
+  workspaces: loadWorkspaces,
+  onboard: loadSignupQueue,
+  techs: loadTechs,
+  etl: loadEtl,
+  users: loadUsers,
+  settings: loadSettings,
+};
+
 function showPage(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
+  const page = document.getElementById('page-' + id);
+  if (!page) return;
+  page.classList.add('active');
   if (el) el.classList.add('active');
-  const titles = {'overview':'All shops overview','shop-detail':'Shop detail — Capitol Auto Body','alerts':'Platform alerts','billing':'Billing & subscriptions','onboard':'Onboard new shop','revenue':'Revenue analytics','techs':'All technicians','etl':'ETL migration','integrations':'Integrations','settings':'Settings','users':'Users','roles':'Roles & access','invites':'Pending invites','resets':'Password resets'};
-  document.getElementById('page-title').textContent = titles[id] || id;
+  State.currentPage = id;
+  document.getElementById('page-title').textContent = PAGE_TITLES[id] || id;
+  const loader = PAGE_LOADERS[id];
+  if (loader) loader();
 }
 
-function t(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2800);
+function reloadCurrentPage() {
+  if (State.currentPage === 'shop-detail' && State.shopId != null) return showShopDetail(State.shopId);
+  const loader = PAGE_LOADERS[State.currentPage];
+  if (loader) loader();
 }
 
-function fmtDate(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString();
+/* ── Workspaces ── */
+
+async function ensureWorkspaces() {
+  if (State.workspaces.length) return State.workspaces;
+  try {
+    State.workspaces = (await API.get('/api/workspaces', null, { workspace: false })) || [];
+    syncSessionWorkspaces(State.workspaces);
+  } catch (e) {
+    State.workspaces = [];
+  }
+  return State.workspaces;
+}
+
+/* Keep AUTH's session copy of the workspace list current, so the switcher can
+   reach shops created since sign-in. */
+function syncSessionWorkspaces(list) {
+  const s = AUTH.getSession();
+  if (!s) return;
+  s.workspaces = list;
+  const stillThere = list.some((w) => String(w.id) === String(s.activeWorkspaceId));
+  if (!stillThere) {
+    s.activeWorkspaceId = list.length ? list[0].id : null;
+    s.activeWorkspaceName = list.length ? list[0].name : '';
+  }
+  AUTH.setSession(s);
+  State.session = AUTH.getSession();
+}
+
+function renderWorkspaceSelects() {
+  const active = AUTH.getActiveWorkspaceId();
+  const opts = State.workspaces.map(
+    (w) => '<option value="' + esc(w.id) + '"' + (String(w.id) === String(active) ? ' selected' : '') + '>' + esc(w.name) + '</option>'
+  ).join('');
+
+  const sel = document.getElementById('ws-select');
+  sel.innerHTML = opts || '<option value="">No shops yet</option>';
+  sel.disabled = !State.workspaces.length;
+
+  document.getElementById('invite-ws').innerHTML = opts || '<option value="">No shops yet</option>';
+
+  const filter = document.getElementById('user-ws-filter');
+  const keep = filter.value;
+  filter.innerHTML = '<option value="">All shops</option>' +
+    State.workspaces.map((w) => '<option value="' + esc(w.id) + '">' + esc(w.name) + '</option>').join('');
+  filter.value = keep;
+
+  const s = AUTH.getSession();
+  document.getElementById('sidebar-shopname').textContent = (s && s.activeWorkspaceName) || '';
+  document.getElementById('import-ws-label').textContent = (s && s.activeWorkspaceName) || 'this shop';
+}
+
+async function loadWorkspaces() {
+  const host = document.getElementById('workspace-list');
+  const list = await API.load(host, async () => {
+    const rows = (await API.get('/api/workspaces', null, { workspace: false })) || [];
+    State.workspaces = rows;
+    syncSessionWorkspaces(rows);
+    renderWorkspaceSelects();
+    if (rows.length) host.innerHTML = rows.map(shopCardHtml).join('');
+    return rows;
+  }, { empty: 'No active workspaces yet. Approve a signup request to create one.' });
+
+  if (!list || !list.length) {
+    ['ov-shops', 'ov-revenue', 'ov-ros', 'ov-open'].forEach((id) => { document.getElementById(id).textContent = '—'; });
+    return;
+  }
+
+  document.getElementById('ov-shops').textContent = list.length;
+  host.querySelectorAll('[data-ws]').forEach((card) => {
+    card.addEventListener('click', () => showShopDetail(card.getAttribute('data-ws')));
+  });
+
+  /* Per-shop KPIs, fanned out; each card fills in as its call lands. */
+  const totals = { revenue: 0, ros: 0, open: 0 };
+  await Promise.all(list.map(async (ws) => {
+    try {
+      const k = await API.get('/api/reports/shop-kpis', { workspaceId: ws.id }, { workspace: false });
+      totals.revenue += num(k.total_revenue);
+      totals.ros += num(k.total_repair_orders);
+      totals.open += num(k.active_orders);
+      fillShopCard(ws.id, k);
+    } catch (e) {
+      const el = document.querySelector('[data-ws="' + ws.id + '"] .shop-kpi');
+      if (el) el.innerHTML = '<span style="color:var(--red);font-size:.62rem">' + esc(e.message) + '</span>';
+    }
+  }));
+
+  document.getElementById('ov-revenue').textContent = API.money(totals.revenue);
+  document.getElementById('ov-ros').textContent = totals.ros;
+  document.getElementById('ov-open').textContent = totals.open;
+}
+
+function shopCardHtml(ws) {
+  const meta = [ws.type, ws.address].filter(Boolean).map(esc).join(' · ') || 'No details on file';
+  return '' +
+    '<div class="shop-card" data-ws="' + esc(ws.id) + '">' +
+      '<div class="shop-status-dot" style="background:var(--green)"></div>' +
+      '<div>' +
+        '<div class="shop-name">' + esc(ws.name) + '</div>' +
+        '<div class="shop-meta">' + meta + '</div>' +
+      '</div>' +
+      '<div style="flex:1;margin:0 12px" class="shop-kpi">' +
+        '<div style="font-size:.62rem;color:var(--muted)">Loading…</div>' +
+      '</div>' +
+      '<div class="shop-stats">' +
+        '<div class="shop-rev" data-rev>—</div>' +
+        '<div class="shop-rev-sub" data-rosub>&nbsp;</div>' +
+      '</div>' +
+      '<span class="badge badge-green">Active</span>' +
+    '</div>';
+}
+
+function fillShopCard(id, k) {
+  const card = document.querySelector('[data-ws="' + id + '"]');
+  if (!card) return;
+  const total = num(k.total_repair_orders);
+  const done = num(k.completed_orders);
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  card.querySelector('.shop-kpi').innerHTML =
+    '<div class="burn-row" style="margin-bottom:0">' +
+      '<div class="burn-label-row" style="font-size:.62rem">' +
+        '<span style="color:var(--muted)">RO completion</span><span>' + pct + '%</span>' +
+      '</div>' +
+      '<div class="burn-track"><div class="burn-fill" style="width:' + pct + '%;background:var(--green)"></div></div>' +
+    '</div>';
+  card.querySelector('[data-rev]').textContent = API.money(k.total_revenue);
+  card.querySelector('[data-rosub]').textContent = total + ' ROs · ' + num(k.total_customers) + ' customers';
+}
+
+/* ── Shop detail ── */
+
+async function showShopDetail(id) {
+  State.shopId = id;
+  document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+  document.getElementById('page-shop-detail').classList.add('active');
+  State.currentPage = 'shop-detail';
+  document.getElementById('page-title').textContent = 'Shop detail — ' + wsName(id);
+  document.getElementById('sd-team-title').textContent = wsName(id) + ' — team';
+
+  const stats = document.getElementById('sd-stats');
+  API.load(stats, async () => {
+    const k = await API.get('/api/reports/shop-kpis', { workspaceId: id }, { workspace: false });
+    stats.innerHTML =
+      statCard('Revenue', API.money(k.total_revenue), 'All repair orders') +
+      statCard('Repair orders', num(k.total_repair_orders), num(k.completed_orders) + ' completed') +
+      statCard('Open ROs', num(k.active_orders), num(k.orders_waiting_parts) + ' awaiting parts') +
+      statCard('Avg ticket', API.money(k.avg_ticket_size), num(k.total_customers) + ' customers');
+    return k;
+  });
+
+  const team = document.getElementById('sd-team-body');
+  API.load(team, async () => {
+    const rows = (await API.get('/api/users/workspace', { workspaceId: id }, { workspace: false })) || [];
+    if (rows.length) {
+      team.innerHTML = rows.map((u) =>
+        '<tr>' +
+          '<td style="font-weight:600">' + esc(u.name) + '</td>' +
+          '<td>' + esc(ROLE_LABELS[u.role] || u.role) + '</td>' +
+          '<td>' + statusBadge(u.active) + '</td>' +
+          '<td style="color:var(--muted)">' + esc(u.last_login ? API.dateTime(u.last_login) : 'Never') + '</td>' +
+        '</tr>'
+      ).join('');
+    }
+    return rows;
+  }, { colspan: 4, empty: 'No users assigned to this shop.' });
+
+  const fin = document.getElementById('sd-financial');
+  API.load(fin, async () => {
+    const f = await API.get('/api/reports/financial-summary', { workspaceId: id }, { workspace: false });
+    const parts = num(f.parts_revenue);
+    const labor = num(f.labor_revenue);
+    const total = num(f.total_revenue);
+    const max = Math.max(parts, labor, 1);
+    fin.innerHTML =
+      burnRow('Parts', API.money(parts), Math.round((parts / max) * 100), 'var(--blue)') +
+      burnRow('Labor', API.money(labor), Math.round((labor / max) * 100), 'var(--gold)') +
+      '<div style="padding-top:8px;border-top:1px solid var(--border);font-size:.72rem;color:var(--muted)">' +
+        'Total revenue: <strong style="color:var(--green)">' + esc(API.money(total)) + '</strong> · ' +
+        num(f.total_labor_hours).toFixed(1) + ' labor hours · avg RO ' + esc(API.money(f.avg_repair_order_value)) +
+      '</div>';
+    return f;
+  });
+}
+
+function statCard(label, value, sub) {
+  return '<div class="stat-card"><div class="stat-label">' + esc(label) + '</div>' +
+         '<div class="stat-value">' + esc(value) + '</div>' +
+         '<div class="stat-sub">' + esc(sub) + '</div></div>';
+}
+function burnRow(label, value, pct, color) {
+  return '<div class="burn-row"><div class="burn-label-row"><span>' + esc(label) + '</span>' +
+         '<span style="font-weight:600">' + esc(value) + '</span></div>' +
+         '<div class="burn-track"><div class="burn-fill" style="width:' + pct + '%;background:' + color + '"></div></div></div>';
+}
+function statusBadge(active) {
+  return active
+    ? '<span class="badge badge-green">Active</span>'
+    : '<span class="badge badge-red">Deactivated</span>';
+}
+
+/* ── Signups ── */
+
+function signupStatusBadge(status) {
+  const cls = status === 'approved' ? 'badge-green' : status === 'rejected' ? 'badge-red' : 'badge-yellow';
+  return '<span class="badge ' + cls + '">' + esc(API.statusLabel(status)) + '</span>';
 }
 
 async function loadSignupQueue() {
   const body = document.getElementById('signup-queue-body');
-  if (!body) return;
-  body.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">Loading signup requests...</td></tr>';
-  try {
-    const res = await AUTH.apiFetch('/api/admin/signups');
-    const rows = await res.json();
-    if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="6" style="color:var(--muted)">No signup requests yet.</td></tr>';
-      return;
+  await API.load(body, async () => {
+    const rows = (await API.get('/api/admin/signups', null, { workspace: false })) || [];
+    updateSignupBadge(rows);
+    if (rows.length) {
+      body.innerHTML = rows.map((s) => {
+        let actions = '<button class="btn btn-sm" data-view="' + esc(s.id) + '">View</button>';
+        if (s.status === 'pending') {
+          actions += ' <button class="btn btn-sm btn-gold" data-approve="' + esc(s.id) + '">Approve</button>' +
+                     ' <button class="btn btn-sm btn-danger" data-reject="' + esc(s.id) + '">Reject</button>';
+        } else if (s.status === 'rejected') {
+          actions += ' <button class="btn btn-sm btn-accent" data-reinstate="' + esc(s.id) + '">Reinstate</button>';
+        }
+        return '<tr>' +
+          '<td style="font-weight:600">' + esc(s.shop_name || '—') + '</td>' +
+          '<td>' + esc(s.contact_name || '—') + '</td>' +
+          '<td>' + esc(s.contact_email || '—') + '</td>' +
+          '<td>' + signupStatusBadge(s.status) + '</td>' +
+          '<td style="color:var(--muted)">' + esc(API.dateTime(s.created_at)) + '</td>' +
+          '<td><div class="row-actions">' + actions + '</div></td>' +
+        '</tr>';
+      }).join('');
+      wireSignupActions(body);
     }
-    body.innerHTML = rows.slice(0, 25).map((s) => `
-      <tr>
-        <td style="font-weight:600">${s.shop_name || '—'}</td>
-        <td>${s.contact_name || '—'}</td>
-        <td>${s.contact_email || '—'}</td>
-        <td><span class="badge ${s.status === 'approved' ? 'badge-green' : s.status === 'rejected' ? 'badge-red' : 'badge-yellow'}">${s.status}</span></td>
-        <td>${fmtDate(s.created_at)}</td>
-        <td>
-          ${s.status === 'pending'
-            ? `<button class="btn btn-sm btn-gold" onclick="approveSignup(${s.id})">Approve</button>
-               <button class="btn btn-sm" style="margin-left:6px" onclick="rejectSignup(${s.id})">Reject</button>`
-            : '—'}
-        </td>
-      </tr>
-    `).join('');
-  } catch (e) {
-    body.innerHTML = '<tr><td colspan="6" style="color:var(--red)">Failed to load signup queue.</td></tr>';
-  }
+    return rows;
+  }, { colspan: 6, empty: 'No signup requests yet.' });
+}
+
+function wireSignupActions(body) {
+  body.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => viewSignup(b.getAttribute('data-view'))));
+  body.querySelectorAll('[data-approve]').forEach((b) => b.addEventListener('click', () => approveSignup(b.getAttribute('data-approve'))));
+  body.querySelectorAll('[data-reject]').forEach((b) => b.addEventListener('click', () => rejectSignup(b.getAttribute('data-reject'))));
+  body.querySelectorAll('[data-reinstate]').forEach((b) => b.addEventListener('click', () => reinstateSignup(b.getAttribute('data-reinstate'))));
+}
+
+async function updateSignupBadge(rows) {
+  const badge = document.getElementById('signup-badge');
+  const pending = (rows || []).filter((s) => s.status === 'pending').length;
+  badge.textContent = pending;
+  badge.style.display = pending ? '' : 'none';
+}
+
+async function refreshSignupBadge() {
+  try {
+    updateSignupBadge(await API.get('/api/admin/signups', null, { workspace: false }));
+  } catch (e) { /* the queue itself reports load failures */ }
+}
+
+async function viewSignup(id) {
+  const body = document.getElementById('signup-detail-body');
+  openModal('signup-modal');
+  await API.load(body, async () => {
+    const d = await API.get('/api/admin/signups/' + encodeURIComponent(id), null, { workspace: false });
+    renderSignupDetail(body, d);
+    return d;
+  });
+}
+
+function renderSignupDetail(host, d) {
+  const s = d.signup || {};
+  const rows = [
+    ['Shop', s.shop_name], ['Type', s.shop_type], ['Owner', s.contact_name],
+    ['Email', s.contact_email], ['Phone', s.contact_phone], ['Annual revenue', s.annual_revenue],
+    ['Technicians', s.technicians], ['Employees', s.employees], ['Service advisor', s.has_advisor],
+    ['Current tools', s.tools], ['Pain point', s.pain_point], ['Source', s.source],
+    ['Submitted', API.dateTime(s.created_at)],
+  ];
+  if (s.workspace_id) rows.push(['Provisioned workspace', wsName(s.workspace_id)]);
+  if (s.rejection_comment) rows.push(['Rejection reason', s.rejection_comment]);
+
+  const audit = d.auditHistory || [];
+  const auditHtml = audit.length
+    ? '<table class="dt"><thead><tr><th>Action</th><th>Status change</th><th>Comment</th><th>By</th><th>When</th></tr></thead><tbody>' +
+      audit.map((a) =>
+        '<tr>' +
+          '<td style="font-weight:600">' + esc(API.statusLabel(a.action)) + '</td>' +
+          '<td>' + esc(a.old_status || '—') + ' → ' + esc(a.new_status || '—') + '</td>' +
+          '<td>' + esc(a.comment || a.reason || '—') + '</td>' +
+          '<td>' + esc(a.performed_by ? 'User #' + a.performed_by : 'System') + '</td>' +
+          '<td style="color:var(--muted)">' + esc(API.dateTime(a.created_at)) + '</td>' +
+        '</tr>'
+      ).join('') + '</tbody></table>'
+    : '<div style="padding:12px;color:var(--muted);font-size:.72rem">No audit entries recorded for this request.</div>';
+
+  host.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+      '<div style="font-size:.9rem;font-weight:600">' + esc(s.shop_name || 'Signup #' + s.id) + '</div>' +
+      signupStatusBadge(s.status) +
+    '</div>' +
+    '<div class="kv">' + rows.map((r) => '<span>' + esc(r[0]) + '</span><span>' + esc(r[1] == null || r[1] === '' ? '—' : r[1]) + '</span>').join('') + '</div>' +
+    '<div style="font-size:.75rem;font-weight:600;margin:16px 0 8px">Audit history</div>' +
+    '<div style="border:1px solid var(--border);border-radius:9px;overflow:hidden">' + auditHtml + '</div>';
 }
 
 async function approveSignup(id) {
-  if (!confirm('Approve this signup and provision workspace + owner account?')) return;
+  if (!confirm('Approve this signup? This provisions a live workspace and an owner account.')) return;
   try {
-    const res = await AUTH.apiFetch(`/api/admin/signups/${id}/approve`, { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Approve failed');
-    t('Signup approved. Temp password: ' + data.tempPassword);
+    const d = await API.post('/api/admin/signups/' + encodeURIComponent(id) + '/approve', undefined, { workspace: false });
+    const emailNote = d.emailSent
+      ? '<div class="note note-ok" style="margin-top:10px">The credentials email was sent to the owner.</div>'
+      : '<div class="note note-bad" style="margin-top:10px">The credentials email FAILED to send. Give this temporary password to the owner yourself.</div>';
+    showResult('Signup approved',
+      '<div class="kv">' +
+        '<span>Workspace</span><span>' + esc(d.workspace ? d.workspace.name : '—') + '</span>' +
+        '<span>Owner</span><span>' + esc(d.user ? d.user.name : '—') + '</span>' +
+        '<span>Sign-in email</span><span>' + esc(d.user ? d.user.email : '—') + '</span>' +
+      '</div>' +
+      pwBlock('Temporary password', d.tempPassword) +
+      emailNote);
+    State.workspaces = [];
+    await ensureWorkspaces();
+    renderWorkspaceSelects();
     loadSignupQueue();
-  } catch (e) {
-    t('Approve failed: ' + e.message);
-  }
+  } catch (e) { fail(e); }
 }
 
 async function rejectSignup(id) {
-  if (!confirm('Reject this signup request?')) return;
+  const comment = prompt('Reason for rejection (included in the email to the applicant):');
+  if (comment === null) return;
   try {
-    const res = await AUTH.apiFetch(`/api/admin/signups/${id}/reject`, { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Reject failed');
-    t('Signup rejected');
+    const d = await API.post('/api/admin/signups/' + encodeURIComponent(id) + '/reject', { comment: comment }, { workspace: false });
+    API.toast(
+      d.emailSent ? 'Signup rejected and the applicant was notified.' : 'Signup rejected, but the notification email failed to send.',
+      d.emailSent ? 'success' : 'warn'
+    );
     loadSignupQueue();
-  } catch (e) {
-    t('Reject failed: ' + e.message);
-  }
+  } catch (e) { fail(e); }
 }
 
-async function submitOnboardSignup() {
-  const first = document.getElementById('signup-first').value.trim();
-  const last = document.getElementById('signup-last').value.trim();
-  const email = document.getElementById('signup-email').value.trim();
-  const phone = document.getElementById('signup-phone').value.trim();
-  const shop = document.getElementById('signup-shop').value.trim();
-  const type = document.getElementById('signup-type').value;
-  const plan = document.getElementById('signup-plan').value;
-  if (!first || !email || !shop) {
-    t('Owner first name, email, and shop name are required.');
+async function reinstateSignup(id) {
+  if (!confirm('Reinstate this rejected signup? It returns to the pending queue.')) return;
+  try {
+    const d = await API.post('/api/admin/signups/' + encodeURIComponent(id) + '/reinstate', undefined, { workspace: false });
+    API.toast(
+      d.emailSent ? 'Signup reinstated and the applicant was notified.' : 'Signup reinstated, but the notification email failed to send.',
+      d.emailSent ? 'success' : 'warn'
+    );
+    loadSignupQueue();
+  } catch (e) { fail(e); }
+}
+
+/* ── Technicians ── */
+
+async function loadTechs() {
+  const body = document.getElementById('techs-body');
+  await API.load(body, async () => {
+    const shops = await ensureWorkspaces();
+    if (!shops.length) return [];
+    const perShop = await Promise.all(shops.map(async (ws) => {
+      const rows = (await API.get('/api/reports/technician-performance', { workspaceId: ws.id }, { workspace: false })) || [];
+      return rows.map((r) => Object.assign({}, r, { shop: ws.name }));
+    }));
+    const flat = perShop.reduce((a, b) => a.concat(b), [])
+      .filter((r) => num(r.repair_orders_completed) > 0 || num(r.total_tracked_minutes) > 0)
+      .sort((a, b) => num(b.labor_revenue) - num(a.labor_revenue));
+    if (flat.length) {
+      body.innerHTML = flat.map((r) =>
+        '<tr>' +
+          '<td style="font-weight:600">' + esc(r.name) + '</td>' +
+          '<td>' + esc(r.shop) + '</td>' +
+          '<td>' + num(r.repair_orders_completed) + '</td>' +
+          '<td>' + num(r.total_hours).toFixed(1) + 'h</td>' +
+          '<td>' + (num(r.total_tracked_minutes) / 60).toFixed(1) + 'h</td>' +
+          '<td style="font-weight:600">' + esc(API.money(r.labor_revenue)) + '</td>' +
+          '<td>' + esc(API.money(r.revenue_per_order)) + '</td>' +
+        '</tr>'
+      ).join('');
+    }
+    return flat;
+  }, { colspan: 7, empty: 'No completed labor or tracked time recorded in any shop yet.' });
+}
+
+/* ── Data import ── */
+
+var IMPORT_HINTS = {
+  customers: 'CSV columns: full_name (or name) — required · email · phone. Rows with a duplicate email are skipped.',
+  vehicles: 'CSV columns: vin, make, model — required · year · plate (or license_plate) · mileage · customer_email to link an existing customer. Duplicate VINs are skipped.',
+};
+
+async function loadEtl() {
+  const host = document.getElementById('mitchell-status');
+  document.getElementById('import-hint').textContent = IMPORT_HINTS[document.getElementById('import-kind').value];
+  await API.load(host, async () => {
+    const d = await API.mitchellStatus();
+    renderMitchell(host, d);
+    return d;
+  });
+}
+
+function renderMitchell(host, d) {
+  const c = d.counts || {};
+  const rows = [
+    ['Customers', c.customers], ['Vehicles', c.vehicles], ['Repair orders', c.repair_orders],
+    ['Labor lines', c.labor_lines], ['Parts lines', c.parts_lines],
+  ];
+  const sync = d.lastSync;
+  host.innerHTML =
+    '<div class="integration-row">' +
+      '<div><div class="int-name">Mitchell 1</div>' +
+      '<div class="int-desc">' + (d.connectedAt ? 'Connected ' + esc(API.dateTime(d.connectedAt)) : 'Not connected for this shop') + '</div></div>' +
+      (d.connected ? '<span class="badge badge-green">Connected</span>' : '<span class="badge badge-gray">Not connected</span>') +
+    '</div>' +
+    '<div style="padding:12px 14px">' +
+      '<div class="form-label">Records in this shop</div>' +
+      '<div class="kv" style="margin-top:4px">' +
+        rows.map((r) => '<span>' + esc(r[0]) + '</span><span style="font-weight:600">' + num(r[1]).toLocaleString('en-US') + '</span>').join('') +
+      '</div>' +
+      (sync
+        ? '<div style="margin-top:10px;font-size:.68rem;color:var(--muted)">Last sync: ' + esc(API.dateTime(sync.last_sync_at)) + '</div>'
+        : '<div style="margin-top:10px;font-size:.68rem;color:var(--muted)">No sync has ever run for this shop.</div>') +
+    '</div>';
+}
+
+async function uploadCsv(kind, file, workspaceId) {
+  const fd = new FormData();
+  fd.append('file', file);
+  let res;
+  try {
+    res = await AUTH.apiFetch('/api/import/' + kind + '?workspaceId=' + encodeURIComponent(workspaceId), { method: 'POST', body: fd });
+  } catch (e) {
+    if (isAuthError(e)) throw e;
+    throw new ApiError('Unable to reach the server. Check your connection.', 0);
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError((data && (data.error || data.message)) || API.messageForStatus(res.status), res.status, data);
+  return data;
+}
+
+function renderImportResult(kind, r) {
+  const card = document.getElementById('import-result-card');
+  const host = document.getElementById('import-result');
+  const errors = r.errors || [];
+  card.style.display = '';
+  host.innerHTML =
+    '<div class="stats-grid" style="margin-bottom:' + (errors.length ? '12px' : '0') + '">' +
+      statCard('Rows in file', num(r.total), 'Parsed from the CSV') +
+      statCard('Imported', num(r.success), 'New ' + kind) +
+      statCard('Duplicates skipped', num(r.duplicates), 'Already in this shop') +
+      statCard('Errors', num(errors.length), errors.length ? 'Rows rejected' : 'None') +
+    '</div>' +
+    (errors.length
+      ? '<table class="dt"><thead><tr><th style="width:90px">CSV row</th><th>Reason</th></tr></thead><tbody>' +
+        errors.map((e) => '<tr><td>' + esc(e.row) + '</td><td>' + esc(e.reason) + '</td></tr>').join('') +
+        '</tbody></table>'
+      : '');
+}
+
+/* ── Users ── */
+
+async function loadUsers() {
+  await ensureWorkspaces();
+  renderWorkspaceSelects();
+  const body = document.getElementById('users-body');
+  await API.load(body, async () => {
+    const rows = (await API.get('/api/users', null, { workspace: false })) || [];
+    State.users = rows;
+    if (rows.length) renderUsers();
+    renderUserStats(rows);
+    return rows;
+  }, { colspan: 9, empty: 'No users yet.' });
+}
+
+function renderUserStats(rows) {
+  document.getElementById('u-total').textContent = rows.length;
+  document.getElementById('u-active').textContent = rows.filter((u) => u.active).length;
+  document.getElementById('u-inactive').textContent = rows.filter((u) => !u.active).length;
+  document.getElementById('u-admins').textContent = rows.filter((u) => u.role === 'super_admin').length;
+}
+
+function filteredUsers() {
+  const q = document.getElementById('user-search').value.trim().toLowerCase();
+  const ws = document.getElementById('user-ws-filter').value;
+  const role = document.getElementById('user-role-filter').value;
+  return State.users.filter((u) => {
+    if (q && !((u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))) return false;
+    if (ws && !(u.workspace_ids || []).map(String).includes(String(ws))) return false;
+    if (role && u.role !== role) return false;
+    return true;
+  });
+}
+
+function renderUsers() {
+  const body = document.getElementById('users-body');
+  const rows = filteredUsers();
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="9" style="padding:24px;text-align:center;color:#6b7280">No users match these filters.</td></tr>';
     return;
   }
+  const meId = State.session ? State.session.id : null;
+  body.innerHTML = rows.map((u) => {
+    const isMe = String(u.id) === String(meId);
+    const shops = (u.workspace_ids || []).length
+      ? (u.workspace_ids || []).map((id) => esc(wsName(id))).join(', ')
+      : '<span style="color:var(--muted)">None</span>';
+    let actions = '<button class="btn btn-sm" data-manage="' + esc(u.id) + '">Manage</button>';
+    if (!isMe) {
+      actions += ' <button class="btn btn-sm" data-reset="' + esc(u.id) + '">Reset password</button>';
+      actions += u.active
+        ? ' <button class="btn btn-sm btn-danger" data-deactivate="' + esc(u.id) + '">Deactivate</button>'
+        : ' <button class="btn btn-sm btn-gold" data-reactivate="' + esc(u.id) + '">Reactivate</button>';
+    }
+    return '<tr>' +
+      '<td><div class="user-avatar">' + esc(initials(u.name)) + '</div></td>' +
+      '<td style="font-weight:600">' + esc(u.name) + (isMe ? ' <span class="badge badge-gray">You</span>' : '') + '</td>' +
+      '<td>' + esc(u.email) + '</td>' +
+      '<td>' + esc(u.phone || '—') + '</td>' +
+      '<td><span class="badge ' + (ROLE_BADGE[u.role] || 'badge-gray') + '">' + esc(ROLE_LABELS[u.role] || u.role) + '</span></td>' +
+      '<td>' + shops + '</td>' +
+      '<td>' + statusBadge(u.active) + '</td>' +
+      '<td style="color:var(--muted)">' + esc(u.last_login ? API.dateTime(u.last_login) : 'Never') + '</td>' +
+      '<td><div class="row-actions">' + actions + '</div></td>' +
+    '</tr>';
+  }).join('');
+
+  body.querySelectorAll('[data-manage]').forEach((b) => b.addEventListener('click', () => openUserModal(b.getAttribute('data-manage'))));
+  body.querySelectorAll('[data-reset]').forEach((b) => b.addEventListener('click', () => resetUserPassword(b.getAttribute('data-reset'))));
+  body.querySelectorAll('[data-deactivate]').forEach((b) => b.addEventListener('click', () => setUserActive(b.getAttribute('data-deactivate'), false)));
+  body.querySelectorAll('[data-reactivate]').forEach((b) => b.addEventListener('click', () => setUserActive(b.getAttribute('data-reactivate'), true)));
+}
+
+function findUser(id) {
+  return State.users.find((u) => String(u.id) === String(id));
+}
+
+/* Workspace to act through for a user-scoped call. The API authorises the
+   change against a workspace the target actually belongs to. */
+function userWorkspaceId(u, chosen) {
+  if (chosen) return chosen;
+  const ids = u.workspace_ids || [];
+  const active = AUTH.getActiveWorkspaceId();
+  if (active != null && ids.map(String).includes(String(active))) return active;
+  return ids.length ? ids[0] : active;
+}
+
+async function resetUserPassword(id, chosenWs) {
+  const u = findUser(id);
+  if (!u) return;
+  if (!confirm('Reset the password for ' + u.name + '? Their current password stops working and all their sessions end.')) return;
+  const wsId = userWorkspaceId(u, chosenWs);
+  if (wsId == null) return API.toast('This user belongs to no shop, so there is no workspace to authorise the reset.', 'error');
   try {
-    const res = await fetch('/api/signup', {
+    const d = await API.post('/api/users/' + encodeURIComponent(id) + '/reset-password', undefined, { query: { workspaceId: wsId } });
+    showResult('Password reset',
+      '<div class="kv"><span>User</span><span>' + esc(d.user.name) + '</span>' +
+      '<span>Email</span><span>' + esc(d.user.email) + '</span></div>' +
+      pwBlock('Temporary password', d.tempPassword) +
+      '<div class="note note-info" style="margin-top:10px">No email is sent for an admin reset. Copy this password and give it to the user directly — it is shown once.</div>');
+  } catch (e) { fail(e); }
+}
+
+async function setUserActive(id, active) {
+  const u = findUser(id);
+  if (!u) return;
+  const verb = active ? 'Reactivate' : 'Deactivate';
+  if (!confirm(verb + ' ' + u.name + '?' + (active ? '' : ' Their sessions end immediately and they lose access.'))) return;
+  try {
+    await API.post('/api/users/' + encodeURIComponent(id) + '/' + (active ? 'reactivate' : 'deactivate'), undefined, { workspace: false });
+    API.toast(u.name + (active ? ' reactivated.' : ' deactivated.'), 'success');
+    loadUsers();
+  } catch (e) { fail(e); }
+}
+
+function openUserModal(id) {
+  const u = findUser(id);
+  if (!u) return;
+  const isMe = State.session && String(u.id) === String(State.session.id);
+  const ids = u.workspace_ids || [];
+  document.getElementById('user-modal-title').textContent = 'Manage — ' + u.name;
+
+  const wsOptions = ids.map((wid) => '<option value="' + esc(wid) + '">' + esc(wsName(wid)) + '</option>').join('');
+  const roleOptions = Object.keys(ROLE_LABELS).map(
+    (r) => '<option value="' + r + '"' + (r === u.role ? ' selected' : '') + '>' + ROLE_LABELS[r] + '</option>'
+  ).join('');
+
+  const body = document.getElementById('user-modal-body');
+  body.innerHTML =
+    '<div class="kv" style="margin-bottom:14px">' +
+      '<span>Name</span><span style="font-weight:600">' + esc(u.name) + '</span>' +
+      '<span>Email</span><span>' + esc(u.email) + '</span>' +
+      '<span>Phone</span><span>' + esc(u.phone || '—') + '</span>' +
+      '<span>Status</span><span>' + statusBadge(u.active) + '</span>' +
+      '<span>Last login</span><span>' + esc(u.last_login ? API.dateTime(u.last_login) : 'Never') + '</span>' +
+      '<span>Created</span><span>' + esc(API.date(u.created_at)) + '</span>' +
+    '</div>' +
+    '<div class="note note-info" style="margin-bottom:12px">Name, email and phone are the user\'s own to change from their profile — there is no admin endpoint to edit them.</div>' +
+    (isMe
+      ? '<div class="note note-bad">This is your own account. You cannot change your own role or status. Use Settings to edit your profile.</div>'
+      : !ids.length
+        ? '<div class="note note-bad">This user belongs to no shop, so role and membership cannot be changed. You can still deactivate them from the user list.</div>'
+        : '<div style="border-top:1px solid var(--border);padding-top:12px">' +
+            '<div style="font-size:.75rem;font-weight:600;margin-bottom:8px">Role &amp; membership</div>' +
+            '<div class="form-row" style="margin:0">' +
+              '<div><label class="form-label">Acting in shop</label><select class="form-input" id="um-ws">' + wsOptions + '</select></div>' +
+              '<div><label class="form-label">Role</label><select class="form-input" id="um-role">' + roleOptions + '</select></div>' +
+            '</div>' +
+            '<div style="font-size:.65rem;color:var(--muted);margin-top:6px">Changing a role ends that user\'s active sessions.</div>' +
+            '<div class="row-actions" style="margin-top:12px">' +
+              '<button class="btn btn-sm btn-accent" id="um-save-role">Save role</button>' +
+              '<button class="btn btn-sm" id="um-reset">Reset password</button>' +
+              '<button class="btn btn-sm btn-danger" id="um-remove">Remove from shop</button>' +
+            '</div>' +
+          '</div>');
+
+  if (!isMe && ids.length) {
+    document.getElementById('um-save-role').addEventListener('click', () => saveUserRole(u.id));
+    document.getElementById('um-reset').addEventListener('click', () => resetUserPassword(u.id, document.getElementById('um-ws').value));
+    document.getElementById('um-remove').addEventListener('click', () => removeFromWorkspace(u.id));
+  }
+  openModal('user-modal');
+}
+
+async function saveUserRole(id) {
+  const u = findUser(id);
+  const wsId = document.getElementById('um-ws').value;
+  const role = document.getElementById('um-role').value;
+  if (role === u.role) return API.toast('That is already this user\'s role.', 'info');
+  if (!confirm('Change ' + u.name + ' to ' + ROLE_LABELS[role] + ' in ' + wsName(wsId) + '? This ends their active sessions.')) return;
+  const btn = document.getElementById('um-save-role');
+  btn.disabled = true;
+  try {
+    await API.patch('/api/users/' + encodeURIComponent(id) + '/role', { role: role }, { query: { workspaceId: wsId } });
+    API.toast(u.name + ' is now ' + ROLE_LABELS[role] + '.', 'success');
+    closeModal('user-modal');
+    loadUsers();
+  } catch (e) {
+    fail(e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function removeFromWorkspace(id) {
+  const u = findUser(id);
+  const wsId = document.getElementById('um-ws').value;
+  if (!confirm('Remove ' + u.name + ' from ' + wsName(wsId) + '? If it is their last shop they are deactivated. Their sessions end immediately.')) return;
+  try {
+    const d = await API.del('/api/users/' + encodeURIComponent(id) + '/workspace', { query: { workspaceId: wsId } });
+    API.toast(
+      d && d.deactivated
+        ? u.name + ' was removed from their last shop and has been deactivated.'
+        : u.name + ' was removed from ' + wsName(wsId) + '.',
+      'success'
+    );
+    closeModal('user-modal');
+    loadUsers();
+  } catch (e) { fail(e); }
+}
+
+/* ── Settings ── */
+
+async function loadSettings() {
+  const s = AUTH.getSession();
+  if (!s) return;
+  document.getElementById('profile-email').value = s.email || '';
+  const form = document.getElementById('profile-form');
+  form.elements.name.value = s.name || '';
+  try {
+    const rows = (await API.get('/api/users', null, { workspace: false })) || [];
+    State.users = rows;
+    const me = rows.find((u) => String(u.id) === String(s.id));
+    if (me) {
+      form.elements.name.value = me.name || '';
+      form.elements.phone.value = me.phone || '';
+    }
+  } catch (e) {
+    if (!isAuthError(e)) API.toast('Could not load your current profile: ' + e.message, 'error');
+  }
+}
+
+/* ── Init ── */
+
+function init() {
+  const s = AUTH.getSession();
+  if (!s) return;
+  State.session = s;
+
+  document.getElementById('sidebar-username').textContent = s.name || 'User';
+  document.getElementById('sidebar-initials').textContent = initials(s.name);
+  document.getElementById('sidebar-shopname').textContent = s.activeWorkspaceName || '';
+  document.getElementById('today').textContent = API.date(new Date());
+  document.getElementById('signout-btn').addEventListener('click', () => AUTH.logout());
+
+  document.querySelectorAll('.nav-item').forEach((n) => {
+    n.addEventListener('click', () => showPage(n.getAttribute('data-page'), n));
+  });
+  document.querySelectorAll('[data-close]').forEach((b) => {
+    b.addEventListener('click', () => closeModal(b.getAttribute('data-close')));
+  });
+  document.querySelectorAll('.modal-overlay').forEach((o) => {
+    o.addEventListener('click', (ev) => { if (ev.target === o) o.classList.remove('open'); });
+  });
+  document.getElementById('back-to-shops').addEventListener('click', () => showPage('workspaces', document.querySelector('[data-page="workspaces"]')));
+  document.getElementById('signup-refresh').addEventListener('click', loadSignupQueue);
+  document.getElementById('invite-btn').addEventListener('click', () => {
+    renderWorkspaceSelects();
+    document.getElementById('invite-form').reset();
+    API.clearFieldErrors(document.getElementById('invite-form'));
+    openModal('invite-modal');
+  });
+
+  document.getElementById('ws-select').addEventListener('change', (ev) => {
+    if (!AUTH.switchWorkspace(ev.target.value)) return;
+    State.session = AUTH.getSession();
+    renderWorkspaceSelects();
+    reloadCurrentPage();
+  });
+
+  ['user-search', 'user-ws-filter', 'user-role-filter'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', () => { if (State.users.length) renderUsers(); });
+  });
+
+  document.getElementById('import-kind').addEventListener('change', (ev) => {
+    document.getElementById('import-hint').textContent = IMPORT_HINTS[ev.target.value];
+  });
+  document.getElementById('import-file').addEventListener('change', (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    document.getElementById('import-filename').textContent = f ? f.name + ' · ' + Math.ceil(f.size / 1024) + ' KB' : 'No file selected';
+  });
+
+  wireForms();
+  ensureWorkspaces().then(renderWorkspaceSelects);
+  refreshSignupBadge();
+  loadWorkspaces();
+}
+
+function wireForms() {
+  /* New shop signup request — real POST /api/signup (public endpoint). */
+  API.onSubmit(document.getElementById('signup-form'), async (data) => {
+    const res = await fetch(AUTH.API_BASE + '/api/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        first, last, email, phone, shop, type,
-        revenue: plan,
-        techs: null, employees: null, advisor: null,
-        pain: null, source: 'owner-onboard', tools: null,
-      }),
       credentials: 'same-origin',
+      body: JSON.stringify({
+        first: data.first, last: data.last, email: data.email, phone: data.phone,
+        shop: data.shop, type: data.type, revenue: data.revenue, techs: data.techs,
+        employees: data.employees, advisor: data.advisor, pain: data.pain,
+        tools: data.tools, source: 'super-admin-onboard',
+      }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Signup submit failed');
-    t('Signup request submitted and queued for approval.');
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiError((body && body.error) || API.messageForStatus(res.status), res.status);
+    API.toast('Signup request queued for approval.', 'success');
+    document.getElementById('signup-form').reset();
     loadSignupQueue();
-  } catch (e) {
-    t('Submit failed: ' + e.message);
-  }
+  }, {
+    validate: (d) => {
+      const errs = {};
+      if (!d.shop.trim()) errs.shop = 'Shop name is required.';
+      if (!d.first.trim()) errs.first = 'Owner first name is required.';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email.trim())) errs.email = 'A valid email address is required.';
+      return errs;
+    },
+  });
+
+  /* Invite user — real POST /api/users/invite. */
+  API.onSubmit(document.getElementById('invite-form'), async (data) => {
+    const d = await API.post('/api/users/invite',
+      { name: data.name.trim(), email: data.email.trim(), role: data.role, phone: data.phone.trim() || undefined },
+      { query: { workspaceId: data.workspaceId } });
+    closeModal('invite-modal');
+    if (d.isNew) {
+      showResult('User created',
+        '<div class="kv"><span>Name</span><span>' + esc(d.user.name) + '</span>' +
+        '<span>Email</span><span>' + esc(d.user.email) + '</span>' +
+        '<span>Role</span><span>' + esc(ROLE_LABELS[d.user.role] || d.user.role) + '</span>' +
+        '<span>Shop</span><span>' + esc(wsName(data.workspaceId)) + '</span></div>' +
+        pwBlock('Temporary password', d.tempPassword) +
+        '<div class="note note-info" style="margin-top:10px">No email is sent. Copy this password and give it to the user directly — it is shown once.</div>');
+    } else {
+      showResult('User added to shop',
+        '<div class="kv"><span>Name</span><span>' + esc(d.user.name) + '</span>' +
+        '<span>Email</span><span>' + esc(d.user.email) + '</span>' +
+        '<span>Shop</span><span>' + esc(wsName(data.workspaceId)) + '</span></div>' +
+        '<div class="note note-info" style="margin-top:10px">This person already had an account, so they were added to the shop and keep their existing password.</div>');
+    }
+    loadUsers();
+  }, {
+    validate: (d) => {
+      const errs = {};
+      if (!d.name.trim()) errs.name = 'Name is required.';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email.trim())) errs.email = 'A valid email address is required.';
+      if (!d.workspaceId) errs.workspaceId = 'Choose a shop.';
+      return errs;
+    },
+  });
+
+  /* Own profile — real PATCH /api/users/profile. */
+  API.onSubmit(document.getElementById('profile-form'), async (data) => {
+    const payload = { name: data.name.trim(), phone: data.phone.trim() };
+    if (data.newPassword) {
+      payload.currentPassword = data.currentPassword;
+      payload.newPassword = data.newPassword;
+    }
+    const updated = await API.patch('/api/users/profile', payload, { workspace: false });
+    const s = AUTH.getSession();
+    if (s) {
+      s.name = updated.name;
+      AUTH.setSession(s);
+      State.session = AUTH.getSession();
+      document.getElementById('sidebar-username').textContent = updated.name;
+      document.getElementById('sidebar-initials').textContent = initials(updated.name);
+    }
+    const form = document.getElementById('profile-form');
+    form.elements.currentPassword.value = '';
+    form.elements.newPassword.value = '';
+    API.toast(data.newPassword ? 'Profile and password updated.' : 'Profile updated.', 'success');
+  }, {
+    validate: (d) => {
+      const errs = {};
+      if (!d.name.trim()) errs.name = 'Name is required.';
+      if (d.newPassword && d.newPassword.length < 8) errs.newPassword = 'New password must be at least 8 characters.';
+      if (d.newPassword && !d.currentPassword) errs.currentPassword = 'Enter your current password to set a new one.';
+      if (d.currentPassword && !d.newPassword) errs.newPassword = 'Enter the new password you want to set.';
+      return errs;
+    },
+  });
+
+  /* SMTP check — real POST /api/admin/test-email. */
+  API.onSubmit(document.getElementById('email-test-form'), async (data) => {
+    const host = document.getElementById('email-test-result');
+    host.innerHTML = '';
+    const d = await API.post('/api/admin/test-email', { email: data.email.trim() }, { workspace: false });
+    if (d.ok) {
+      host.innerHTML = '<div class="note note-ok">' + esc(d.message || 'Test email sent.') + '</div>';
+      API.toast('Test email sent to ' + data.email.trim() + '.', 'success');
+    } else {
+      host.innerHTML = '<div class="note note-bad"><strong>' + esc(d.message || 'Test email failed') + '</strong>' +
+                       (d.error ? '<div style="margin-top:5px">' + esc(d.error) + '</div>' : '') + '</div>';
+      API.toast('Test email failed. See the details on the card.', 'error');
+    }
+  }, {
+    validate: (d) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email.trim()) ? {} : { email: 'A valid email address is required.' }),
+  });
+
+  /* CSV import — real multipart POST /api/import/{customers,vehicles}. */
+  API.onSubmit(document.getElementById('import-form'), async (data) => {
+    const wsId = AUTH.getActiveWorkspaceId();
+    if (wsId == null) throw new ApiError('Select an active shop before importing.', 400);
+    const result = await uploadCsv(data.kind, data.file, wsId);
+    renderImportResult(data.kind, result);
+    const errs = (result.errors || []).length;
+    API.toast(
+      'Imported ' + num(result.success) + ' of ' + num(result.total) + ' rows · ' +
+      num(result.duplicates) + ' duplicate(s) skipped · ' + errs + ' error(s).',
+      errs ? 'warn' : 'success'
+    );
+    document.getElementById('import-form').reset();
+    document.getElementById('import-filename').textContent = 'No file selected';
+    loadEtl();
+  }, {
+    validate: (d) => (d.file && d.file.size ? {} : { file: 'Choose a CSV file to import.' }),
+  });
 }
 
-let modalStepN = 1;
-let selectedRole = 'super_admin';
-
-function openCreateModal() {
-  modalStepN = 1;
-  selectedRole = 'super_admin';
-  updateModalStep();
-  document.getElementById('create-modal').classList.add('open');
-}
-
-function closeCreateModal() {
-  document.getElementById('create-modal').classList.remove('open');
-}
-
-function doModalStep(dir) {
-  if (modalStepN === 3 && dir === 1) { sendInvite(); return; }
-  if (modalStepN === 2 && dir === 1) populateConfirm();
-  modalStepN = Math.max(1, Math.min(3, modalStepN + dir));
-  updateModalStep();
-}
-
-function updateModalStep() {
-  document.querySelectorAll('.mstep').forEach(s => s.classList.remove('active'));
-  document.getElementById('ms' + modalStepN).classList.add('active');
-  for (let i = 1; i <= 3; i++) {
-    const sn = document.getElementById('sn' + i);
-    const sl = document.getElementById('sl' + i);
-    sn.className = 'step-num' + (i < modalStepN ? ' done' : i === modalStepN ? ' active' : '');
-    sn.textContent = i < modalStepN ? '✓' : i;
-    sl.className = 'step-label' + (i === modalStepN ? ' active' : '');
-  }
-  document.getElementById('back-btn').style.display = modalStepN > 1 ? '' : 'none';
-  document.getElementById('next-btn').textContent = modalStepN === 3 ? 'Send invite →' : 'Continue →';
-}
-
-function selectRole(role) {
-  selectedRole = role;
-  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById('rc-' + role).classList.add('selected');
-}
-
-function updateRoleCards() {
-  const shop = document.getElementById('u-shop').value;
-  const sa = document.getElementById('rc-super_admin');
-  sa.style.opacity = shop ? '.4' : '1';
-  sa.style.pointerEvents = shop ? 'none' : '';
-  if (shop && selectedRole === 'super_admin') selectRole('manager');
-}
-
-function populateConfirm() {
-  const first = document.getElementById('u-first').value || 'John';
-  const last = document.getElementById('u-last').value || 'Smith';
-  const email = document.getElementById('u-email').value || 'john@yourshop.com';
-  const phone = document.getElementById('u-phone').value || 'Not provided';
-  const shop = document.getElementById('u-shop').value || 'All shops';
-  const roleNames = {super_admin:'Super admin',manager:'Manager',service_advisor:'Service advisor',technician:'Technician'};
-  const role = roleNames[selectedRole] || 'Technician';
-  document.getElementById('c-name').textContent = first + ' ' + last;
-  document.getElementById('c-email').textContent = email;
-  document.getElementById('c-phone').textContent = phone;
-  document.getElementById('c-shop').textContent = shop;
-  document.getElementById('c-role').textContent = role;
-  document.getElementById('p-name').textContent = first;
-  document.getElementById('p-shop').textContent = shop;
-  document.getElementById('p-role').textContent = role;
-  document.getElementById('p-email').textContent = email;
-  document.getElementById('p-phone').textContent = phone;
-}
-
-function sendInvite() {
-  const name = document.getElementById('c-name').textContent;
-  const email = document.getElementById('c-email').textContent;
-  closeCreateModal();
-  t('Invite sent to ' + name + ' at ' + email + ' · SMS reset enabled');
-}
-
-function deleteUser(btn, name) {
-  if (!confirm('Permanently delete ' + name + '? This cannot be undone.')) return;
-  const row = btn.closest('tr');
-  row.style.transition = 'opacity .3s';
-  row.style.opacity = '0';
-  setTimeout(() => {
-    row.remove();
-    t(name + ' deleted from platform');
-  }, 300);
-}
-
-function deactivateUser(btn, name) {
-  const row = btn.closest('tr');
-  const statusCell = row.querySelector('.abadge-green, .abadge-yellow');
-  if (btn.textContent === 'Deactivate') {
-    if (statusCell) { statusCell.className = 'abadge abadge-red'; statusCell.textContent = 'Inactive'; }
-    btn.textContent = 'Reactivate';
-    btn.style.background = '#c6f6d5';
-    btn.style.borderColor = '#9ae6b4';
-    btn.style.color = '#276749';
-    t(name + ' deactivated — access revoked');
-  } else {
-    if (statusCell) { statusCell.className = 'abadge abadge-green'; statusCell.textContent = 'Active'; }
-    btn.textContent = 'Deactivate';
-    btn.style.background = '#fefcbf';
-    btn.style.borderColor = '#f6e05e';
-    btn.style.color = '#744210';
-    t(name + ' reactivated — access restored');
-  }
-}
-
-function openEditModal(first, last, email, phone, role, shop) {
-  document.getElementById('edit-modal-title').textContent = 'Edit user — ' + first + ' ' + last;
-  document.getElementById('e-first').value = first || '';
-  document.getElementById('e-last').value = last || '';
-  document.getElementById('e-email').value = email || '';
-  document.getElementById('e-phone').value = phone || '';
-  if (role) document.getElementById('e-role').value = role;
-  if (shop) document.getElementById('e-shop').value = shop;
-  document.getElementById('edit-modal').classList.add('open');
-}
+document.addEventListener('DOMContentLoaded', init);
 </script>
-<!-- CREATE USER MODAL -->
-<div class="modal-overlay" id="create-modal">
-  <div class="modal">
-    <div class="modal-header"><h3>Add new user</h3><button class="modal-close" onclick="closeCreateModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="steps-wrap">
-        <div class="step-item"><div class="step-num active" id="sn1">1</div><div class="step-label active" id="sl1">User details</div></div>
-        <div class="step-divider"></div>
-        <div class="step-item"><div class="step-num" id="sn2">2</div><div class="step-label" id="sl2">Role & access</div></div>
-        <div class="step-divider"></div>
-        <div class="step-item"><div class="step-num" id="sn3">3</div><div class="step-label" id="sl3">Confirm & invite</div></div>
-      </div>
-      <!-- Step 1 -->
-      <div class="mstep active" id="ms1">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div><label class="form-label">First name</label><input class="form-input" id="u-first" placeholder="John"/></div>
-          <div><label class="form-label">Last name</label><input class="form-input" id="u-last" placeholder="Smith"/></div>
-        </div>
-        <div style="margin-top:10px"><label class="form-label">Email address</label><input class="form-input" id="u-email" type="email" placeholder="john@yourshop.com"/></div>
-        <div style="margin-top:10px"><label class="form-label">Phone number</label><input class="form-input" id="u-phone" type="tel" placeholder="(240) 555-0100"/></div>
-        <div style="margin-top:8px;padding:9px 12px;background:#ebf8ff;border-radius:8px;font-size:.72rem;color:#2a4365">📱 Phone enables SMS-based self-service password reset via Twilio. Email is used for invite and email reset links.</div>
-      </div>
-      <!-- Step 2 -->
-      <div class="mstep" id="ms2">
-        <div style="margin-bottom:12px"><label class="form-label">Assign to shop</label>
-          <select class="form-input" id="u-shop" onchange="updateRoleCards()">
-            <option value="">All shops (super admin only)</option>
-            <option>Capitol Auto Body</option>
-            <option>Silver Spring Mechanics</option>
-            <option>Bethesda Quick Lube</option>
-          </select>
-        </div>
-        <label class="form-label" style="margin-bottom:8px">Select role</label>
-        <div id="role-cards">
-          <div class="role-card selected" id="rc-super_admin" onclick="selectRole('super_admin')">
-            <div class="role-card-title"><span class="abadge abadge-blue">Super admin</span></div>
-            <div class="role-card-desc">Full platform access. All shops, billing, users, integrations. AG Holdings owners only.</div>
-            <div class="role-perms"><span class="role-perm-tag">All shops</span><span class="role-perm-tag">Billing</span><span class="role-perm-tag">User mgmt</span><span class="role-perm-tag">Integrations</span><span class="role-perm-tag">ETL</span></div>
-          </div>
-          <div class="role-card" id="rc-manager" onclick="selectRole('manager')">
-            <div class="role-card-title"><span class="abadge abadge-purple">Manager</span></div>
-            <div class="role-card-desc">Full access to assigned shop. View all ROs, manage team, reports, invoices, SMS automation.</div>
-            <div class="role-perms"><span class="role-perm-tag">All ROs</span><span class="role-perm-tag">Team mgmt</span><span class="role-perm-tag">Reports</span><span class="role-perm-tag">Invoices</span><span class="role-perm-tag">SMS</span></div>
-          </div>
-          <div class="role-card" id="rc-service_advisor" onclick="selectRole('service_advisor')">
-            <div class="role-card-title"><span class="abadge abadge-blue">Service advisor</span></div>
-            <div class="role-card-desc">Create and manage ROs, schedule appointments, send customer SMS, close invoices.</div>
-            <div class="role-perms"><span class="role-perm-tag">Create ROs</span><span class="role-perm-tag">Appointments</span><span class="role-perm-tag">Customer SMS</span><span class="role-perm-tag">Close invoices</span></div>
-          </div>
-          <div class="role-card" id="rc-technician" onclick="selectRole('technician')">
-            <div class="role-card-title"><span class="abadge abadge-green">Technician</span></div>
-            <div class="role-card-desc">Mobile-first. Assigned ROs only, clock in/out, labor updates. No financial data.</div>
-            <div class="role-perms"><span class="role-perm-tag">Assigned ROs</span><span class="role-perm-tag">Clock in/out</span><span class="role-perm-tag">Labor updates</span><span class="role-perm-tag">Tech notes</span></div>
-          </div>
-        </div>
-      </div>
-      <!-- Step 3 -->
-      <div class="mstep" id="ms3">
-        <div style="background:#f8fafc;border-radius:9px;padding:14px;margin-bottom:14px">
-          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px">Invite summary</div>
-          <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.78rem">
-            <span style="color:var(--muted)">Name</span><span id="c-name" style="font-weight:600">—</span>
-            <span style="color:var(--muted)">Email</span><span id="c-email">—</span>
-            <span style="color:var(--muted)">Phone</span><span id="c-phone">—</span>
-            <span style="color:var(--muted)">Shop</span><span id="c-shop">—</span>
-            <span style="color:var(--muted)">Role</span><span id="c-role">—</span>
-          </div>
-        </div>
-        <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:12px">
-          <div style="padding:9px 12px;background:#f8fafc;font-size:.72rem;font-weight:600">Email preview</div>
-          <div style="padding:12px;font-size:.72rem;line-height:1.8;color:var(--muted)">
-            <div>Subject: <strong style="color:var(--text)">You've been invited to AG Shop Pro</strong></div>
-            <div style="margin-top:8px">Hi <strong id="p-name" style="color:var(--text)">John</strong>,</div>
-            <div>You've been added to <strong id="p-shop" style="color:var(--text)">Capitol Auto Body</strong> as a <strong id="p-role" style="color:var(--text)">Technician</strong>.</div>
-            <div style="margin-top:6px">Click below to set your password and get started.</div>
-            <div style="margin-top:10px;display:inline-block;padding:8px 16px;background:#e94560;color:#fff;border-radius:8px;font-size:.75rem;font-weight:600">Set password & sign in →</div>
-            <div style="margin-top:8px">Login: <strong id="p-email" style="color:var(--text)">—</strong></div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#ebf8ff;border-radius:8px;font-size:.72rem;color:#2a4365">📱 SMS password reset will be enabled on <strong id="p-phone" style="margin-left:4px">—</strong></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-sm" id="back-btn" onclick="doModalStep(-1)" style="display:none">← Back</button>
-      <button class="btn btn-sm" onclick="closeCreateModal()">Cancel</button>
-      <button class="btn btn-sm btn-accent" id="next-btn" onclick="doModalStep(1)">Continue →</button>
-    </div>
-  </div>
-</div>
-
-<!-- EDIT USER MODAL -->
-<div class="modal-overlay" id="edit-modal">
-  <div class="modal">
-    <div class="modal-header"><h3 id="edit-modal-title">Edit user</h3><button class="modal-close" onclick="document.getElementById('edit-modal').classList.remove('open')">✕</button></div>
-    <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><label class="form-label">First name</label><input class="form-input" id="e-first"/></div>
-        <div><label class="form-label">Last name</label><input class="form-input" id="e-last"/></div>
-      </div>
-      <div style="margin-top:10px"><label class="form-label">Email address</label><input class="form-input" id="e-email" type="email"/></div>
-      <div style="margin-top:10px"><label class="form-label">Phone number</label><input class="form-input" id="e-phone" type="tel"/></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-        <div><label class="form-label">Role</label>
-          <select class="form-input" id="e-role">
-            <option>Technician</option><option>Service advisor</option><option>Manager</option><option>Super admin</option>
-          </select>
-        </div>
-        <div><label class="form-label">Shop</label>
-          <select class="form-input" id="e-shop">
-            <option>Capitol Auto Body</option><option>Silver Spring Mechanics</option><option>Bethesda Quick Lube</option><option>All shops</option>
-          </select>
-        </div>
-      </div>
-      <div style="margin-top:10px"><label class="form-label">Account status</label>
-        <select class="form-input"><option>Active</option><option>Suspended</option><option>Deactivated</option></select>
-      </div>
-      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-        <div style="font-size:.78rem;font-weight:600;margin-bottom:10px">Password reset</div>
-        <div style="display:flex;gap:7px;flex-wrap:wrap">
-          <button class="btn btn-sm" onclick="t('Reset email sent to user')">📧 Send reset email</button>
-          <button class="btn btn-sm" onclick="t('SMS OTP sent to phone on file')">📱 Send SMS code</button>
-          <button class="btn btn-sm btn-accent" onclick="t('Temporary password generated and emailed')">🔑 Generate temp password</button>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-sm" onclick="document.getElementById('edit-modal').classList.remove('open')">Cancel</button>
-      <button class="btn btn-sm btn-accent" onclick="t('User updated');document.getElementById('edit-modal').classList.remove('open')">Save changes</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>

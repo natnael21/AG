@@ -483,14 +483,14 @@ table.doc-table td{padding:9px 12px;border:1px solid var(--border);color:var(--t
 
       <h2>Portal access setup</h2>
       <p>Enable customer portal access from the customer details page:</p>
-      <ol><li>Go to <strong>Customers → [Customer Name]</strong></li><li>Click <strong>Enable Portal Access</strong></li><li>System generates temporary password</li><li>Email sent to customer with login instructions</li><li>Customer can change password after first login</li></ol>
+      <ol><li>Go to <strong>Customers → [Customer Name]</strong></li><li>Click <strong>Enable Portal Access</strong></li><li>The API returns a temporary password in the response — hand it to the customer yourself; this endpoint does not send email</li><li>The customer signs in at <code>/portal-login.html</code> and picks their shop</li><li>Changing their password signs out every existing portal session</li></ol>
 
       <h2>Customer authentication</h2>
       <p>Customers log in with their email and portal password:</p>
-      <ul><li><strong>Separate authentication</strong> — different from staff accounts</li><li><strong>Session management</strong> — secure token-based sessions</li><li><strong>Workspace isolation</strong> — customers only see their own data</li><li><strong>Auto-logout</strong> — sessions expire after 24 hours</li></ul>
+      <ul><li><strong>Separate authentication</strong> — a different store (<code>customer_sessions</code>) from staff accounts, and not interchangeable with them</li><li><strong>Scoped to one shop</strong> — sign-in takes a <code>workspaceId</code>; the same email at another shop is a different account</li><li><strong>Record isolation</strong> — every portal query is keyed by the signed-in customer id, so a customer only ever sees their own vehicles, repair orders and appointments</li><li><strong>Auto-logout</strong> — sessions expire after 24 hours</li></ul>
 
       <h2>Security features</h2>
-      <ul><li><strong>Password hashing</strong> — bcrypt encryption</li><li><strong>Session tokens</strong> — cryptographically secure</li><li><strong>Rate limiting</strong> — prevents brute force attacks</li><li><strong>Audit logging</strong> — all login attempts tracked</li></ul>
+      <ul><li><strong>Password hashing</strong> — bcrypt, cost 12</li><li><strong>Session tokens</strong> — 32 random bytes from a CSPRNG, stored server-side and checked on every request; portal sessions expire after 24 hours</li><li><strong>Rate limiting</strong> — 10 failed sign-in attempts per IP per 15 minutes on <code>/api/customer/login</code> and <code>/api/auth/login</code></li><li><strong>Uniform failures</strong> — a wrong password, an unknown email and an account without portal access all return the same message, so the portal cannot be used to discover which customers exist</li><li><strong>Separate from staff auth</strong> — a staff token cannot authenticate the portal, and a portal token cannot reach the staff API</li></ul>
 
       <h3>Testing customer portal</h3>
       <div class="alert alert-tip">🧪 <strong>Admin Testing (enable portal):</strong></div>
@@ -502,10 +502,14 @@ table.doc-table td{padding:9px 12px;border:1px solid var(--border);color:var(--t
       <div class="alert alert-info">🧪 <strong>Customer Testing (portal login):</strong></div>
       <div class="code-block">
         <pre><span class="key">POST</span> <span class="val">/api/customer/login</span>
-{ "email": "customer@example.com", "password": "portalpass", "workspaceId": "workspace-uuid" }
+{ "email": "customer@example.com", "password": "portalpass", "workspaceId": 1 }
 
+<span class="key">GET</span> <span class="val">/api/customer/workspaces</span>   (public — the shop list on the sign-in page)
 <span class="key">GET</span> <span class="val">/api/customer/service-history</span>
 <span class="key">GET</span> <span class="val">/api/customer/vehicles</span>
+<span class="key">GET</span> <span class="val">/api/customer/profile</span>
+<span class="key">POST</span> <span class="val">/api/customer/feedback</span>
+{ "repairOrderId": 42, "rating": 5, "comments": "Great work" }
 <span class="key">POST</span> <span class="val">/api/customer/logout</span></pre>
       </div>
     </div>
@@ -520,7 +524,7 @@ table.doc-table td{padding:9px 12px;border:1px solid var(--border);color:var(--t
 
       <h2>Data privacy</h2>
       <p>Customer data is completely isolated:</p>
-      <ul><li><strong>Workspace separation</strong> — customers only see their shop's data</li><li><strong>Personal data only</strong> — no access to other customers</li><li><strong>Audit logging</strong> — all portal access is tracked</li></ul>
+      <ul><li><strong>Workspace separation</strong> — customers only see their shop's data</li><li><strong>Personal data only</strong> — the API filters on the session's customer id, not on an id supplied by the browser</li></ul>
 
       <h3>Testing service history</h3>
       <div class="alert alert-info">🧪 <strong>Customer Testing:</strong></div>
@@ -550,7 +554,7 @@ table.doc-table td{padding:9px 12px;border:1px solid var(--border);color:var(--t
       <div class="code-block">
         <pre><span class="key">POST</span> <span class="val">/api/customer/appointments</span>
 {
-  "vehicleId": "vehicle-uuid",
+  "vehicleId": 12,
   "preferredDate": "2024-12-15",
   "preferredTime": "10:00",
   "concern": "Brake noise when stopping",

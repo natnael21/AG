@@ -81,26 +81,22 @@ table.dt tr:hover td{background:#f8fafc;cursor:pointer}
 .ml-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;background:#e9d8fd;border-radius:50px;font-size:.62rem;color:#553c9a;font-weight:600;margin-right:4px}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:10px;font-size:.75rem;z-index:9999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
+.form-input[data-invalid]{border-color:var(--red)}
+.tile{background:#f8fafc;border-radius:8px;padding:10px}
+.tile-label{font-size:.62rem;color:var(--muted)}
+.tile-value{font-size:.78rem;font-weight:600;margin-top:2px}
+.tile-mono{font-size:.65rem;font-family:monospace;margin-top:2px}
 </style>
 </head>
 <body>
 <script src="auth.js"></script>
+<script src="api.js"></script>
 <script>
-(function(){
-  var s = AUTH.requireRoles(['service_advisor', 'manager', 'super_admin']);
-  if(!s) return;
-  // Update sidebar user info
-  document.addEventListener('DOMContentLoaded', function(){
-    var n = document.getElementById('sidebar-username');
-    var sh = document.getElementById('sidebar-shopname');
-    if(n) n.textContent = s.name || 'User';
-    if(sh) sh.textContent = s.activeWorkspaceName || s.shop || '';
-  });
+(function () {
+  /* Advisory gate only — the API re-checks the token and role on every call. */
+  AUTH.requireRoles(['service_advisor', 'manager', 'super_admin']);
 })();
-function logout(){ AUTH.logout(); }
 </script>
-
-<div class="toast" id="toast"></div>
 
 <div class="sidebar">
   <div class="sidebar-top">
@@ -113,24 +109,26 @@ function logout(){ AUTH.logout(); }
     </div>
   </div>
   <div class="nav-section">My work</div>
-  <div class="nav-item active" onclick="showPage('dashboard',this)">▦ My dashboard</div>
-  <div class="nav-item" onclick="showPage('ros',this)">✦ My ROs</div>
-  <div class="nav-item" onclick="showPage('newro',this)">+ New RO</div>
-  <div class="nav-item" onclick="showPage('appts',this)">◈ Appointments</div>
-  <div class="nav-item" onclick="showPage('reminders',this)">🔔 Reminders <span class="nav-badge">2</span></div>
-  <div class="nav-section">Finance</div>
-  <div class="nav-item" onclick="showPage('invoices',this)">◆ Close out invoices</div>
+  <div class="nav-item active" data-page="dashboard">▦ Dashboard</div>
+  <div class="nav-item" data-page="ros">✦ Repair orders</div>
+  <div class="nav-item" data-page="newro">+ New RO</div>
+  <div class="nav-item" data-page="appts">◈ Appointments</div>
   <div class="sidebar-footer">
-    <div class="user-dot">MG</div>
-    <div><div style="color:rgba(255,255,255,.6);font-size:.7rem">Maria Gonzalez</div><div>Service advisor</div></div>
+    <div class="user-dot" id="sidebar-initials">—</div>
+    <div style="flex:1;min-width:0">
+      <div style="color:rgba(255,255,255,.6);font-size:.7rem" id="sidebar-username">—</div>
+      <div id="sidebar-shopname">—</div>
+    </div>
   </div>
 </div>
 
 <div class="main">
   <div class="topbar">
-    <h1 id="page-title">My dashboard</h1>
-    <div style="display:flex;gap:6px">
-      <button class="btn btn-accent" onclick="showPage('newro',document.querySelectorAll('.nav-item')[2])">+ New RO</button>
+    <h1 id="page-title">Dashboard</h1>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:.68rem;color:var(--muted)" id="topbar-workspace"></span>
+      <button class="btn btn-accent" data-page="newro">+ New RO</button>
+      <button class="btn" id="btn-logout">Sign out</button>
     </div>
   </div>
   <div class="content">
@@ -138,176 +136,161 @@ function logout(){ AUTH.logout(); }
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">My open ROs</div><div class="stat-value">6</div></div>
-        <div class="stat-card"><div class="stat-label">Pending approvals</div><div class="stat-value">2</div><div class="stat-sub stat-warn">Customer action needed</div></div>
-        <div class="stat-card"><div class="stat-label">Invoices to close</div><div class="stat-value">3</div></div>
+        <div class="stat-card"><div class="stat-label">Open ROs</div><div class="stat-value" id="stat-open">—</div></div>
+        <div class="stat-card"><div class="stat-label">In progress</div><div class="stat-value" id="stat-progress">—</div></div>
+        <div class="stat-card"><div class="stat-label">Awaiting parts</div><div class="stat-value" id="stat-parts">—</div><div class="stat-sub stat-warn" id="stat-parts-sub"></div></div>
       </div>
       <div class="card">
         <div class="card-header" style="background:#fff5f5;color:#822727">Needs immediate attention</div>
-        <div class="alert-row"><div class="alert-dot a-red"></div><div style="flex:1"><div class="alert-title">RO-1038 — Lisa Park waiting on approval</div><div class="alert-detail">Additional damage found on F-150 — customer not yet reached</div></div><button class="btn btn-accent btn-sm" style="margin-left:8px" onclick="t('Calling Lisa Park...')">Call now</button></div>
-        <div class="alert-row"><div class="alert-dot a-yellow"></div><div style="flex:1"><div class="alert-title">RO-1037 — Estimate expiring today at 5pm</div><div class="alert-detail">Tom Williams brake estimate — needs decision</div></div><button class="btn btn-sm" style="margin-left:8px" onclick="t('SMS reminder sent to Tom Williams')">Send SMS</button></div>
+        <div id="dash-attention"></div>
       </div>
       <div class="grid2">
         <div class="card">
           <div class="card-header">Today's appointments</div>
           <table class="dt">
-            <thead><tr><th>Time</th><th>Customer</th><th>Type</th><th>Status</th></tr></thead>
-            <tbody>
-              <tr><td>9:00 AM</td><td>Robert Davis</td><td>Oil change</td><td><span class="badge badge-green">In</span></td></tr>
-              <tr><td>11:30 AM</td><td>Jennifer Wu</td><td>Estimate</td><td><span class="badge badge-yellow">Soon</span></td></tr>
-              <tr><td>2:00 PM</td><td>Carlos Mendez</td><td>Transmission</td><td><span class="badge badge-gray">Sched</span></td></tr>
-            </tbody>
+            <thead><tr><th>Time</th><th>Customer</th><th>Concern</th><th>Status</th></tr></thead>
+            <tbody id="dash-appt-body"></tbody>
           </table>
         </div>
         <div class="card">
           <div class="card-header">RO status summary</div>
           <table class="dt">
             <thead><tr><th>Status</th><th>Count</th></tr></thead>
-            <tbody>
-              <tr><td><span class="badge badge-blue">In progress</span></td><td>2</td></tr>
-              <tr><td><span class="badge badge-yellow">Estimate</span></td><td>2</td></tr>
-              <tr><td><span class="badge badge-red">Waiting parts</span></td><td>1</td></tr>
-              <tr><td><span class="badge badge-green">Completed</span></td><td>1</td></tr>
-            </tbody>
+            <tbody id="dash-status-body"></tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- MY ROs -->
+    <!-- REPAIR ORDERS -->
     <div class="page" id="page-ros">
       <div class="card">
-        <div class="card-header">My repair orders</div>
+        <div class="card-header">
+          <span>Repair orders</span>
+          <select class="form-input" id="ro-filter" style="width:auto">
+            <option value="">All statuses</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In progress</option>
+            <option value="awaiting_parts">Awaiting parts</option>
+            <option value="ready">Ready</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
         <table class="dt">
           <thead><tr><th>RO#</th><th>Customer</th><th>Vehicle</th><th>Status</th><th>Total</th><th>Action</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:600">RO-1041</td><td>Marcus Johnson</td><td>2019 BMW</td><td><span class="badge badge-blue">In progress</span></td><td>$2,340</td><td><button class="btn btn-sm" onclick="showPage('detail',null)">View</button></td></tr>
-            <tr><td style="font-weight:600">RO-1040</td><td>Sarah Kim</td><td>2021 Camry</td><td><span class="badge badge-yellow">Estimate</span></td><td>$890</td><td><button class="btn btn-accent btn-sm" onclick="t('Calling Sarah Kim...')">Call</button></td></tr>
-            <tr><td style="font-weight:600">RO-1038</td><td>Lisa Park</td><td>2020 F-150</td><td><span class="badge badge-red">Waiting parts</span></td><td>$3,200</td><td><button class="btn btn-sm" onclick="showPage('detail',null)">View</button></td></tr>
-            <tr><td style="font-weight:600">RO-1037</td><td>Tom Williams</td><td>2017 Malibu</td><td><span class="badge badge-yellow">Estimate</span></td><td>$620</td><td><button class="btn btn-sm" onclick="t('SMS sent to Tom Williams')">SMS</button></td></tr>
-          </tbody>
+          <tbody id="ro-body"></tbody>
         </table>
       </div>
     </div>
 
     <!-- RO DETAIL -->
     <div class="page" id="page-detail">
-      <div style="margin-bottom:10px"><button class="btn btn-sm" onclick="showPage('ros',document.querySelectorAll('.nav-item')[1])">← Back to ROs</button></div>
-      <div class="card">
-        <div class="card-header">RO-1041 · Marcus Johnson · 2019 BMW 3 Series <span class="badge badge-blue">In progress</span></div>
-        <div style="padding:12px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:2px">
-          <div style="background:#f8fafc;border-radius:8px;padding:10px"><div style="font-size:.62rem;color:var(--muted)">Assigned tech</div><div style="font-size:.78rem;font-weight:600;margin-top:2px">Alex Torres</div></div>
-          <div style="background:#f8fafc;border-radius:8px;padding:10px"><div style="font-size:.62rem;color:var(--muted)">VIN</div><div style="font-size:.65rem;font-family:monospace;margin-top:2px">WBA5R7C50KAF82341</div></div>
-          <div style="background:#f8fafc;border-radius:8px;padding:10px"><div style="font-size:.62rem;color:var(--muted)">Grand total</div><div style="font-size:.88rem;font-weight:600;margin-top:2px">$2,340</div></div>
-        </div>
-        <div style="padding:0 14px 12px"><div style="font-size:.62rem;color:var(--muted);margin-bottom:4px">ML suggested services from Mitchell history</div><span class="ml-tag">🤖 Cabin filter due</span><span class="ml-tag">🤖 Tire rotation</span></div>
-      </div>
-      <div class="card">
-        <div class="card-header">Comment thread</div>
-        <div class="comment-feed" id="detail-comments">
-          <div class="comment-card"><div class="comment-meta"><span class="comment-author">Maria G.</span><span class="badge badge-blue" style="font-size:.58rem">status update</span><span class="comment-time">Apr 27 · 9:14 AM</span></div><div class="comment-text">RO opened · Alex Torres assigned to front bumper repair.</div></div>
-          <div class="comment-card"><div class="comment-meta"><span class="comment-author">Alex Torres</span><span class="badge badge-gray" style="font-size:.58rem">tech note</span><span class="comment-time">Apr 27 · 10:32 AM</span></div><div class="comment-text">Bumper off. Found radiator support damage — needs approval before I can proceed. Parts ordered: bumper cover + headlight.</div></div>
-          <div class="comment-card"><div class="comment-meta"><span class="comment-author">Maria G.</span><span class="badge badge-purple" style="font-size:.58rem">customer msg</span><span class="comment-time">Apr 27 · 11:05 AM</span></div><div class="comment-text">Called Marcus — approved additional radiator support repair. Verbal auth confirmed. Updated estimate emailed.</div></div>
-        </div>
-        <div class="compose">
-          <input class="compose-input" id="detail-input" placeholder="Add comment (auto-timestamped)..." onkeydown="if(event.key==='Enter')addDetailComment()"/>
-          <button class="btn btn-accent btn-sm" onclick="addDetailComment()">Post</button>
-        </div>
-      </div>
+      <div style="margin-bottom:10px"><button class="btn btn-sm" data-page="ros">← Back to ROs</button></div>
+      <div id="detail-body"></div>
     </div>
 
     <!-- NEW RO -->
     <div class="page" id="page-newro">
+      <div class="new-ro-step" id="newro-success" style="display:none"></div>
+
       <div class="new-ro-step">
         <div class="step-header"><div class="step-num">1</div>Find or create customer</div>
         <div style="display:flex;gap:8px">
-          <input class="form-input" placeholder="Search by name, phone, or email..." style="flex:1"/>
-          <button class="btn btn-accent btn-sm" onclick="t('Customer found: Robert Davis · (240) 555-0199')">Search</button>
-          <button class="btn btn-sm">+ New</button>
+          <input class="form-input" id="cust-search" placeholder="Search by name, phone, or email..." style="flex:1"/>
+          <button class="btn btn-accent btn-sm" id="cust-search-btn">Search</button>
+          <button class="btn btn-sm" id="cust-new-toggle">+ New</button>
         </div>
+        <div id="cust-selected" style="margin-top:10px;display:none"></div>
+        <div id="cust-results" style="margin-top:10px"></div>
+        <form id="new-customer-form" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+          <div class="form-row">
+            <div><label class="form-label">Full name</label><input class="form-input" name="fullName" autocomplete="off"/></div>
+            <div><label class="form-label">Phone</label><input class="form-input" name="phone" autocomplete="off"/></div>
+          </div>
+          <div style="margin-bottom:10px">
+            <label class="form-label">Email</label>
+            <input class="form-input" name="email" type="email" autocomplete="off"/>
+          </div>
+          <button class="btn btn-accent btn-sm" type="submit">Create customer</button>
+        </form>
       </div>
+
       <div class="new-ro-step">
         <div class="step-header"><div class="step-num">2</div>Select vehicle</div>
         <div style="display:flex;gap:8px">
-          <select class="form-input" style="flex:1"><option>2022 Kia Telluride · KT2022XYZ</option><option>2019 Honda Civic · HC2019ABC</option></select>
-          <button class="btn btn-sm">+ New</button>
+          <select class="form-input" id="ro-vehicle" style="flex:1" disabled>
+            <option value="">Select a customer first</option>
+          </select>
+          <button class="btn btn-sm" id="veh-new-toggle" disabled>+ New</button>
         </div>
+        <form id="new-vehicle-form" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+          <div style="margin-bottom:10px">
+            <label class="form-label">VIN</label>
+            <input class="form-input" name="vin" autocomplete="off"/>
+          </div>
+          <div class="form-row">
+            <div><label class="form-label">Year</label><input class="form-input" name="year" type="number" autocomplete="off"/></div>
+            <div><label class="form-label">Plate</label><input class="form-input" name="plate" autocomplete="off"/></div>
+          </div>
+          <div class="form-row">
+            <div><label class="form-label">Make</label><input class="form-input" name="make" autocomplete="off"/></div>
+            <div><label class="form-label">Model</label><input class="form-input" name="model" autocomplete="off"/></div>
+          </div>
+          <div style="margin-bottom:10px">
+            <label class="form-label">Mileage</label>
+            <input class="form-input" name="mileage" type="number" autocomplete="off"/>
+          </div>
+          <button class="btn btn-accent btn-sm" type="submit">Add vehicle</button>
+        </form>
       </div>
-      <div class="new-ro-step">
-        <div class="step-header"><div class="step-num">3</div>Complaint & details</div>
+
+      <form class="new-ro-step" id="new-ro-form">
+        <div class="step-header"><div class="step-num">3</div>Complaint &amp; details</div>
         <div style="margin-bottom:10px">
           <label class="form-label">Customer complaint</label>
-          <textarea class="form-input" style="min-height:70px;resize:vertical" placeholder="Describe the issue as reported by customer..."></textarea>
+          <textarea class="form-input" name="concern" style="min-height:70px;resize:vertical" placeholder="Describe the issue as reported by customer..."></textarea>
         </div>
         <div class="form-row">
           <div>
-            <label class="form-label">Assign technician</label>
-            <select class="form-input"><option>Alex Torres</option><option>James Reed</option><option>Mike Santos</option></select>
+            <label class="form-label">Priority</label>
+            <select class="form-input" name="priority">
+              <option value="low">Low</option>
+              <option value="normal" selected>Normal</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
           </div>
           <div>
-            <label class="form-label">Source</label>
-            <select class="form-input"><option>Walk-in</option><option>Appointment</option><option>CCC One import</option><option>Phone</option></select>
+            <label class="form-label">Estimated completion</label>
+            <input class="form-input" name="estimatedCompletion" type="date"/>
           </div>
         </div>
         <div style="margin-bottom:10px">
-          <label class="form-label">Mileage in</label>
-          <input class="form-input" placeholder="Current mileage" type="number"/>
+          <label class="form-label">Internal notes</label>
+          <textarea class="form-input" name="notes" style="min-height:50px;resize:vertical" placeholder="Optional notes for the shop..."></textarea>
         </div>
-        <button class="btn btn-accent" onclick="t('RO-1043 created · Alex Torres assigned · Customer notification sent')">Create repair order</button>
-      </div>
+        <button class="btn btn-accent" type="submit">Create repair order</button>
+      </form>
     </div>
 
     <!-- APPOINTMENTS -->
     <div class="page" id="page-appts">
       <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:.82rem;font-weight:600">Today · April 27</div>
-        <button class="btn btn-accent btn-sm" onclick="t('New appointment created')">+ Appointment</button>
+        <div style="font-size:.82rem;font-weight:600" id="appt-today">Appointments</div>
+        <select class="form-input" id="appt-filter" style="width:auto">
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="in_progress">In progress</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
       </div>
       <div class="card">
         <table class="dt">
-          <thead><tr><th>Time</th><th>Customer</th><th>Vehicle</th><th>Type</th><th>Tech</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            <tr><td>9:00 AM</td><td>Robert Davis</td><td>2022 Kia Telluride</td><td>Oil change</td><td>Mike S.</td><td><span class="badge badge-green">Checked in</span></td><td><button class="btn btn-sm" onclick="t('RO created for Robert Davis')">Create RO</button></td></tr>
-            <tr><td>11:30 AM</td><td>Jennifer Wu</td><td>2020 Tesla Model 3</td><td>Estimate</td><td>Alex T.</td><td><span class="badge badge-yellow">Upcoming</span></td><td><button class="btn btn-sm" onclick="t('SMS reminder sent to Jennifer Wu')">Remind</button></td></tr>
-            <tr><td>2:00 PM</td><td>Carlos Mendez</td><td>2019 Ram 1500</td><td>Transmission</td><td>James R.</td><td><span class="badge badge-gray">Scheduled</span></td><td></td></tr>
-            <tr><td>Tomorrow 10am</td><td>Amanda Foster</td><td>2021 Subaru Outback</td><td>Brakes</td><td>Mike S.</td><td><span class="badge badge-gray">Scheduled</span></td><td></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- REMINDERS -->
-    <div class="page" id="page-reminders">
-      <div class="card">
-        <div class="card-header" style="background:#fff5f5;color:#822727">⚠ Overdue (2)</div>
-        <div class="alert-row"><div class="alert-dot a-red"></div><div style="flex:1"><div class="alert-title">Call Lisa Park — parts arrived</div><div class="alert-detail">F-150 headlight received · RO-1038</div></div><div style="display:flex;gap:4px"><button class="btn btn-accent btn-sm" onclick="t('Calling Lisa Park...')">Call</button><button class="btn btn-sm" onclick="t('Reminder done')">Done</button></div></div>
-        <div class="alert-row"><div class="alert-dot a-red"></div><div style="flex:1"><div class="alert-title">Tom Williams — estimate expiring</div><div class="alert-detail">Expires today 5pm · Malibu brakes</div></div><div style="display:flex;gap:4px"><button class="btn btn-sm" onclick="t('SMS sent to Tom Williams')">SMS</button><button class="btn btn-sm" onclick="t('Snoozed 1 hour')">Snooze</button></div></div>
-      </div>
-      <div class="card">
-        <div class="card-header">Add reminder</div>
-        <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px">
-          <select class="form-input"><option>Select customer</option><option>Marcus Johnson</option><option>Sarah Kim</option><option>Lisa Park</option></select>
-          <input class="form-input" placeholder="Reminder message..."/>
-          <div class="form-row">
-            <input class="form-input" type="date"/>
-            <input class="form-input" type="time"/>
-          </div>
-          <button class="btn btn-accent btn-sm" style="align-self:flex-start" onclick="t('Reminder saved')">Save reminder</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- INVOICES -->
-    <div class="page" id="page-invoices">
-      <div class="card">
-        <div class="card-header" style="background:#fefcbf;color:#744210">Ready to close (3)</div>
-        <table class="dt">
-          <thead><tr><th>Invoice#</th><th>Customer</th><th>Total</th><th>RO</th><th>Action</th></tr></thead>
-          <tbody>
-            <tr><td style="font-weight:600">INV-2043</td><td>Robert Davis</td><td>$89</td><td><span class="badge badge-green">Completed</span></td><td><button class="btn btn-accent btn-sm" onclick="t('Invoice sent + Square payment link to Robert Davis')">Send & close</button></td></tr>
-            <tr><td style="font-weight:600">INV-2042</td><td>David Chen</td><td>$1,150</td><td><span class="badge badge-green">Completed</span></td><td><button class="btn btn-accent btn-sm" onclick="t('Square payment link sent to David Chen')">Send & close</button></td></tr>
-            <tr><td style="font-weight:600">INV-2038</td><td>Carlos Mendez</td><td>$540</td><td><span class="badge badge-green">Completed</span></td><td><button class="btn btn-accent btn-sm" onclick="t('Invoice sent to Carlos Mendez')">Send & close</button></td></tr>
-          </tbody>
+          <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Vehicle</th><th>Concern</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="appt-body"></tbody>
         </table>
       </div>
     </div>
@@ -316,35 +299,719 @@ function logout(){ AUTH.logout(); }
 </div>
 
 <script>
-function showPage(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  if (el) el.classList.add('active');
-  const titles = {dashboard:'My dashboard',ros:'My repair orders',detail:'RO detail',newro:'New repair order',appts:'Appointments',reminders:'Reminders',invoices:'Close out invoices'};
-  document.getElementById('page-title').textContent = titles[id] || id;
-}
+(function () {
+  /* Returns null — and redirects — for a missing session or the wrong role. */
+  const session = AUTH.requireRoles(['service_advisor', 'manager', 'super_admin']);
+  if (!session) return;
 
-function addDetailComment() {
-  const inp = document.getElementById('detail-input');
-  const text = inp.value.trim();
-  if (!text) return;
-  inp.value = '';
-  const now = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-  const feed = document.getElementById('detail-comments');
-  const div = document.createElement('div');
-  div.className = 'comment-card';
-  div.innerHTML = `<div class="comment-meta"><span class="comment-author">You</span><span class="badge badge-gray" style="font-size:.58rem">internal note</span><span class="comment-time">Apr 27 · ${now}</span></div><div class="comment-text">${text}</div>`;
-  feed.appendChild(div);
-  feed.scrollTop = feed.scrollHeight;
-}
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const esc = (v) => API.escape(v);
 
-function t(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2800);
-}
+  /* ── Small formatters for column types the shared helpers don't cover ──
+     preferred_date is a DATE and preferred_time a TIME; feeding the bare
+     value to `new Date()` would shift the day across timezones. */
+
+  const ymd = (v) => (v ? String(v).slice(0, 10) : '');
+
+  function dateOnly(v) {
+    const s = ymd(v);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return API.date(v);
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function timeOnly(v) {
+    const m = /^(\d{1,2}):(\d{2})/.exec(String(v || ''));
+    if (!m) return '—';
+    const h = Number(m[1]);
+    return `${h % 12 || 12}:${m[2]} ${h >= 12 ? 'PM' : 'AM'}`;
+  }
+
+  function todayYmd() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+
+  const RO_BADGE = {
+    draft: 'badge-gray', open: 'badge-gray', in_progress: 'badge-blue',
+    awaiting_parts: 'badge-red', ready: 'badge-yellow',
+    completed: 'badge-green', cancelled: 'badge-gray',
+  };
+  const APPT_BADGE = {
+    pending: 'badge-yellow', confirmed: 'badge-green', in_progress: 'badge-blue',
+    completed: 'badge-purple', cancelled: 'badge-gray',
+  };
+  const RO_STATUSES = ['open', 'in_progress', 'awaiting_parts', 'ready', 'completed', 'cancelled'];
+
+  const badge = (status, map) =>
+    `<span class="badge ${map[status] || 'badge-gray'}">${esc(API.statusLabel(status))}</span>`;
+
+  const note = (text) => `<div style="padding:16px;text-align:center;color:var(--muted);font-size:.72rem">${esc(text)}</div>`;
+
+  /* ── Forms ──
+     A rejected write carries the server's own message. When that message names
+     one of the form's fields, pin it to the field; otherwise let API.onSubmit
+     surface it verbatim as a toast. Nothing is swallowed either way. */
+
+  function fieldFromMessage(form, message) {
+    const names = Array.from(form.querySelectorAll('[name]')).map((n) => n.name);
+    return names.find((n) => n && new RegExp(`\\b${n}\\b`, 'i').test(message));
+  }
+
+  function wireForm(form, handler, validate) {
+    API.onSubmit(form, async (data) => {
+      try {
+        await handler(data);
+      } catch (e) {
+        const field = e.status ? fieldFromMessage(form, e.message) : null;
+        if (!field) throw e;
+        API.showFieldErrors(form, { [field]: e.message });
+      }
+    }, { validate });
+  }
+
+  /**
+   * Populate a <select> from an endpoint. API.load writes a <div> into its
+   * target, which a <select> cannot hold, so selects report their own state
+   * through an option and a toast.
+   */
+  async function fillSelect(select, fn, { placeholder, empty, render, keep }) {
+    select.disabled = true;
+    select.innerHTML = '<option value="">Loading…</option>';
+    try {
+      const rows = await fn();
+      if (!rows || !rows.length) {
+        select.innerHTML = `<option value="">${esc(empty)}</option>`;
+        return [];
+      }
+      select.innerHTML = `<option value="">${esc(placeholder)}</option>` +
+        rows.map((r) => `<option value="${esc(r.id)}">${esc(render(r))}</option>`).join('');
+      select.disabled = false;
+      return rows;
+    } catch (e) {
+      if (e.message === 'Session expired' || e.message === 'Unauthorized') return [];
+      select.innerHTML = `<option value="">${esc(keep || 'Could not load — reopen to retry')}</option>`;
+      API.toast(e.message, 'error');
+      return [];
+    }
+  }
+
+  /* ── Navigation ── */
+
+  const TITLES = {
+    dashboard: 'Dashboard', ros: 'Repair orders', detail: 'RO detail',
+    newro: 'New repair order', appts: 'Appointments',
+  };
+
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
+    const page = document.getElementById(`page-${id}`);
+    if (page) page.classList.add('active');
+    const nav = document.querySelector(`.nav-item[data-page="${id}"]`);
+    if (nav) nav.classList.add('active');
+    document.getElementById('page-title').textContent = TITLES[id] || id;
+    if (id === 'dashboard') loadDashboard();
+    if (id === 'ros') loadRepairOrders();
+    if (id === 'appts') loadAppointments();
+  }
+
+  document.addEventListener('click', (ev) => {
+    const el = ev.target.closest('[data-page]');
+    if (el) showPage(el.dataset.page);
+  });
+
+  /* ── Header ── */
+
+  const initials = String(session.name || '')
+    .split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '—';
+  $('#sidebar-initials').textContent = initials;
+  $('#sidebar-username').textContent = session.name || 'User';
+  $('#sidebar-shopname').textContent = session.activeWorkspaceName || '';
+  $('#topbar-workspace').textContent = session.activeWorkspaceName || '';
+  $('#btn-logout').addEventListener('click', () => AUTH.logout());
+
+  /* ── Dashboard ──
+     The render happens inside the API.load callback so the built-in Retry
+     re-renders the page rather than only re-running the request. */
+
+  function loadDashboard() {
+    const statusBody = $('#dash-status-body');
+    const attention = $('#dash-attention');
+
+    $('#stat-open').textContent = '—';
+    $('#stat-progress').textContent = '—';
+    $('#stat-parts').textContent = '—';
+    $('#stat-parts-sub').textContent = '';
+    attention.innerHTML = note('Loading…');
+
+    API.load(statusBody, async () => {
+      const ros = await API.repairOrders();
+      renderStats(ros);
+      renderAttention(ros);
+      renderStatusSummary(ros);
+      return ros;
+    }, { colspan: 2, empty: 'No repair orders yet.', onEmpty: () => { attention.innerHTML = note('Nothing needs attention right now.'); } });
+
+    API.load($('#dash-appt-body'), async () => {
+      const appts = await API.get('/api/appointments');
+      const today = (appts || []).filter((a) => ymd(a.preferred_date) === todayYmd());
+      $('#dash-appt-body').innerHTML = today.length
+        ? today.map((a) => `
+            <tr>
+              <td>${esc(timeOnly(a.preferred_time))}</td>
+              <td>${esc(a.customer_name)}</td>
+              <td>${esc(a.concern)}</td>
+              <td>${badge(a.status, APPT_BADGE)}</td>
+            </tr>`).join('')
+        : API.wrap($('#dash-appt-body'), 'Nothing booked for today.', 4);
+      return appts;
+    }, { colspan: 4, empty: 'No appointments scheduled.' });
+  }
+
+  function renderStats(ros) {
+    const count = (s) => ros.filter((r) => r.status === s).length;
+    $('#stat-open').textContent = count('open');
+    $('#stat-progress').textContent = count('in_progress');
+    const waiting = count('awaiting_parts');
+    $('#stat-parts').textContent = waiting;
+    $('#stat-parts-sub').textContent = waiting ? 'Parts not yet received' : '';
+  }
+
+  function renderAttention(ros) {
+    const urgent = ros.filter((r) =>
+      ['high', 'urgent'].includes(r.priority) && !['completed', 'cancelled'].includes(r.status));
+
+    $('#dash-attention').innerHTML = urgent.length
+      ? urgent.map((r) => `
+          <div class="alert-row">
+            <div class="alert-dot ${r.priority === 'urgent' ? 'a-red' : 'a-yellow'}"></div>
+            <div style="flex:1">
+              <div class="alert-title">${esc(r.ro_number)} — ${esc(r.customer_name)} · ${esc(API.statusLabel(r.priority))} priority</div>
+              <div class="alert-detail">${esc(API.vehicleLabel(r))} · ${esc(r.concern)}</div>
+            </div>
+            <button class="btn btn-accent btn-sm" style="margin-left:8px" data-ro="${esc(r.id)}">View</button>
+          </div>`).join('')
+      : note('Nothing needs attention right now.');
+  }
+
+  function renderStatusSummary(ros) {
+    const counts = new Map();
+    ros.forEach((r) => counts.set(r.status, (counts.get(r.status) || 0) + 1));
+    /* RO_BADGE, not RO_STATUSES: the list may contain a draft, which is not a
+       status an advisor can transition *to*. */
+    $('#dash-status-body').innerHTML = Object.keys(RO_BADGE)
+      .filter((s) => counts.has(s))
+      .map((s) => `<tr><td>${badge(s, RO_BADGE)}</td><td>${counts.get(s)}</td></tr>`)
+      .join('');
+  }
+
+  /* ── Repair order list ── */
+
+  function loadRepairOrders() {
+    const body = $('#ro-body');
+    const status = $('#ro-filter').value;
+    return API.load(body, async () => {
+      const ros = await API.repairOrders({ status });
+      body.innerHTML = ros.map((r) => `
+        <tr data-ro="${esc(r.id)}">
+          <td style="font-weight:600">${esc(r.ro_number)}</td>
+          <td>${esc(r.customer_name)}</td>
+          <td>${esc(API.vehicleLabel(r))}</td>
+          <td>${badge(r.status, RO_BADGE)}</td>
+          <td>${esc(API.money(r.total_final))}</td>
+          <td><button class="btn btn-sm" data-ro="${esc(r.id)}">View</button></td>
+        </tr>`).join('');
+      return ros;
+    }, { colspan: 6, empty: 'No repair orders match that filter.' });
+  }
+
+  $('#ro-filter').addEventListener('change', loadRepairOrders);
+
+  document.addEventListener('click', (ev) => {
+    const el = ev.target.closest('[data-ro]');
+    if (el) openRepairOrder(el.dataset.ro);
+  });
+
+  /* ── Repair order detail ── */
+
+  function openRepairOrder(id) {
+    showPage('detail');
+    const body = $('#detail-body');
+    API.load(body, async () => {
+      const ro = await API.repairOrder(id);
+      renderDetail(ro);
+      return ro;
+    }, { empty: 'That repair order could not be found.' });
+  }
+
+  function renderDetail(ro) {
+    $('#detail-body').innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span>${esc(ro.ro_number)} · ${esc(ro.customer_name)} · ${esc(API.vehicleLabel(ro))} ${badge(ro.status, RO_BADGE)}</span>
+        </div>
+        <div style="padding:12px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div class="tile"><div class="tile-label">VIN</div><div class="tile-mono">${esc(ro.vin || '—')}</div></div>
+          <div class="tile"><div class="tile-label">Priority</div><div class="tile-value">${esc(API.statusLabel(ro.priority))}</div></div>
+          <div class="tile"><div class="tile-label">Opened</div><div class="tile-value">${esc(API.date(ro.created_at))}</div></div>
+        </div>
+        <div style="padding:0 14px 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px" id="detail-totals"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Status</div>
+        <div style="padding:12px 14px;display:flex;gap:8px;align-items:center">
+          <select class="form-input" id="status-select" style="flex:1">
+            ${[...new Set([ro.status, ...RO_STATUSES])].map((s) => `<option value="${esc(s)}"${s === ro.status ? ' selected' : ''}>${esc(API.statusLabel(s))}</option>`).join('')}
+          </select>
+          <button class="btn btn-accent btn-sm" id="status-save">Update status</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header">Parts</div>
+          <table class="dt">
+            <thead><tr><th>Part</th><th>Qty</th><th>Unit</th><th>Line</th></tr></thead>
+            <tbody id="parts-body"></tbody>
+          </table>
+          <form id="part-form" style="padding:10px 14px;border-top:1px solid var(--border)">
+            <div style="margin-bottom:10px">
+              <label class="form-label">Catalog part</label>
+              <select class="form-input" name="partId" id="part-catalog"></select>
+            </div>
+            <div class="form-row">
+              <div><label class="form-label">Part number</label><input class="form-input" name="partNumber" placeholder="Custom part only"/></div>
+              <div><label class="form-label">Part name</label><input class="form-input" name="partName" placeholder="Custom part only"/></div>
+            </div>
+            <div class="form-row">
+              <div><label class="form-label">Quantity</label><input class="form-input" name="quantity" type="number" min="1" step="1" value="1"/></div>
+              <div><label class="form-label">Unit price</label><input class="form-input" name="unitPrice" type="number" min="0" step="0.01" placeholder="Catalog price"/></div>
+            </div>
+            <div style="margin-bottom:10px">
+              <label class="form-label">Unit cost</label>
+              <input class="form-input" name="unitCost" type="number" min="0" step="0.01" placeholder="Catalog cost"/>
+            </div>
+            <button class="btn btn-accent btn-sm" type="submit">Add part</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Labor</div>
+          <table class="dt">
+            <thead><tr><th>Description</th><th>Tech</th><th>Hrs</th><th>Line</th></tr></thead>
+            <tbody id="labor-body"></tbody>
+          </table>
+          <form id="labor-form" style="padding:10px 14px;border-top:1px solid var(--border)">
+            <div style="margin-bottom:10px">
+              <label class="form-label">Technician</label>
+              <select class="form-input" name="technicianId" id="labor-tech"></select>
+            </div>
+            <div style="margin-bottom:10px">
+              <label class="form-label">Description</label>
+              <input class="form-input" name="description"/>
+            </div>
+            <div class="form-row">
+              <div><label class="form-label">Hours</label><input class="form-input" name="hours" type="number" min="0.01" step="0.25"/></div>
+              <div><label class="form-label">Hourly rate</label><input class="form-input" name="hourlyRate" type="number" min="0" step="0.01"/></div>
+            </div>
+            <button class="btn btn-accent btn-sm" type="submit">Add labor</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Concern &amp; notes</div>
+        <form id="ro-update-form" style="padding:12px 14px">
+          <div style="margin-bottom:10px">
+            <label class="form-label">Customer concern</label>
+            <textarea class="form-input" name="concern" style="min-height:60px;resize:vertical">${esc(ro.concern || '')}</textarea>
+          </div>
+          <div style="margin-bottom:10px">
+            <label class="form-label">Internal notes</label>
+            <textarea class="form-input" name="notes" style="min-height:60px;resize:vertical">${esc(ro.notes || '')}</textarea>
+          </div>
+          <div class="form-row">
+            <div>
+              <label class="form-label">Priority</label>
+              <select class="form-input" name="priority">
+                ${['low', 'normal', 'high', 'urgent'].map((p) => `<option value="${p}"${p === ro.priority ? ' selected' : ''}>${esc(API.statusLabel(p))}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Estimated completion</label>
+              <input class="form-input" name="estimatedCompletion" type="date" value="${esc(ymd(ro.estimated_completion))}"/>
+            </div>
+          </div>
+          <button class="btn btn-accent btn-sm" type="submit">Save changes</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Technician time</div>
+        <table class="dt">
+          <thead><tr><th>Technician</th><th>Started</th><th>Ended</th><th>Minutes</th></tr></thead>
+          <tbody id="time-body"></tbody>
+        </table>
+      </div>`;
+
+    renderPartLines(ro.parts);
+    renderLaborLines(ro.labor);
+    renderTimeEntries(ro.timeEntries);
+    /* Only what the server told us: the RO row carries the estimate and the
+       final, the per-category subtotals arrive with an add. */
+    renderTotals({ total_estimate: ro.total_estimate, total_final: ro.total_final });
+
+    fillSelect($('#part-catalog'), () => API.parts(), {
+      placeholder: 'Custom part (fill in below)',
+      empty: 'No catalog parts — enter a custom part below',
+      keep: 'Catalog unavailable — enter a custom part below',
+      render: (p) => `${p.part_number} — ${p.name} · ${API.money(p.retail_price)} · ${p.quantity_on_hand} on hand`,
+    }).then(() => { $('#part-catalog').disabled = false; });
+
+    fillSelect($('#labor-tech'), () => API.workspaceUsers(), {
+      placeholder: 'Me (signed-in user)',
+      empty: 'No workspace users found',
+      keep: 'Could not load users — defaults to signed-in user',
+      render: (u) => `${u.name} · ${API.statusLabel(u.role)}`,
+    }).then(() => { $('#labor-tech').disabled = false; });
+
+    $('#status-save').addEventListener('click', () => changeStatus(ro.id));
+    wirePartForm(ro.id);
+    wireLaborForm(ro.id);
+    wireUpdateForm(ro.id);
+  }
+
+  function renderTotals(totals) {
+    const rows = [
+      ['Parts', totals.parts_total],
+      ['Labor', totals.labor_total],
+      ['Estimate', totals.total_estimate],
+      ['Grand total', totals.total_final],
+    ].filter(([, v]) => v !== undefined && v !== null);
+
+    $('#detail-totals').innerHTML = rows.map(([label, value]) => `
+      <div class="tile">
+        <div class="tile-label">${esc(label)}</div>
+        <div style="font-size:.88rem;font-weight:600;margin-top:2px">${esc(API.money(value))}</div>
+      </div>`).join('');
+  }
+
+  function renderPartLines(parts) {
+    $('#parts-body').innerHTML = (parts && parts.length)
+      ? parts.map((p) => `
+          <tr>
+            <td>${esc(p.part_name)}<div style="font-size:.62rem;color:var(--muted)">${esc(p.part_number)}</div></td>
+            <td>${esc(p.quantity)}</td>
+            <td>${esc(API.money(p.unit_price))}</td>
+            <td>${esc(API.money(p.line_total))}</td>
+          </tr>`).join('')
+      : API.wrap($('#parts-body'), 'No parts on this RO yet.', 4);
+  }
+
+  function renderLaborLines(labor) {
+    $('#labor-body').innerHTML = (labor && labor.length)
+      ? labor.map((l) => `
+          <tr>
+            <td>${esc(l.description)}</td>
+            <td>${esc(l.technician_name || '—')}</td>
+            <td>${esc(l.hours)}</td>
+            <td>${esc(API.money(l.line_total))}</td>
+          </tr>`).join('')
+      : API.wrap($('#labor-body'), 'No labor on this RO yet.', 4);
+  }
+
+  function renderTimeEntries(entries) {
+    $('#time-body').innerHTML = (entries && entries.length)
+      ? entries.map((t) => `
+          <tr>
+            <td>${esc(t.technician_name)}</td>
+            <td>${esc(API.dateTime(t.start_time))}</td>
+            <td>${esc(t.end_time ? API.dateTime(t.end_time) : 'Still clocked in')}</td>
+            <td>${esc(t.duration_minutes == null ? '—' : t.duration_minutes)}</td>
+          </tr>`).join('')
+      : API.wrap($('#time-body'), 'No time logged yet.', 4);
+  }
+
+  async function changeStatus(id) {
+    const btn = $('#status-save');
+    const status = $('#status-select').value;
+    btn.disabled = true;
+    try {
+      await API.setROStatus(id, status);
+      API.toast(`Status changed to ${API.statusLabel(status)}.`, 'success');
+      openRepairOrder(id);
+    } catch (e) {
+      if (e.message === 'Session expired' || e.message === 'Unauthorized') return;
+      /* A 409 is the workflow refusing the transition — show what it said. */
+      API.toast(e.message, 'error');
+      btn.disabled = false;
+    }
+  }
+
+  function wirePartForm(id) {
+    const form = $('#part-form');
+    wireForm(form, async (data) => {
+      const res = await API.addPart(id, {
+        partId: data.partId || undefined,
+        partNumber: data.partNumber || undefined,
+        partName: data.partName || undefined,
+        quantity: data.quantity,
+        unitPrice: data.unitPrice || undefined,
+        unitCost: data.unitCost || undefined,
+      });
+      renderTotals(res.totals);
+      const ro = await API.repairOrder(id);
+      renderPartLines(ro.parts);
+      form.reset();
+      API.toast('Part added.', 'success');
+    }, (data) => {
+      const errors = {};
+      if (!String(data.quantity || '').trim()) errors.quantity = 'Quantity is required.';
+      if (!data.partId) {
+        if (!String(data.partNumber || '').trim()) errors.partNumber = 'Pick a catalog part or enter a part number.';
+        if (!String(data.partName || '').trim()) errors.partName = 'Pick a catalog part or enter a part name.';
+      }
+      return errors;
+    });
+  }
+
+  function wireLaborForm(id) {
+    const form = $('#labor-form');
+    wireForm(form, async (data) => {
+      const res = await API.addLabor(id, {
+        technicianId: data.technicianId || undefined,
+        description: data.description,
+        hours: data.hours,
+        hourlyRate: data.hourlyRate,
+      });
+      renderTotals(res.totals);
+      const ro = await API.repairOrder(id);
+      renderLaborLines(ro.labor);
+      form.reset();
+      API.toast('Labor added.', 'success');
+    }, (data) => {
+      const errors = {};
+      if (!String(data.description || '').trim()) errors.description = 'Description is required.';
+      if (!String(data.hours || '').trim()) errors.hours = 'Hours are required.';
+      if (!String(data.hourlyRate || '').trim()) errors.hourlyRate = 'Hourly rate is required.';
+      return errors;
+    });
+  }
+
+  function wireUpdateForm(id) {
+    wireForm($('#ro-update-form'), async (data) => {
+      await API.updateRO(id, {
+        concern: data.concern,
+        notes: data.notes,
+        priority: data.priority,
+        estimatedCompletion: data.estimatedCompletion,
+      });
+      API.toast('Repair order updated.', 'success');
+      openRepairOrder(id);
+    }, (data) => (String(data.concern || '').trim() ? {} : { concern: 'Concern is required.' }));
+  }
+
+  /* ── New RO: customer ── */
+
+  let selectedCustomer = null;
+
+  function searchCustomers() {
+    const el = $('#cust-results');
+    const search = $('#cust-search').value.trim();
+    return API.load(el, async () => {
+      const customers = await API.customers({ search });
+      el.innerHTML = customers.map((c) => `
+        <div class="comment-card" data-customer="${esc(c.id)}" style="cursor:pointer">
+          <div class="comment-meta">
+            <span class="comment-author">${esc(c.full_name)}</span>
+            <span class="comment-time">${esc(c.phone || 'no phone')} · ${esc(c.email || 'no email')}</span>
+          </div>
+          <div class="comment-text">${esc(c.vehicle_count)} vehicle(s) · ${esc(c.repair_order_count)} RO(s) · last service ${esc(API.date(c.last_service_date))}</div>
+        </div>`).join('');
+      return customers;
+    }, { empty: 'No customers matched that search.' });
+  }
+
+  $('#cust-search-btn').addEventListener('click', searchCustomers);
+  $('#cust-search').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); searchCustomers(); } });
+
+  $('#cust-results').addEventListener('click', (ev) => {
+    const el = ev.target.closest('[data-customer]');
+    if (!el) return;
+    const id = el.dataset.customer;
+    const name = $('.comment-author', el).textContent;
+    selectCustomer({ id, full_name: name });
+  });
+
+  function selectCustomer(customer) {
+    selectedCustomer = customer;
+    const box = $('#cust-selected');
+    box.style.display = 'block';
+    box.innerHTML = `<span class="badge badge-green">Selected</span> <strong>${esc(customer.full_name)}</strong>`;
+    $('#cust-results').innerHTML = '';
+    $('#new-customer-form').style.display = 'none';
+    $('#veh-new-toggle').disabled = false;
+    $('#new-vehicle-form').style.display = 'none';
+    loadVehicles(customer.id);
+  }
+
+  $('#cust-new-toggle').addEventListener('click', () => {
+    const form = $('#new-customer-form');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  });
+
+  wireForm($('#new-customer-form'), async (data) => {
+    const customer = await API.createCustomer({
+      fullName: data.fullName,
+      email: data.email,
+      phone: data.phone,
+    });
+    $('#new-customer-form').reset();
+    API.toast(`Customer ${customer.full_name} created.`, 'success');
+    selectCustomer(customer);
+  }, (data) => (String(data.fullName || '').trim() ? {} : { fullName: 'Customer name is required.' }));
+
+  /* ── New RO: vehicle ──
+     The picker only ever holds vehicles belonging to the selected customer,
+     which is the pairing the server re-validates on create. */
+
+  function loadVehicles(customerId) {
+    return fillSelect($('#ro-vehicle'), () => API.vehicles({ customerId }), {
+      placeholder: 'Select a vehicle…',
+      empty: 'No vehicles for this customer — add one below',
+      keep: 'Could not load vehicles — search the customer again',
+      render: (v) => `${API.vehicleLabel(v)} · ${v.plate || v.vin}`,
+    });
+  }
+
+  $('#veh-new-toggle').addEventListener('click', () => {
+    const form = $('#new-vehicle-form');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  });
+
+  wireForm($('#new-vehicle-form'), async (data) => {
+    if (!selectedCustomer) {
+      API.toast('Select a customer first.', 'error');
+      return;
+    }
+    const vehicle = await API.createVehicle({
+      customerId: selectedCustomer.id,
+      vin: data.vin,
+      year: data.year,
+      make: data.make,
+      model: data.model,
+      plate: data.plate,
+      mileage: data.mileage,
+    });
+    $('#new-vehicle-form').reset();
+    $('#new-vehicle-form').style.display = 'none';
+    API.toast(`${API.vehicleLabel(vehicle)} added.`, 'success');
+    await loadVehicles(selectedCustomer.id);
+    $('#ro-vehicle').value = String(vehicle.id);
+  }, (data) => {
+    const errors = {};
+    if (!String(data.vin || '').trim()) errors.vin = 'VIN is required.';
+    if (!String(data.make || '').trim()) errors.make = 'Make is required.';
+    if (!String(data.model || '').trim()) errors.model = 'Model is required.';
+    return errors;
+  });
+
+  /* ── New RO: create ── */
+
+  wireForm($('#new-ro-form'), async (data) => {
+    const ro = await API.createRO({
+      customerId: selectedCustomer.id,
+      vehicleId: $('#ro-vehicle').value,
+      concern: data.concern,
+      priority: data.priority,
+      notes: data.notes,
+      estimatedCompletion: data.estimatedCompletion,
+    });
+
+    const success = $('#newro-success');
+    success.style.display = 'block';
+    success.innerHTML = `
+      <div class="step-header"><span class="badge badge-green">Created</span> ${esc(ro.ro_number)} opened for ${esc(selectedCustomer.full_name)}</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:10px">${esc(ro.concern)}</div>
+      <button class="btn btn-accent btn-sm" data-ro="${esc(ro.id)}">Open ${esc(ro.ro_number)}</button>`;
+
+    resetNewRoForm();
+    loadRepairOrders();
+  }, (data) => {
+    /* `customer` and `vehicle` are not fields of this form — their pickers
+       live in steps 1 and 2 — so API.showFieldErrors surfaces them as a
+       toast rather than pinning them to an input. */
+    const errors = {};
+    if (!selectedCustomer) errors.customer = 'Search for and select a customer in step 1 first.';
+    else if (!$('#ro-vehicle').value) errors.vehicle = "Select the customer's vehicle in step 2 first.";
+    if (!String(data.concern || '').trim()) errors.concern = 'Describe the customer complaint.';
+    return errors;
+  });
+
+  function resetNewRoForm() {
+    selectedCustomer = null;
+    $('#new-ro-form').reset();
+    $('#cust-search').value = '';
+    $('#cust-results').innerHTML = '';
+    $('#cust-selected').style.display = 'none';
+    $('#cust-selected').innerHTML = '';
+    $('#new-customer-form').style.display = 'none';
+    $('#new-vehicle-form').style.display = 'none';
+    $('#veh-new-toggle').disabled = true;
+    const veh = $('#ro-vehicle');
+    veh.disabled = true;
+    veh.innerHTML = '<option value="">Select a customer first</option>';
+  }
+
+  /* ── Appointments ── */
+
+  function loadAppointments() {
+    const body = $('#appt-body');
+    const status = $('#appt-filter').value;
+    $('#appt-today').textContent = `Appointments · today is ${dateOnly(todayYmd())}`;
+
+    return API.load(body, async () => {
+      const appts = await API.get('/api/appointments', { status });
+      body.innerHTML = appts.map((a) => `
+        <tr>
+          <td>${esc(dateOnly(a.preferred_date))}</td>
+          <td>${esc(timeOnly(a.preferred_time))}</td>
+          <td>${esc(a.customer_name)}<div style="font-size:.62rem;color:var(--muted)">${esc(a.customer_phone || '')}</div></td>
+          <td>${esc(API.vehicleLabel(a))}${a.plate ? ` · ${esc(a.plate)}` : ''}</td>
+          <td>${esc(a.concern)}</td>
+          <td>${badge(a.status, APPT_BADGE)}</td>
+          <td style="white-space:nowrap">
+            ${a.status === 'pending' ? `<button class="btn btn-accent btn-sm" data-appt="${esc(a.id)}" data-status="confirmed">Confirm</button> ` : ''}
+            ${['completed', 'cancelled'].includes(a.status) ? '' : `<button class="btn btn-sm" data-appt="${esc(a.id)}" data-status="cancelled">Cancel</button>`}
+          </td>
+        </tr>`).join('');
+      return appts;
+    }, { colspan: 7, empty: 'No appointments match that filter.' });
+  }
+
+  $('#appt-filter').addEventListener('change', loadAppointments);
+
+  $('#appt-body').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-appt]');
+    if (!btn) return;
+    btn.disabled = true;
+    try {
+      await API.patch(`/api/appointments/${btn.dataset.appt}`, { status: btn.dataset.status });
+      API.toast(`Appointment ${API.statusLabel(btn.dataset.status).toLowerCase()}.`, 'success');
+      loadAppointments();
+    } catch (e) {
+      if (e.message === 'Session expired' || e.message === 'Unauthorized') return;
+      API.toast(e.message, 'error');
+      btn.disabled = false;
+    }
+  });
+
+  /* ── Boot ── */
+  loadDashboard();
+})();
 </script>
 </body>
 </html>

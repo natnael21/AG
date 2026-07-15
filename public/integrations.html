@@ -81,282 +81,101 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 </style>
 </head>
 <body>
-<div class="toast" id="toast"></div>
-
-<!-- DISCONNECT MODAL -->
-<div class="modal-overlay" id="disconnect-modal">
-  <div class="modal">
-    <div class="modal-hdr"><span id="disconnect-title">Disconnect integration</span><button style="background:none;border:none;cursor:pointer;font-size:1.1rem" onclick="closeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="alert-box alert-warn">⚠️ Disconnecting will stop all future syncs. Your existing imported data will remain in your workspace — it will not be deleted.</div>
-      <div style="font-size:.78rem;color:var(--muted)">Are you sure you want to disconnect?</div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-sm btn-r" id="disconnect-confirm-btn">Disconnect</button>
-    </div>
-  </div>
-</div>
 
 <div class="sidebar">
   <div class="sb-top"><div class="brand">AG <span>Shop Pro</span></div><div class="brand-role">Workspace settings</div></div>
   <div class="sb-sec">Settings</div>
   <div class="sb-item" onclick="window.location.href='manager.html'">← Back to portal</div>
   <div class="sb-item active">🔌 Integrations</div>
-  <div class="sb-item" onclick="t('Workspace profile page coming soon')">🏢 Workspace profile</div>
   <div class="sb-item" onclick="window.location.href='vendors.html'">📦 Parts vendors</div>
   <div class="sb-foot">
-    <div class="sb-av">MG</div>
-    <div style="color:rgba(255,255,255,.55);font-size:.7rem">Maria Gonzalez</div>
+    <div class="sb-av" id="sidebar-initials">—</div>
+    <div style="color:rgba(255,255,255,.55);font-size:.7rem" id="sidebar-username"></div>
   </div>
 </div>
 
 <div class="main">
   <div class="topbar">
-    <h1>Integrations — AmeriBenz workspace</h1>
-    <span class="badge b-gray" style="font-size:.68rem">ws-001</span>
+    <h1 id="topbar-title">Integrations</h1>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="badge b-gray" style="font-size:.68rem" id="topbar-workspace"></span>
+      <button class="btn btn-sm" id="signout-btn">Sign out</button>
+    </div>
   </div>
   <div class="content">
 
     <div class="alert-box alert-info" style="margin-bottom:16px">
-      🔐 All API keys and tokens are encrypted with AES-256 before being stored. Your credentials are never visible to AG Shop Pro staff or other workspaces.
+      ℹ️ Mitchell 1 below is a read-only status view — it reports what is already in this workspace.
+      Connecting or re-syncing Mitchell 1 is not something this page can do; contact AG Shop Pro support to change it.
+      To load data yourself, use the CSV import below.
     </div>
 
-    <!-- MITCHELL 1 -->
+    <!-- MITCHELL 1 — read-only status, backed by GET /api/integrations/mitchell/status -->
     <div class="int-card" id="mitchell-card">
       <div class="int-header">
         <div class="int-logo" style="background:#e6f1fb;color:#0c447c">M1</div>
         <div>
           <div class="int-name">Mitchell 1</div>
-          <div class="int-desc">Import customers, vehicles, and RO history · Read-only · 15-min sync</div>
+          <div class="int-desc">Customers, vehicles and RO history · Read-only status</div>
         </div>
         <div class="int-status">
           <div class="status-dot" id="m1-dot" style="background:#e2e8f0"></div>
-          <div class="status-label" id="m1-status-label">Not connected</div>
-          <span class="badge b-gray" id="m1-badge">Disconnected</span>
-          <button class="btn btn-sm" id="m1-toggle-btn" onclick="toggleSection('mitchell')">Connect →</button>
+          <div class="status-label" id="m1-status-label" style="color:var(--muted)">Checking…</div>
+          <span class="badge b-gray" id="m1-badge">—</span>
         </div>
       </div>
-
-      <div class="int-body" id="mitchell-body">
-
-        <!-- NOT CONNECTED STATE -->
-        <div id="m1-connect-form">
-          <div class="step-list">
-            <div class="step-item"><div class="step-num">1</div><div class="step-text">In Mitchell 1, go to <strong>Admin → API Access → Generate Read-Only Key</strong></div></div>
-            <div class="step-item"><div class="step-num">2</div><div class="step-text">Copy your <strong>API Key</strong> and <strong>Shop ID</strong> (shown in Mitchell 1 Settings → Shop Profile)</div></div>
-            <div class="step-item"><div class="step-num">3</div><div class="step-text">Paste them below — we test the connection before saving. Your key is encrypted immediately.</div></div>
-          </div>
-          <div class="alert-box alert-warn">⚠️ Use a <strong>read-only</strong> API key. AG Shop Pro will never write to your Mitchell 1 data.</div>
-          <div class="form-row">
-            <div>
-              <label class="flbl">Mitchell 1 API key</label>
-              <input class="finput secret" id="m1-apikey" placeholder="M1-xxxxxxxxxxxxx" type="password"/>
-              <span class="show-hide" onclick="toggleShow('m1-apikey',this)">Show</span>
-            </div>
-            <div>
-              <label class="flbl">Shop ID</label>
-              <input class="finput" id="m1-shopid" placeholder="e.g. 84712"/>
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn btn-r" id="m1-connect-btn" onclick="connectMitchell()">Test & connect →</button>
-            <span style="font-size:.72rem;color:var(--muted)">We'll run a test call before saving anything</span>
-          </div>
-        </div>
-
-        <!-- CONNECTED STATE -->
-        <div id="m1-connected-state" style="display:none">
-          <div class="alert-box alert-success">✅ Mitchell 1 connected · Read-only · AES-256 encrypted · Last sync: <span id="m1-last-sync">—</span></div>
-          <div class="sync-stats">
-            <div class="sync-stat"><div class="sync-stat-val" id="m1-customers">—</div><div class="sync-stat-lbl">Customers</div></div>
-            <div class="sync-stat"><div class="sync-stat-val" id="m1-vehicles">—</div><div class="sync-stat-lbl">Vehicles</div></div>
-            <div class="sync-stat"><div class="sync-stat-val" id="m1-ros">—</div><div class="sync-stat-lbl">ROs imported</div></div>
-            <div class="sync-stat"><div class="sync-stat-val" id="m1-errors">0</div><div class="sync-stat-lbl">Errors</div></div>
-          </div>
-          <div style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:4px"><span>Import progress</span><span id="m1-progress-label">—</span></div>
-            <div class="progress-bar"><div class="progress-fill" id="m1-progress-fill" style="width:0%"></div></div>
-          </div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap">
-            <button class="btn btn-sm" onclick="t('Incremental sync started — checking for records updated in last 15 min')">↻ Sync now</button>
-            <button class="btn btn-sm" onclick="t('Full re-import started — this may take several minutes')">Full re-import</button>
-            <button class="btn btn-sm btn-r" onclick="openDisconnect('Mitchell 1','m1')">Disconnect</button>
-          </div>
-        </div>
-
+      <div class="int-body open" id="mitchell-body">
+        <div id="m1-detail"></div>
       </div>
     </div>
 
-    <!-- SQUARE -->
-    <div class="int-card" id="square-card">
-      <div class="int-header">
-        <div class="int-logo" style="background:#f0fff4;color:#27500a">SQ</div>
-        <div>
-          <div class="int-name">Square</div>
-          <div class="int-desc">Payment sync · Real-time webhook · Burn rate analytics · OAuth 2.0</div>
-        </div>
-        <div class="int-status">
-          <div class="status-dot" id="sq-dot" style="background:#e2e8f0"></div>
-          <div class="status-label" id="sq-status-label">Not connected</div>
-          <span class="badge b-gray" id="sq-badge">Disconnected</span>
-          <button class="btn btn-sm" id="sq-toggle-btn" onclick="toggleSection('square')">Connect →</button>
-        </div>
+    <!-- CSV IMPORT — backed by POST /api/import/customers and /api/import/vehicles -->
+    <div class="card">
+      <div class="card-hdr">
+        CSV import
+        <span class="badge b-green">Available</span>
       </div>
-
-      <div class="int-body" id="square-body">
-
-        <!-- NOT CONNECTED STATE -->
-        <div id="sq-connect-form">
-          <div class="alert-box alert-info">🔐 Square uses OAuth 2.0 — you'll be redirected to Square's site to authorize. We never see your Square password.</div>
-          <div class="step-list">
-            <div class="step-item"><div class="step-num">1</div><div class="step-text">Click <strong>Connect with Square</strong> below — you'll be taken to Square's secure authorization page</div></div>
-            <div class="step-item"><div class="step-num">2</div><div class="step-text">Log in to your Square account and click <strong>Allow</strong> to grant read access</div></div>
-            <div class="step-item"><div class="step-num">3</div><div class="step-text">You'll be returned here automatically — we'll import your last 12 months of payments</div></div>
-            <div class="step-item"><div class="step-num">4</div><div class="step-text">Going forward, every completed payment updates instantly via <strong>Square webhook</strong></div></div>
-          </div>
-          <div style="margin-bottom:10px">
-            <label class="flbl" style="margin-bottom:6px">Permissions we request from Square</label>
-            <div style="display:flex;flex-wrap:wrap;gap:5px">
-              <span class="badge b-blue">PAYMENTS_READ</span>
-              <span class="badge b-blue">ORDERS_READ</span>
-              <span class="badge b-blue">ITEMS_READ</span>
-              <span class="badge b-blue">MERCHANT_PROFILE_READ</span>
-              <span class="badge b-gray" style="font-size:.62rem">Read-only · No write access · No refund ability</span>
-            </div>
-          </div>
-          <button class="btn btn-g" onclick="connectSquare()">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="3" fill="#fff"/><rect x="4" y="4" width="8" height="8" rx="1" fill="#27500a"/></svg>
-            Connect with Square →
-          </button>
-        </div>
-
-        <!-- CONNECTED STATE -->
-        <div id="sq-connected-state" style="display:none">
-          <div class="alert-box alert-success">✅ Square connected · OAuth 2.0 · Read-only · Webhook active · Auto-refreshes before expiry</div>
-          <div class="sync-stats">
-            <div class="sync-stat"><div class="sync-stat-val" id="sq-payments">—</div><div class="sync-stat-lbl">Payments synced</div></div>
-            <div class="sync-stat"><div class="sync-stat-val" id="sq-revenue">—</div><div class="sync-stat-lbl">Total revenue</div></div>
-            <div class="sync-stat"><div class="sync-stat-val" id="sq-fees">—</div><div class="sync-stat-lbl">Square fees</div></div>
-            <div class="sync-stat"><div class="sync-stat-val" id="sq-invoices">—</div><div class="sync-stat-lbl">Auto-matched invoices</div></div>
-          </div>
-          <div style="padding:10px 13px;background:#f8fafc;border-radius:8px;font-size:.72rem;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px">
-            <span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;display:inline-block"></span>
-            Webhook active · Every new Square payment updates your invoices in real time
-          </div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap">
-            <button class="btn btn-sm" onclick="t('Pulling latest 30 days of Square payments...')">↻ Refresh payments</button>
-            <button class="btn btn-sm" onclick="t('Opening burn rate dashboard...');window.location.href=\"manager.html\"">View burn rate →</button>
-            <button class="btn btn-sm btn-r" onclick="openDisconnect('Square','sq')">Disconnect</button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- TWILIO -->
-    <div class="int-card">
-      <div class="int-header">
-        <div class="int-logo" style="background:#faeeda;color:#633806">TW</div>
-        <div>
-          <div class="int-name">Twilio</div>
-          <div class="int-desc">Customer SMS · Call transcription · Landline bridge</div>
-        </div>
-        <div class="int-status">
-          <div class="status-dot" style="background:#e2e8f0"></div>
-          <div class="status-label" style="color:var(--muted)">Not connected</div>
-          <span class="badge b-gray">Disconnected</span>
-          <button class="btn btn-sm" onclick="toggleSection('twilio')">Connect →</button>
-        </div>
-      </div>
-      <div class="int-body" id="twilio-body">
-        <div class="step-list">
-          <div class="step-item"><div class="step-num">1</div><div class="step-text">Create a Twilio account at <a href="https://twilio.com" target="_blank">twilio.com</a> if you haven't already</div></div>
-          <div class="step-item"><div class="step-num">2</div><div class="step-text">In Twilio Console, go to <strong>Account → API Keys → Create API Key</strong></div></div>
-          <div class="step-item"><div class="step-num">3</div><div class="step-text">For SMS: purchase a local phone number in your area code (approx. $1/month)</div></div>
-          <div class="step-item"><div class="step-num">4</div><div class="step-text">For landline bridge: set call forwarding from your shop number to the Twilio number</div></div>
+      <div style="padding:14px">
+        <div class="alert-box alert-info">
+          📄 Upload a CSV to add records to this workspace. Rows that already exist are skipped as duplicates,
+          and any row that cannot be imported is listed with its line number.
         </div>
         <div class="form-row">
           <div>
-            <label class="flbl">Account SID</label>
-            <input class="finput" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/>
+            <label class="flbl">Customers CSV</label>
+            <input class="finput" type="file" accept=".csv,text/csv" id="import-customers-file"/>
+            <div style="font-size:.65rem;color:var(--muted);margin-top:5px;line-height:1.5">
+              Columns: <strong>full_name</strong> (required) · email · phone.
+              Duplicates are matched on email.
+            </div>
+            <button class="btn btn-r btn-sm" id="import-customers-btn" style="margin-top:8px">Import customers</button>
           </div>
           <div>
-            <label class="flbl">Auth token</label>
-            <input class="finput secret" placeholder="Auth token" type="password"/>
+            <label class="flbl">Vehicles CSV</label>
+            <input class="finput" type="file" accept=".csv,text/csv" id="import-vehicles-file"/>
+            <div style="font-size:.65rem;color:var(--muted);margin-top:5px;line-height:1.5">
+              Columns: <strong>vin, make, model</strong> (required) · year · plate · mileage · customer_email
+              (links the vehicle to an existing customer). Duplicates are matched on VIN.
+            </div>
+            <button class="btn btn-r btn-sm" id="import-vehicles-btn" style="margin-top:8px">Import vehicles</button>
           </div>
         </div>
-        <div style="margin-bottom:10px">
-          <label class="flbl">Twilio phone number</label>
-          <input class="finput" placeholder="(240) 555-0100" style="max-width:200px"/>
-        </div>
-        <button class="btn btn-r" onclick="t('Twilio connected · SMS enabled · Testing inbound webhook...')">Connect Twilio →</button>
+        <div id="import-result"></div>
       </div>
     </div>
 
-    <!-- CCC ONE -->
-    <div class="int-card">
-      <div class="int-header">
-        <div class="int-logo" style="background:#eeedfe;color:#3c3489">CC</div>
-        <div>
-          <div class="int-name">CCC One</div>
-          <div class="int-desc">Auto-import collision estimates as repair orders</div>
-        </div>
-        <div class="int-status">
-          <div class="status-dot" style="background:#e2e8f0"></div>
-          <div class="status-label" style="color:var(--muted)">Not connected</div>
-          <span class="badge b-gray">Disconnected</span>
-          <button class="btn btn-sm" onclick="toggleSection('ccc')">Connect →</button>
-        </div>
+    <!-- Integrations with no backend. No forms, no buttons: nothing here would do anything. -->
+    <div class="card">
+      <div class="card-hdr">
+        Not available
+        <span style="font-size:.65rem;font-weight:400;color:var(--muted)">No integration is built for these yet</span>
       </div>
-      <div class="int-body" id="ccc-body">
-        <div class="alert-box alert-warn">⚠️ CCC One API access requires a CCC One Pro or Enterprise subscription. Contact CCC One to enable API credentials for your shop.</div>
-        <div class="form-row">
-          <div>
-            <label class="flbl">CCC One API key</label>
-            <input class="finput secret" placeholder="CCC-xxxxxxxxxxxx" type="password"/>
-          </div>
-          <div>
-            <label class="flbl">CCC One Shop ID</label>
-            <input class="finput" placeholder="e.g. 38291"/>
-          </div>
+      <div style="padding:14px">
+        <div class="alert-box alert-warn">
+          ⚠️ These services are not integrated with AG Shop Pro. There is nothing to configure here yet —
+          this list is shown so you know what is and is not connected.
         </div>
-        <button class="btn btn-r" onclick="t('CCC One connected · Estimates will auto-create ROs')">Connect CCC One →</button>
-      </div>
-    </div>
-
-    <!-- WORLDPAC (parts ordering) -->
-    <div class="int-card">
-      <div class="int-header">
-        <div class="int-logo" style="background:#e6f1fb;color:#0c447c">WP</div>
-        <div>
-          <div class="int-name">Worldpac speedDIAL</div>
-          <div class="int-desc">Order parts directly from RO parts lines</div>
-        </div>
-        <div class="int-status">
-          <div class="status-dot" style="background:#e2e8f0"></div>
-          <div class="status-label" style="color:var(--muted)">Not connected</div>
-          <span class="badge b-gray">Disconnected</span>
-          <button class="btn btn-sm" onclick="toggleSection('worldpac')">Connect →</button>
-        </div>
-      </div>
-      <div class="int-body" id="worldpac-body">
-        <div class="step-list">
-          <div class="step-item"><div class="step-num">1</div><div class="step-text">Log in to <a href="https://www.worldpac.com" target="_blank">worldpac.com</a> → Account → API Integration</div></div>
-          <div class="step-item"><div class="step-num">2</div><div class="step-text">Generate a speedDIAL API token for your shop account</div></div>
-          <div class="step-item"><div class="step-num">3</div><div class="step-text">Once connected, part numbers from Mitchell 1 will show live Worldpac pricing in RO parts lines</div></div>
-        </div>
-        <div class="form-row">
-          <div>
-            <label class="flbl">Worldpac account number</label>
-            <input class="finput" placeholder="e.g. WP-84219"/>
-          </div>
-          <div>
-            <label class="flbl">API token</label>
-            <input class="finput secret" placeholder="Token" type="password"/>
-          </div>
-        </div>
-        <button class="btn btn-r" onclick="t('Worldpac connected · Part pricing now shows in RO parts lines')">Connect Worldpac →</button>
+        <div id="unavailable-list"></div>
       </div>
     </div>
 
@@ -364,131 +183,274 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 </div>
 
 <script src="auth.js"></script>
+<script src="api.js"></script>
 <script>
-(function(){
-  const s = AUTH.requireRoles(['manager', 'super_admin']);
-  if(!s) return;
-  document.addEventListener('DOMContentLoaded', () => {
-    const n = document.getElementById('sidebar-username');
-    if(n) n.textContent = s.name;
+/* ============================================================
+   Integrations
+   Mitchell 1 is a read-only status panel fed by
+   GET /api/integrations/mitchell/status. There is no connect,
+   disconnect or sync endpoint, so this page offers no such action.
+   CSV import posts to the real /api/import/* endpoints.
+   ============================================================ */
+
+const esc = (v) => API.escape(v);
+
+function initials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
+  return parts.map((w) => w[0]).join('').toUpperCase() || '—';
+}
+function num(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+function count(v) {
+  return num(v).toLocaleString('en-US');
+}
+
+function initHeader(s) {
+  document.getElementById('sidebar-username').textContent = s.name || '';
+  document.getElementById('sidebar-initials').textContent = initials(s.name);
+  document.getElementById('topbar-title').textContent =
+    s.activeWorkspaceName ? `Integrations — ${s.activeWorkspaceName}` : 'Integrations';
+  const ws = document.getElementById('topbar-workspace');
+  if (s.activeWorkspaceId != null) ws.textContent = `Workspace ${s.activeWorkspaceId}`;
+  else ws.style.display = 'none';
+  document.getElementById('signout-btn').addEventListener('click', () => AUTH.logout());
+}
+
+/* ── Mitchell 1 status (read-only) ── */
+
+async function loadMitchellStatus() {
+  const el = document.getElementById('m1-detail');
+  const status = await API.load(el, () => API.mitchellStatus());
+  if (!status) {
+    setMitchellHeader(null);
+    return;
+  }
+  setMitchellHeader(status);
+  el.innerHTML = mitchellDetailHtml(status);
+}
+
+function setMitchellHeader(status) {
+  const dot = document.getElementById('m1-dot');
+  const label = document.getElementById('m1-status-label');
+  const badge = document.getElementById('m1-badge');
+
+  if (!status) {
+    dot.style.background = '#e2e8f0';
+    label.textContent = 'Status unavailable';
+    label.style.color = 'var(--muted)';
+    badge.textContent = '—';
+    badge.className = 'badge b-gray';
+    return;
+  }
+  if (status.connected) {
+    dot.style.background = '#2f855a';
+    label.textContent = 'Connected';
+    label.style.color = 'var(--green)';
+    badge.textContent = 'Connected';
+    badge.className = 'badge b-green';
+  } else {
+    dot.style.background = '#e2e8f0';
+    label.textContent = 'Not connected';
+    label.style.color = 'var(--muted)';
+    badge.textContent = 'Not connected';
+    badge.className = 'badge b-gray';
+  }
+}
+
+function mitchellDetailHtml(status) {
+  const counts = status.counts || {};
+  const banner = status.connected
+    ? `<div class="alert-box alert-success">
+         ✅ Mitchell 1 is connected for this workspace · Read-only${status.connectedAt ? ` · Connected ${esc(API.dateTime(status.connectedAt))}` : ''}
+       </div>`
+    : `<div class="alert-box alert-warn">
+         ⚠️ Mitchell 1 is not connected for this workspace. Any records below were loaded another way
+         (for example the CSV import). Setting up a Mitchell 1 connection is handled by AG Shop Pro support.
+       </div>`;
+
+  return `
+    ${banner}
+    ${lastSyncHtml(status.lastSync)}
+    <div class="flbl" style="margin-bottom:6px">Records in this workspace</div>
+    <div class="sync-stats" style="grid-template-columns:repeat(5,1fr)">
+      <div class="sync-stat"><div class="sync-stat-val">${esc(count(counts.customers))}</div><div class="sync-stat-lbl">Customers</div></div>
+      <div class="sync-stat"><div class="sync-stat-val">${esc(count(counts.vehicles))}</div><div class="sync-stat-lbl">Vehicles</div></div>
+      <div class="sync-stat"><div class="sync-stat-val">${esc(count(counts.repair_orders))}</div><div class="sync-stat-lbl">Repair orders</div></div>
+      <div class="sync-stat"><div class="sync-stat-val">${esc(count(counts.labor_lines))}</div><div class="sync-stat-lbl">Labor lines</div></div>
+      <div class="sync-stat"><div class="sync-stat-val">${esc(count(counts.parts_lines))}</div><div class="sync-stat-lbl">Parts lines</div></div>
+    </div>`;
+}
+
+function lastSyncHtml(lastSync) {
+  if (!lastSync) {
+    return `<div style="padding:10px 13px;background:#f8fafc;border-radius:8px;font-size:.72rem;color:var(--muted);margin-bottom:12px">
+        No sync has run for this workspace yet.
+      </div>`;
+  }
+  const state = String(lastSync.status || '').toLowerCase();
+  const badgeClass = state === 'success' ? 'b-green' : (state === 'error' || state === 'failed' ? 'b-red' : 'b-gray');
+  return `<div style="padding:10px 13px;background:#f8fafc;border-radius:8px;font-size:.72rem;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span>Last sync ${esc(API.dateTime(lastSync.last_sync_at))}</span>
+      ${lastSync.status ? `<span class="badge ${badgeClass}">${esc(API.statusLabel(lastSync.status))}</span>` : ''}
+      ${lastSync.message ? `<span style="flex:1;min-width:0">${esc(lastSync.message)}</span>` : ''}
+    </div>`;
+}
+
+/* ── Services with no backend ──
+   Rendered as plain status rows: no form, no button, nothing to click. */
+
+const UNAVAILABLE = [
+  { code: 'SQ', name: 'Square',              desc: 'Payment sync',                         bg: '#f0fff4', fg: '#27500a' },
+  { code: 'TW', name: 'Twilio',              desc: 'Customer SMS · Call transcription',    bg: '#faeeda', fg: '#633806' },
+  { code: 'CC', name: 'CCC One',             desc: 'Collision estimate import',            bg: '#eeedfe', fg: '#3c3489' },
+  { code: 'WP', name: 'Worldpac speedDIAL',  desc: 'Parts ordering from RO parts lines',   bg: '#e6f1fb', fg: '#0c447c' },
+];
+
+function renderUnavailable() {
+  document.getElementById('unavailable-list').innerHTML = UNAVAILABLE.map((s) => `
+    <div class="int-header" style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div class="int-logo" style="background:${s.bg};color:${s.fg};width:36px;height:36px">${esc(s.code)}</div>
+      <div>
+        <div class="int-name" style="font-size:.82rem">${esc(s.name)}</div>
+        <div class="int-desc">${esc(s.desc)}</div>
+      </div>
+      <div class="int-status">
+        <div class="status-dot" style="background:#e2e8f0"></div>
+        <div class="status-label" style="color:var(--muted)">Not available</div>
+        <span class="badge b-gray">No integration</span>
+      </div>
+    </div>`).join('');
+}
+
+/* ── CSV import ── */
+
+function wireImport() {
+  document.getElementById('import-customers-btn').addEventListener('click', () => {
+    runImport('customers', 'import-customers-file', 'import-customers-btn');
   });
-})();
-
-history.replaceState(null,'',window.location.href);
-window.addEventListener('popstate',()=>window.location.replace('login.html'));
-
-function toggleSection(id) {
-  const body = document.getElementById(id + '-body');
-  if(body) body.classList.toggle('open');
+  document.getElementById('import-vehicles-btn').addEventListener('click', () => {
+    runImport('vehicles', 'import-vehicles-file', 'import-vehicles-btn');
+  });
 }
 
-let pendingDisconnect = null;
-function openDisconnect(name, prefix) {
-  document.getElementById('disconnect-title').textContent = 'Disconnect ' + name;
-  pendingDisconnect = prefix;
-  document.getElementById('disconnect-modal').classList.add('open');
-  document.getElementById('disconnect-confirm-btn').onclick = () => {
-    confirmDisconnect(name, prefix);
-  };
-}
-function closeModal() {
-  document.getElementById('disconnect-modal').classList.remove('open');
-}
-function confirmDisconnect(name, prefix) {
-  closeModal();
-  document.getElementById(prefix + '-dot').style.background = '#e2e8f0';
-  document.getElementById(prefix + '-status-label').textContent = 'Not connected';
-  document.getElementById(prefix + '-status-label').style.color = 'var(--muted)';
-  document.getElementById(prefix + '-badge').textContent = 'Disconnected';
-  document.getElementById(prefix + '-badge').className = 'badge b-gray';
-  const connState = document.getElementById(prefix + '-connected-state');
-  const connForm  = document.getElementById(prefix + '-connect-form');
-  if(connState) connState.style.display = 'none';
-  if(connForm)  connForm.style.display = 'block';
-  t(name + ' disconnected · Your imported data has been preserved');
-}
+async function runImport(kind, fileInputId, btnId) {
+  const input = document.getElementById(fileInputId);
+  const btn = document.getElementById(btnId);
+  const resultEl = document.getElementById('import-result');
+  const file = input.files && input.files[0];
 
-function connectMitchell() {
-  const key    = document.getElementById('m1-apikey').value.trim();
-  const shopId = document.getElementById('m1-shopid').value.trim();
-  const btn    = document.getElementById('m1-connect-btn');
-  if(!key || !shopId) { t('Please enter your API key and Shop ID'); return; }
-  btn.textContent = 'Testing connection...';
+  if (!file) {
+    API.toast('Choose a CSV file first.', 'warn');
+    return;
+  }
+  const workspaceId = AUTH.getActiveWorkspaceId();
+  if (workspaceId == null) {
+    API.toast('No active workspace selected.', 'error');
+    return;
+  }
+  const s = AUTH.getSession();
+  if (!s || !s.token) {
+    AUTH.logout();
+    return;
+  }
+
+  const form = new FormData();
+  form.append('file', file);
+
+  const original = btn.textContent;
   btn.disabled = true;
-  /* Simulate API test + connect */
-  setTimeout(() => {
-    btn.textContent = 'Test & connect →';
-    btn.disabled = false;
-    setConnected('m1', 'Mitchell 1');
-    document.getElementById('m1-last-sync').textContent = 'Just now';
-    document.getElementById('m1-customers').textContent = '—';
-    document.getElementById('m1-vehicles').textContent = '—';
-    document.getElementById('m1-ros').textContent = '—';
-    document.getElementById('m1-progress-label').textContent = 'Full import running...';
-    let pct = 0;
-    const interval = setInterval(() => {
-      pct += 7;
-      document.getElementById('m1-progress-fill').style.width = Math.min(pct,100) + '%';
-      if(pct >= 30) document.getElementById('m1-customers').textContent = Math.floor(pct * 8.4);
-      if(pct >= 50) document.getElementById('m1-vehicles').textContent = Math.floor(pct * 5.2);
-      if(pct >= 70) document.getElementById('m1-ros').textContent = Math.floor(pct * 22);
-      if(pct >= 100) {
-        clearInterval(interval);
-        document.getElementById('m1-progress-label').textContent = 'Import complete';
-        document.getElementById('m1-customers').textContent = '847';
-        document.getElementById('m1-vehicles').textContent = '1,203';
-        document.getElementById('m1-ros').textContent = '2,341';
-        t('Mitchell 1 fully connected · 2,341 records imported · 15-min sync active');
+  btn.textContent = 'Importing…';
+  resultEl.innerHTML = '';
+
+  try {
+    /* Content-Type is deliberately unset: the browser must add the multipart
+       boundary itself. */
+    const res = await fetch(
+      `${AUTH.API_BASE}/api/import/${kind}?workspaceId=${encodeURIComponent(workspaceId)}`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${s.token}` },
+        credentials: 'same-origin',
+        body: form,
       }
-    }, 180);
-  }, 1800);
+    );
+
+    if (res.status === 401) {
+      AUTH.clearSession();
+      window.location.replace('login.html');
+      return;
+    }
+
+    const text = await res.text();
+    let data = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = null;
+      }
+    }
+    if (!res.ok) {
+      throw new Error((data && (data.error || data.message)) || API.messageForStatus(res.status));
+    }
+    if (!data) throw new Error('The server returned an unreadable response.');
+
+    resultEl.innerHTML = importResultHtml(kind, data);
+    input.value = '';
+    API.toast(`${data.success} of ${data.total} row(s) imported.`, data.success ? 'success' : 'warn');
+    /* The workspace counts just changed. */
+    loadMitchellStatus();
+  } catch (e) {
+    resultEl.innerHTML = `<div class="alert-box alert-warn">⚠️ ${esc(e.message)}</div>`;
+    API.toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 }
 
-function connectSquare() {
-  t('Redirecting to Square authorization...');
-  setTimeout(() => {
-    setConnected('sq', 'Square');
-    document.getElementById('sq-payments').textContent = '—';
-    document.getElementById('sq-revenue').textContent = '—';
-    document.getElementById('sq-fees').textContent = '—';
-    document.getElementById('sq-invoices').textContent = '—';
-    let payments = 0, revenue = 0, fees = 0;
-    const iv = setInterval(() => {
-      payments += 47;
-      revenue  += 5820;
-      fees     += 172;
-      document.getElementById('sq-payments').textContent = payments;
-      document.getElementById('sq-revenue').textContent = '$' + revenue.toLocaleString();
-      document.getElementById('sq-fees').textContent = '$' + fees.toLocaleString();
-      document.getElementById('sq-invoices').textContent = Math.floor(payments * 0.62);
-      if(payments >= 470) { clearInterval(iv); t('Square fully connected · 12-month history imported · Webhook active'); }
-    }, 120);
-  }, 1400);
+function importResultHtml(kind, r) {
+  const errors = r.errors || [];
+  const label = kind === 'customers' ? 'Customer' : 'Vehicle';
+  const tone = errors.length ? 'alert-warn' : 'alert-success';
+
+  return `
+    <div class="alert-box ${tone}" style="margin-top:12px">
+      ${errors.length ? '⚠️' : '✅'} ${esc(label)} import finished ·
+      ${esc(num(r.success))} imported · ${esc(num(r.duplicates))} duplicate(s) skipped ·
+      ${esc(errors.length)} error(s) · ${esc(num(r.total))} row(s) read
+    </div>
+    <div class="sync-stats">
+      <div class="sync-stat"><div class="sync-stat-val">${esc(count(r.total))}</div><div class="sync-stat-lbl">Rows read</div></div>
+      <div class="sync-stat"><div class="sync-stat-val" style="color:var(--green)">${esc(count(r.success))}</div><div class="sync-stat-lbl">Imported</div></div>
+      <div class="sync-stat"><div class="sync-stat-val" style="color:var(--yellow)">${esc(count(r.duplicates))}</div><div class="sync-stat-lbl">Duplicates skipped</div></div>
+      <div class="sync-stat"><div class="sync-stat-val" style="color:${errors.length ? 'var(--red)' : 'var(--text)'}">${esc(count(errors.length))}</div><div class="sync-stat-lbl">Errors</div></div>
+    </div>
+    ${errors.length ? `
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hdr" style="font-size:.75rem">Rows that could not be imported</div>
+        <div>
+          ${errors.map((e) => `
+            <div style="display:flex;gap:12px;padding:7px 16px;border-bottom:1px solid var(--border);font-size:.75rem">
+              <span style="color:var(--muted);width:70px;flex-shrink:0">Row ${esc(e.row)}</span>
+              <span>${esc(e.reason)}</span>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}`;
 }
 
-function setConnected(prefix, name) {
-  document.getElementById(prefix + '-dot').style.background = '#2f855a';
-  document.getElementById(prefix + '-status-label').textContent = 'Connected';
-  document.getElementById(prefix + '-status-label').style.color = 'var(--green)';
-  document.getElementById(prefix + '-badge').textContent = 'Connected';
-  document.getElementById(prefix + '-badge').className = 'badge b-green';
-  const connState = document.getElementById(prefix + '-connected-state');
-  const connForm  = document.getElementById(prefix + '-connect-form');
-  if(connState) connState.style.display = 'block';
-  if(connForm)  connForm.style.display  = 'none';
-}
-
-function toggleShow(inputId, btn) {
-  const inp = document.getElementById(inputId);
-  if(inp.type === 'password') { inp.type = 'text'; inp.classList.remove('secret'); btn.textContent = 'Hide'; }
-  else { inp.type = 'password'; inp.classList.add('secret'); btn.textContent = 'Show'; }
-}
-
-function t(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 3000);
+/* ── Bootstrap ──
+   Runs last: the helpers above are function declarations (hoisted), but the
+   const tables they read are not, so starting up any earlier would hit the
+   temporal dead zone. */
+const session = AUTH.requireRoles(['manager', 'super_admin']);
+if (session) {
+  initHeader(session);
+  renderUnavailable();
+  loadMitchellStatus();
+  wireImport();
 }
 </script>
 </body>

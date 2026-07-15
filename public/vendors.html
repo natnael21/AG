@@ -28,7 +28,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .filter-btn{padding:6px 12px;border-radius:8px;font-size:.72rem;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s}
 .filter-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 .vendors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-bottom:32px}
-.vendor-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:box-shadow .15s;cursor:pointer}
+.vendor-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:box-shadow .15s}
 .vendor-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08)}
 .vendor-card.featured{border-color:var(--gold)}
 .vc-header{padding:14px 16px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid var(--border)}
@@ -61,8 +61,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .tip-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
 .tip-title{font-size:.8rem;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
 .tip-body{font-size:.75rem;color:var(--muted);line-height:1.6}
-.toast{position:fixed;bottom:16px;right:16px;background:var(--navy);color:#fff;padding:9px 14px;border-radius:9px;font-size:.75rem;z-index:999;opacity:0;transform:translateY(6px);transition:all .25s;pointer-events:none}
-.toast.show{opacity:1;transform:translateY(0)}
+.vc-note{font-size:.72rem;color:var(--muted)}
 .hidden{display:none}
 </style>
 </head>
@@ -74,8 +73,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 })();
 </script>
 
-<div class="toast" id="toast"></div>
-
 <div class="topbar">
   <div class="topbar-brand">
     <div class="brand-icon">AG</div>
@@ -84,7 +81,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <div style="display:flex;gap:7px">
     <a class="btn" href="manager.html">← Manager portal</a>
     <a class="btn" href="service.html">← Service portal</a>
-    <button class="btn btn-r" onclick="toast('Feature coming soon: suggest a vendor')">+ Suggest vendor</button>
   </div>
 </div>
 
@@ -92,7 +88,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <div class="page-hdr">
     <div class="page-tag">Parts wiki</div>
     <div class="page-title">Parts vendor directory</div>
-    <div class="page-desc">Reference for service advisors and managers. Find the right vendor for every job — OEM, aftermarket, used, and specialty parts.</div>
+    <div class="page-desc">Reference for service advisors and managers. Find the right vendor for every job — OEM, aftermarket, used, and specialty parts. This is a reference directory of external suppliers, not an ordering system: AG Shop Pro cannot place orders or check vendor stock. Links open each supplier's own website in a new tab, where you order with your own shop account.</div>
   </div>
 
   <!-- Quick reference -->
@@ -111,7 +107,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 
   <!-- Filters -->
   <div class="filters">
-    <input class="filter-input" id="search" placeholder="Search vendors, parts types..." oninput="filterVendors()"/>
+    <input class="filter-input" id="search" placeholder="Filter this directory..." oninput="filterVendors()"/>
     <button class="filter-btn active" data-cat="all" onclick="setCat('all',this)">All</button>
     <button class="filter-btn" data-cat="oem" onclick="setCat('oem',this)">OEM</button>
     <button class="filter-btn" data-cat="aftermarket" onclick="setCat('aftermarket',this)">Aftermarket</button>
@@ -144,13 +140,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
           <div class="vc-row"><span class="vc-label">Best for</span><span class="vc-val">BMW, Mercedes, Audi, Honda, Toyota — OEM and import spec</span></div>
           <div class="vc-row"><span class="vc-label">Delivery</span><span class="vc-val">Same-day (MD/DC/VA) · 2 daily runs · Order by 10 AM for morning</span></div>
           <div class="vc-row"><span class="vc-label">Account</span><span class="vc-val">Net 30 available · Commercial pricing · Min order $50</span></div>
-          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.worldpac.com" target="_blank">speedDIAL online</a> · (800) 888-9982</span></div>
+          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.worldpac.com" target="_blank" rel="noopener noreferrer">worldpac.com</a> · (800) 888-9982</span></div>
           <div class="vc-row"><span class="vc-label">Part #s</span><span class="vc-val">Cross-referenced in Mitchell 1 ProDemand — use their numbers</span></div>
         </div>
       </div>
       <div class="vc-footer">
-        <button class="btn" onclick="toast('Worldpac account contact: commercial@worldpac.com')">Account info</button>
-        <button class="btn" onclick="toast('Opening Worldpac speedDIAL...')">Order now →</button>
+        <a class="btn" href="https://www.worldpac.com" target="_blank" rel="noopener noreferrer">Visit worldpac.com →</a>
       </div>
     </div>
 
@@ -173,13 +168,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
           <div class="vc-row"><span class="vc-label">Best for</span><span class="vc-val">Domestic vehicles · GM, Ford, Chrysler · Brakes, filters, belts</span></div>
           <div class="vc-row"><span class="vc-label">Delivery</span><span class="vc-val">Same-day delivery from local store · Multiple DC Metro locations</span></div>
           <div class="vc-row"><span class="vc-label">Warranty</span><span class="vc-val">NAPA Prolink warranty — nation-wide claim support</span></div>
-          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.napaonline.com" target="_blank">napaonline.com</a> · (888) 978-NAPA</span></div>
+          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.napaonline.com" target="_blank" rel="noopener noreferrer">napaonline.com</a> · (888) 978-NAPA</span></div>
           <div class="vc-row"><span class="vc-label">Closest</span><span class="vc-val">Silver Spring: 8541 Georgia Ave · (301) 585-9120</span></div>
         </div>
       </div>
       <div class="vc-footer">
-        <button class="btn" onclick="toast('NAPA ProLink account: contact your local NAPA commercial manager')">Account info</button>
-        <button class="btn" onclick="toast('Opening NAPA ProLink...')">Order now →</button>
+        <a class="btn" href="https://www.napaonline.com" target="_blank" rel="noopener noreferrer">Visit napaonline.com →</a>
       </div>
     </div>
 
@@ -204,12 +198,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
           <div class="vc-row"><span class="vc-label">Certification</span><span class="vc-val">CAPA-certified parts — accepted by most insurers for non-OEM</span></div>
           <div class="vc-row"><span class="vc-label">CCC One</span><span class="vc-val">Parts pull directly into CCC One estimates — auto pricing</span></div>
           <div class="vc-row"><span class="vc-label">Delivery</span><span class="vc-val">Next-day DC Metro · Will-call available</span></div>
-          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.keystoneautomotive.com" target="_blank">keystoneautomotive.com</a></span></div>
+          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.keystoneautomotive.com" target="_blank" rel="noopener noreferrer">keystoneautomotive.com</a></span></div>
         </div>
       </div>
       <div class="vc-footer">
-        <button class="btn" onclick="toast('Keystone account rep: contact local distribution center')">Account info</button>
-        <button class="btn" onclick="toast('Opening Keystone catalog...')">Order now →</button>
+        <a class="btn" href="https://www.keystoneautomotive.com" target="_blank" rel="noopener noreferrer">Visit keystoneautomotive.com →</a>
       </div>
     </div>
 
@@ -233,12 +226,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
           <div class="vc-row"><span class="vc-label">Best for</span><span class="vc-val">Customer-pay body work where OEM cost is a barrier · Used headlights, doors, mirrors</span></div>
           <div class="vc-row"><span class="vc-label">Warranty</span><span class="vc-val">30-day part warranty standard · Extended available</span></div>
           <div class="vc-row"><span class="vc-label">Note</span><span class="vc-val">Insurance jobs usually require OEM or CAPA-cert — verify before ordering</span></div>
-          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.lkqonline.com" target="_blank">lkqonline.com</a> · (877) 557-2677</span></div>
+          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.lkqonline.com" target="_blank" rel="noopener noreferrer">lkqonline.com</a> · (877) 557-2677</span></div>
         </div>
       </div>
       <div class="vc-footer">
-        <button class="btn" onclick="toast('LKQ commercial account: lkqcommercial.com')">Account info</button>
-        <button class="btn" onclick="toast('Opening LKQ catalog...')">Order now →</button>
+        <a class="btn" href="https://www.lkqonline.com" target="_blank" rel="noopener noreferrer">Visit lkqonline.com →</a>
       </div>
     </div>
 
@@ -261,12 +253,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
           <div class="vc-row"><span class="vc-label">Best for</span><span class="vc-val">Hard-to-find used parts · Searching across 1,000+ salvage yards nationally</span></div>
           <div class="vc-row"><span class="vc-label">Search by</span><span class="vc-val">VIN, part number, year/make/model — shows all local and national options</span></div>
           <div class="vc-row"><span class="vc-label">Note</span><span class="vc-val">Quality varies by yard — always request mileage and photos before confirming</span></div>
-          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.car-part.com" target="_blank">car-part.com</a> — search then call directly</span></div>
+          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.car-part.com" target="_blank" rel="noopener noreferrer">car-part.com</a> — search then call directly</span></div>
         </div>
       </div>
       <div class="vc-footer">
-        <button class="btn" onclick="toast('Car-Part.com is free to search — no account needed')">No account needed</button>
-        <button class="btn" onclick="toast('Opening Car-Part.com...')">Search parts →</button>
+        <a class="btn" href="https://www.car-part.com" target="_blank" rel="noopener noreferrer">Search on car-part.com →</a>
+        <span class="vc-note">Free to search — no account needed</span>
       </div>
     </div>
 
@@ -289,12 +281,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
           <div class="vc-row"><span class="vc-label">Best for</span><span class="vc-val">Emergency same-day needs · Maintenance items · Batteries, brakes, belts</span></div>
           <div class="vc-row"><span class="vc-label">Delivery</span><span class="vc-val">Free same-day delivery on commercial orders $50+</span></div>
           <div class="vc-row"><span class="vc-label">Account</span><span class="vc-val">Net 30 available · Volume discounts · Dedicated commercial rep</span></div>
-          <div class="vc-row"><span class="vc-label">Closest</span><span class="vc-val">Multiple Silver Spring locations — call (301) commercial line</span></div>
+          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.autozone.com" target="_blank" rel="noopener noreferrer">autozone.com</a></span></div>
+          <div class="vc-row"><span class="vc-label">Closest</span><span class="vc-val">Multiple Silver Spring locations — use the store locator on autozone.com</span></div>
         </div>
       </div>
       <div class="vc-footer">
-        <button class="btn" onclick="toast('AutoZone Commercial: 1-800-288-6966 ext COMM')">Account info</button>
-        <button class="btn" onclick="toast('Opening AutoZone Commercial...')">Order now →</button>
+        <a class="btn" href="https://www.autozone.com" target="_blank" rel="noopener noreferrer">Visit autozone.com →</a>
       </div>
     </div>
 
@@ -316,12 +308,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
         <div class="vc-info">
           <div class="vc-row"><span class="vc-label">Best for</span><span class="vc-val">Tool rentals · Maintenance parts · Good for shops without full tool sets</span></div>
           <div class="vc-row"><span class="vc-label">Unique</span><span class="vc-val">Free loaner tool program — specialty tools, pullers, testers</span></div>
-          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.oreillyauto.com" target="_blank">First Call Online</a> · Commercial rep program</span></div>
+          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.oreillyauto.com" target="_blank" rel="noopener noreferrer">oreillyauto.com</a> · First Call commercial rep program</span></div>
         </div>
       </div>
       <div class="vc-footer">
-        <button class="btn" onclick="toast('O\'Reilly First Call: firstcallonline.com')">Account info</button>
-        <button class="btn" onclick="toast('Opening O\'Reilly First Call...')">Order now →</button>
+        <a class="btn" href="https://www.oreillyauto.com" target="_blank" rel="noopener noreferrer">Visit oreillyauto.com →</a>
       </div>
     </div>
 
@@ -332,11 +323,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
           <div class="vc-name">Mitchell 1 ProDemand</div>
           <div class="vc-cat">OEM catalog · labor times</div>
         </div>
-        <span class="vc-badge" style="background:#e1f5ee;color:#085041;border:1px solid #9fe1cb">Integrated</span>
       </div>
       <div class="vc-body">
         <div class="vc-tags">
-          <span class="vc-tag blue">Connected to AG Shop Pro</span>
           <span class="vc-tag">OEM part numbers</span>
           <span class="vc-tag">Labor times</span>
           <span class="vc-tag">Wiring diagrams</span>
@@ -344,12 +333,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
         </div>
         <div class="vc-info">
           <div class="vc-row"><span class="vc-label">Best for</span><span class="vc-val">Looking up OEM part numbers to cross-reference with Worldpac / NAPA</span></div>
-          <div class="vc-row"><span class="vc-label">Integrated</span><span class="vc-val">Part numbers auto-pull into RO parts lines via the Mitchell 1 connection</span></div>
+          <div class="vc-row"><span class="vc-label">In the RO</span><span class="vc-val">Part numbers are copied in by hand — type them into the RO parts line yourself</span></div>
           <div class="vc-row"><span class="vc-label">Also use for</span><span class="vc-val">Labor time estimates · Technical service bulletins · Recall checks</span></div>
+          <div class="vc-row"><span class="vc-label">Site</span><span class="vc-val"><a href="https://www.mitchell1.com" target="_blank" rel="noopener noreferrer">mitchell1.com</a> · Subscription required</span></div>
         </div>
       </div>
       <div class="vc-footer">
-        <span style="font-size:.72rem;color:var(--muted)">Connected via your workspace Mitchell 1 integration</span>
+        <a class="btn" href="https://www.mitchell1.com" target="_blank" rel="noopener noreferrer">Visit mitchell1.com →</a>
       </div>
     </div>
 
@@ -371,11 +361,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
         <div class="vc-info">
           <div class="vc-row"><span class="vc-label">Best for</span><span class="vc-val">Ford, Lincoln, Mopar (Dodge/Chrysler/Jeep/Ram) OEM parts at wholesale</span></div>
           <div class="vc-row"><span class="vc-label">Pricing</span><span class="vc-val">Below-dealer wholesale — often 20-30% less than local dealer parts dept</span></div>
-          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.tascaparts.com" target="_blank">tascaparts.com</a> · Ships 1-2 days</span></div>
+          <div class="vc-row"><span class="vc-label">Order</span><span class="vc-val"><a href="https://www.tascaparts.com" target="_blank" rel="noopener noreferrer">tascaparts.com</a> · Ships 1-2 days</span></div>
         </div>
       </div>
       <div class="vc-footer">
-        <button class="btn" onclick="toast('Tasca Parts: tascaparts.com — no account needed, open checkout')">Order now →</button>
+        <a class="btn" href="https://www.tascaparts.com" target="_blank" rel="noopener noreferrer">Visit tascaparts.com →</a>
       </div>
     </div>
 
@@ -396,11 +386,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
         <div class="vc-info">
           <div class="vc-row"><span class="vc-label">Best for</span><span class="vc-val">Insurance jobs requiring genuine OEM · Safety items (airbags, sensors)</span></div>
           <div class="vc-row"><span class="vc-label">Contacts</span><span class="vc-val">Jim Coleman BMW (Bethesda) · DARCARS Toyota (Silver Spring) · Ourisman Honda</span></div>
-          <div class="vc-row"><span class="vc-label">Tip</span><span class="vc-val">Set up commercial accounts with 2-3 nearby dealers — ask for fleet pricing</span></div>
+          <div class="vc-row"><span class="vc-label">Tip</span><span class="vc-val">Set up commercial accounts with 2-3 nearby dealers — ask for fleet pricing and a dedicated parts rep's direct number</span></div>
         </div>
       </div>
       <div class="vc-footer">
-        <button class="btn" onclick="toast('Tip: Ask each dealer for a dedicated parts rep phone number')">Setup tips</button>
+        <span class="vc-note">No single site — call each dealer's parts department directly.</span>
       </div>
     </div>
 
@@ -457,13 +447,6 @@ function setCat(cat, btn) {
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   filterVendors();
-}
-
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2800);
 }
 </script>
 </body>
