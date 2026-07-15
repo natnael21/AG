@@ -2,6 +2,51 @@
 
 A comprehensive auto shop management platform built for modern repair facilities. Manage repair orders, technicians, customers, inventory, and business operations all in one unified system.
 
+## Quick start (local)
+
+Requires Node 24 and a PostgreSQL you can create databases on.
+
+```bash
+cd api
+npm ci
+cp .env.example .env          # then set DB_* (use DB_SSL=0 for a local postgres)
+npm run migrate:latest        # create the schema
+npm run dev                   # API + frontend on http://localhost:3000
+```
+
+`npm run dev` serves `public/` as well as the API, so the whole app runs on one
+port with no second server:
+
+| URL | Who it's for |
+|---|---|
+| `http://localhost:3000/login.html` | Shop staff (admin, manager, advisor, technician) |
+| `http://localhost:3000/portal-login.html` | Customers |
+| `http://localhost:3000/api/health` | Health check (database + SMTP) |
+
+There are no seeded accounts and no demo login: every account is created through
+the real signup/approval flow or by an admin invite. To create the first
+super_admin on an empty database, insert one directly with a bcrypt hash, then
+sign in at `/login.html`:
+
+```bash
+node -e "require('bcrypt').hash('YourPassword123!',12).then(h=>console.log(h))"
+# INSERT INTO workspaces (name, active) VALUES ('My Shop', true);
+# INSERT INTO users (name, email, password_hash, role, workspace_ids, active)
+#   VALUES ('Owner','owner@example.com','<hash>','super_admin','{1}',true);
+```
+
+A customer can only sign in to the portal once a manager enables portal access
+for them (`POST /api/admin/customers/:id/enable-portal`), which returns a
+temporary password to hand over.
+
+### Validation
+
+```bash
+npm run lint              # parses every file; blocks raw error leaks + client-side passwords
+npm run test:unit         # no database needed
+npm run test:integration  # real app against a real postgres — see api/test/README.md
+```
+
 ## 🚀 Latest Updates (v2.0)
 
 ### ✨ New Features Added
@@ -30,11 +75,12 @@ A comprehensive auto shop management platform built for modern repair facilities
 - **Customer Insights**: Service history analysis and customer lifetime value
 - **Parts Analytics**: Usage patterns, stock optimization, and supplier performance
 
-#### 🏪 **Customer Portal**
+#### 🏪 **Customer Portal** (`portal-login.html` → `portal.html`)
 - **Self-Service Access**: Customers can view service history and vehicle information
-- **Appointment Scheduling**: Online booking system with availability management
-- **Secure Authentication**: Dedicated customer login with session management
-- **Profile Management**: Update contact information and communication preferences
+- **Appointment Scheduling**: Request and cancel appointments against their own vehicles
+- **Feedback**: Rate a completed repair order, once
+- **Secure Authentication**: Dedicated customer login, scoped to one shop, with its own session store
+- **Profile Management**: Update contact information and change password
 
 ### 🏗️ **Architecture Improvements**
 - **Service Layer Architecture**: Modular services with dependency injection
@@ -44,8 +90,16 @@ A comprehensive auto shop management platform built for modern repair facilities
 
 ## 🏢 **User Roles & Testing Guide**
 
-### 🔑 **Super Admin** (Platform Owners)
-**Access**: All workspaces, users, billing, integrations
+> **Roles are the tenant boundary.** `super_admin` is AG platform staff only: it
+> is the one role that can reach every workspace, review the signup queue, and
+> see the full user directory. A shop that signs up is provisioned as a
+> **`manager`** of its own workspace — full control of that shop and nothing
+> outside it. Never grant `super_admin` to a shop; it removes their workspace
+> boundary entirely. (Migration `008_signup_owner_role.sql` corrects owners that
+> an earlier version of the signup flow provisioned as `super_admin`.)
+
+### 🔑 **Super Admin** (AG platform staff only — created directly, never by signup)
+**Access**: All workspaces, users, integrations
 **Testing Focus**:
 ```bash
 # Test user management
@@ -59,8 +113,8 @@ GET /api/reports/technician-performance
 GET /api/reports/shop-kpis
 ```
 
-### 👔 **Manager** (Shop Owners/Managers)
-**Access**: Full workspace control, financial reports, team management
+### 👔 **Manager** (Shop Owners/Managers — what an approved signup becomes)
+**Access**: Full control of their own workspace — repair orders, parts, team, customer portal provisioning, CSV import and financial reports — and nothing outside it
 **Testing Focus**:
 ```bash
 # Test repair order management
@@ -137,9 +191,9 @@ PATCH /api/customer/change-password
 
 ### Backend Services
 - **Node.js/Express API** with PostgreSQL
-- **Service Layer Pattern** for business logic
+- **Service Layer Pattern** for business logic — routes stay thin; workspace scoping, validation and transactions live in `api/services/`
 - **Transaction Management** for data consistency
-- **JWT Authentication** with role-based permissions
+- **Opaque session tokens** (32 random bytes, stored in `sessions`/`customer_sessions` and checked against the database on every request) with role-based permissions. Staff and customer-portal sessions are separate and are not interchangeable.
 
 ### Database Schema
 - **Multi-tenant Architecture** with workspace isolation

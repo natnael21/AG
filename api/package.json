@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "node server.js",
-    "lint": "echo \"TODO: add lint rules\" && exit 0",
+    "lint": "node --check server.js && node scripts/lint.js",
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "echo \"TODO: add unit tests\" && exit 0",
-    "test:integration": "echo \"TODO: add integration tests\" && exit 0",
+    "test:unit": "node --test \"test/unit/*.test.js\"",
+    "test:integration": "node --test --test-concurrency=1 test/integration.test.js",
     "migrate:latest": "node scripts/migrate.js"
   },
   "keywords": [],
