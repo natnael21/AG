@@ -30,9 +30,13 @@ class ReportingService {
       paramCount++;
     }
 
+    /* Parts and labor are rolled up per repair order in LATERAL subqueries.
+       Joining both line tables directly produced one row per
+       (parts line x labor line) pair, so every SUM over repair_orders --
+       including total_revenue -- counted an RO once per pair. */
     const query = `
       SELECT
-        COUNT(DISTINCT ro.id) as total_repair_orders,
+        COUNT(*) as total_repair_orders,
         COUNT(DISTINCT ro.customer_id) as unique_customers,
         COUNT(DISTINCT ro.vehicle_id) as unique_vehicles,
 
@@ -41,12 +45,12 @@ class ReportingService {
         COALESCE(AVG(ro.total_final), 0) as avg_repair_order_value,
 
         -- Parts metrics
-        COALESCE(SUM(rpl.line_total), 0) as parts_revenue,
-        COALESCE(SUM(rpl.quantity), 0) as total_parts_used,
+        COALESCE(SUM(p.parts_total), 0) as parts_revenue,
+        COALESCE(SUM(p.parts_qty), 0) as total_parts_used,
 
         -- Labor metrics
-        COALESCE(SUM(rll.line_total), 0) as labor_revenue,
-        COALESCE(SUM(rll.hours), 0) as total_labor_hours,
+        COALESCE(SUM(l.labor_total), 0) as labor_revenue,
+        COALESCE(SUM(l.labor_hours), 0) as total_labor_hours,
 
         -- Status breakdown
         COUNT(CASE WHEN ro.status = 'completed' THEN 1 END) as completed_orders,
@@ -58,8 +62,16 @@ class ReportingService {
         AVG(EXTRACT(EPOCH FROM (ro.actual_completion - ro.created_at))/86400) as avg_completion_days
 
       FROM repair_orders ro
-      LEFT JOIN ro_parts_lines rpl ON ro.id = rpl.repair_order_id
-      LEFT JOIN ro_labor_lines rll ON ro.id = rll.repair_order_id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(line_total), 0) AS parts_total,
+               COALESCE(SUM(quantity), 0)   AS parts_qty
+          FROM ro_parts_lines WHERE repair_order_id = ro.id
+      ) p ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(line_total), 0) AS labor_total,
+               COALESCE(SUM(hours), 0)      AS labor_hours
+          FROM ro_labor_lines WHERE repair_order_id = ro.id
+      ) l ON true
       WHERE ro.workspace_id = $1 ${dateFilter}
     `;
 
@@ -155,7 +167,7 @@ class ReportingService {
         -- Repair order metrics
         COUNT(DISTINCT ro.id) as total_repair_orders,
         COUNT(DISTINCT CASE WHEN ro.status = 'completed' THEN ro.id END) as completed_orders,
-        COUNT(DISTINCT v.id) as vehicles_owned,
+        (SELECT COUNT(*) FROM vehicles v WHERE v.customer_id = c.id) as vehicles_owned,
 
         -- Financial metrics
         COALESCE(SUM(ro.total_final), 0) as total_spent,
@@ -174,9 +186,10 @@ class ReportingService {
         END as customer_status
 
       FROM customers c
-      LEFT JOIN repair_orders ro ON c.id = ro.customer_id
-      LEFT JOIN vehicles v ON c.id = v.customer_id
-      WHERE c.workspace_id = $1 ${dateFilter}
+      LEFT JOIN repair_orders ro ON c.id = ro.customer_id ${dateFilter}
+      -- vehicles_owned is counted in a subquery: joining vehicles here would
+      -- repeat every repair order once per vehicle, inflating total_spent.
+      WHERE c.workspace_id = $1
       GROUP BY c.id, c.full_name, c.email, c.created_at
       ORDER BY total_spent DESC
     `;
@@ -254,25 +267,39 @@ class ReportingService {
    * Get monthly revenue trends
    */
   async getRevenueTrends(workspaceId, months = 12) {
+    /* months is bounded and passed as a parameter rather than interpolated:
+       make_interval keeps it out of the SQL text entirely. */
+    const safeMonths = Math.min(Math.max(Number(months) || 12, 1), 120);
+
+    /* Parts and labor are aggregated in subqueries. Joining both line tables
+       directly multiplies their rows together (one row per parts x labor
+       combination), which inflated parts_revenue and labor_revenue on any RO
+       that had more than one of each. */
     const query = `
       SELECT
         DATE_TRUNC('month', ro.created_at) as month,
-        COUNT(DISTINCT ro.id) as repair_orders,
+        COUNT(*) as repair_orders,
         COALESCE(SUM(ro.total_final), 0) as total_revenue,
-        COALESCE(SUM(rpl.line_total), 0) as parts_revenue,
-        COALESCE(SUM(rll.line_total), 0) as labor_revenue,
+        COALESCE(SUM(p.parts_total), 0) as parts_revenue,
+        COALESCE(SUM(l.labor_total), 0) as labor_revenue,
         COUNT(DISTINCT ro.customer_id) as unique_customers
       FROM repair_orders ro
-      LEFT JOIN ro_parts_lines rpl ON ro.id = rpl.repair_order_id
-      LEFT JOIN ro_labor_lines rll ON ro.id = rll.repair_order_id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(line_total), 0) AS parts_total
+          FROM ro_parts_lines WHERE repair_order_id = ro.id
+      ) p ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(line_total), 0) AS labor_total
+          FROM ro_labor_lines WHERE repair_order_id = ro.id
+      ) l ON true
       WHERE ro.workspace_id = $1
-        AND ro.created_at >= NOW() - INTERVAL '${months} months'
+        AND ro.created_at >= NOW() - make_interval(months => $2::int)
         AND ro.status = 'completed'
       GROUP BY DATE_TRUNC('month', ro.created_at)
       ORDER BY month DESC
     `;
 
-    const result = await this.pool.query(query, [workspaceId]);
+    const result = await this.pool.query(query, [workspaceId, safeMonths]);
     return result.rows;
   }
 
@@ -315,20 +342,32 @@ class ReportingService {
         COUNT(CASE WHEN ro.actual_completion <= ro.estimated_completion THEN 1 END)::float /
           NULLIF(COUNT(CASE WHEN ro.estimated_completion IS NOT NULL THEN 1 END), 0) * 100 as on_time_completion_rate,
 
-        -- Customer satisfaction (placeholder - would need feedback system)
-        0 as avg_customer_rating,
+        -- Customer satisfaction
+        COALESCE(AVG(fb.avg_rating), 0) as avg_customer_rating,
 
         -- Operational KPIs
         COUNT(CASE WHEN ro.status IN ('open', 'in_progress', 'awaiting_parts') THEN 1 END) as active_orders,
         COUNT(CASE WHEN ro.status = 'awaiting_parts' THEN 1 END) as orders_waiting_parts,
 
-        -- Technician utilization
-        COUNT(DISTINCT te.technician_id) as active_technicians,
-        COALESCE(SUM(te.duration_minutes), 0) / NULLIF(COUNT(DISTINCT te.technician_id), 0) as avg_hours_per_technician
+        -- Technician utilization. Counting distinct technicians has to happen
+        -- over time_entries itself, so it is scoped to this workspace's ROs
+        -- in a subquery rather than folded into the per-RO aggregate.
+        (SELECT COUNT(DISTINCT t.technician_id)
+           FROM time_entries t
+           JOIN repair_orders r ON r.id = t.repair_order_id
+          WHERE r.workspace_id = $1) as active_technicians,
+        COALESCE(SUM(te.tracked_minutes), 0) as total_tracked_minutes
 
       FROM repair_orders ro
       LEFT JOIN vehicles v ON ro.vehicle_id = v.id
-      LEFT JOIN time_entries te ON ro.id = te.repair_order_id ${dateFilter.replace('ro.', '')}
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(duration_minutes), 0) AS tracked_minutes
+          FROM time_entries WHERE repair_order_id = ro.id
+      ) te ON true
+      LEFT JOIN LATERAL (
+        SELECT AVG(rating)::numeric AS avg_rating
+          FROM feedback WHERE repair_order_id = ro.id
+      ) fb ON true
       WHERE ro.workspace_id = $1 ${dateFilter}
     `;
 

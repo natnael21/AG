@@ -1,7 +1,43 @@
+const {
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+  parseNumber,
+  requireString,
+  optionalString,
+} = require('./errors');
+
 /**
  * Parts Management Service
- * Handles parts catalog, inventory, and stock management
+ * Handles parts catalog, inventory, and stock management.
+ *
+ * Argument order across this service is (id..., data, workspaceId, actorId) to
+ * match how the routes call it. Every statement is scoped by workspace_id.
  */
+
+/* Columns a client may write, with their parsers. Anything not listed here is
+   ignored: update payloads are turned into a fixed set of parameterised
+   assignments rather than interpolated from the request's own keys. */
+const WRITABLE = {
+  partNumber:     { column: 'part_number',      parse: (v) => requireString(v, 'partNumber', { max: 120 }) },
+  name:           { column: 'name',             parse: (v) => requireString(v, 'name', { max: 200 }) },
+  description:    { column: 'description',      parse: (v) => optionalString(v) },
+  category:       { column: 'category',         parse: (v) => optionalString(v, { max: 120 }) },
+  manufacturer:   { column: 'manufacturer',     parse: (v) => optionalString(v, { max: 120 }) },
+  costPrice:      { column: 'cost_price',       parse: (v) => parseNumber(v, 'costPrice') },
+  retailPrice:    { column: 'retail_price',     parse: (v) => parseNumber(v, 'retailPrice') },
+  quantityOnHand: { column: 'quantity_on_hand', parse: (v) => parseNumber(v, 'quantityOnHand', { integer: true }) },
+  minimumStock:   { column: 'minimum_stock',    parse: (v) => parseNumber(v, 'minimumStock', { integer: true }) },
+  location:       { column: 'location',         parse: (v) => optionalString(v, { max: 120 }) },
+  active:         { column: 'active',           parse: (v) => Boolean(v) },
+};
+
+/* Accept snake_case aliases too, since the catalog rows are returned that way. */
+const ALIASES = Object.entries(WRITABLE).reduce((acc, [key, meta]) => {
+  acc[key] = meta;
+  acc[meta.column] = meta;
+  return acc;
+}, {});
 
 class PartsService {
   constructor(pool) {
@@ -9,322 +45,264 @@ class PartsService {
   }
 
   /**
-   * Create a new part in the catalog
+   * List catalog parts, optionally filtered by category.
    */
-  async createPart(workspaceId, partData) {
-    const client = await this.pool.connect();
+  async getAllParts(workspaceId, category) {
+    const params = [workspaceId];
+    let sql = `
+      SELECT *, (quantity_on_hand <= minimum_stock) AS is_low_stock
+        FROM parts
+       WHERE workspace_id = $1 AND active = true
+    `;
+    if (category) {
+      params.push(category);
+      sql += ` AND category = $${params.length}`;
+    }
+    sql += ' ORDER BY name';
+
+    const { rows } = await this.pool.query(sql, params);
+    return rows;
+  }
+
+  async getPart(partId, workspaceId) {
+    const { rows } = await this.pool.query(
+      'SELECT * FROM parts WHERE id = $1 AND workspace_id = $2',
+      [partId, workspaceId]
+    );
+    return rows[0] || null;
+  }
+
+  /**
+   * Create a catalog part.
+   */
+  async createPart(partData, workspaceId, createdBy) {
+    const data = partData || {};
+    const partNumber = requireString(data.partNumber ?? data.part_number, 'partNumber', { max: 120 });
+    const name = requireString(data.name, 'name', { max: 200 });
+
+    const costPrice = data.costPrice ?? data.cost_price;
+    const retailPrice = data.retailPrice ?? data.retail_price;
+    const quantityOnHand = data.quantityOnHand ?? data.quantity_on_hand;
+    const minimumStock = data.minimumStock ?? data.minimum_stock;
+
+    const values = [
+      workspaceId,
+      partNumber,
+      name,
+      optionalString(data.description),
+      optionalString(data.category, { max: 120 }),
+      optionalString(data.manufacturer, { max: 120 }),
+      costPrice === undefined || costPrice === null || costPrice === '' ? null : parseNumber(costPrice, 'costPrice'),
+      retailPrice === undefined || retailPrice === null || retailPrice === '' ? null : parseNumber(retailPrice, 'retailPrice'),
+      quantityOnHand === undefined || quantityOnHand === null || quantityOnHand === ''
+        ? 0 : parseNumber(quantityOnHand, 'quantityOnHand', { integer: true }),
+      minimumStock === undefined || minimumStock === null || minimumStock === ''
+        ? 0 : parseNumber(minimumStock, 'minimumStock', { integer: true }),
+      optionalString(data.location, { max: 120 }),
+    ];
 
     try {
-      await client.query('BEGIN');
-
-      const {
-        partNumber,
-        name,
-        description,
-        category,
-        manufacturer,
-        costPrice,
-        retailPrice,
-        quantityOnHand = 0,
-        minimumStock = 0,
-        location
-      } = partData;
-
-      if (!partNumber || !name) {
-        throw new Error('partNumber and name are required');
-      }
-
-      // Check for duplicate part number in workspace
-      const duplicateCheck = await client.query(
-        'SELECT id FROM parts WHERE workspace_id = $1 AND part_number = $2',
-        [workspaceId, partNumber]
+      const { rows } = await this.pool.query(
+        `INSERT INTO parts (
+           workspace_id, part_number, name, description, category,
+           manufacturer, cost_price, retail_price, quantity_on_hand,
+           minimum_stock, location
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+         RETURNING *`,
+        values
       );
-
-      if (duplicateCheck.rows.length > 0) {
-        throw new Error('Part number already exists in this workspace');
+      return rows[0];
+    } catch (e) {
+      /* Backed by idx_parts_ws_part_number. */
+      if (e.code === '23505') {
+        throw new ConflictError('That part number already exists in this workspace.');
       }
-
-      const insertQuery = `
-        INSERT INTO parts (
-          workspace_id, part_number, name, description, category,
-          manufacturer, cost_price, retail_price, quantity_on_hand,
-          minimum_stock, location
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        RETURNING *
-      `;
-
-      const values = [
-        workspaceId, partNumber, name, description, category,
-        manufacturer, costPrice, retailPrice, quantityOnHand,
-        minimumStock, location
-      ];
-
-      const result = await client.query(insertQuery, values);
-
-      await client.query('COMMIT');
-      return result.rows[0];
-
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
+      throw e;
     }
   }
 
   /**
-   * Update part information
+   * Update a catalog part.
    */
-  async updatePart(partId, workspaceId, updateData) {
-    const client = await this.pool.connect();
+  async updatePart(partId, updates, workspaceId, updatedBy) {
+    const sets = [];
+    const values = [];
 
+    Object.entries(updates || {}).forEach(([key, value]) => {
+      const field = ALIASES[key];
+      if (!field || value === undefined) return;
+      values.push(field.parse(value));
+      sets.push(`${field.column} = $${values.length}`);
+    });
+
+    if (!sets.length) throw new ValidationError('No updatable fields supplied.');
+
+    values.push(partId, workspaceId);
     try {
-      await client.query('BEGIN');
-
-      // Build dynamic update query
-      const fields = [];
-      const values = [];
-      let paramCount = 1;
-
-      Object.keys(updateData).forEach(key => {
-        if (updateData[key] !== undefined) {
-          fields.push(`${key} = $${paramCount++}`);
-          values.push(updateData[key]);
-        }
-      });
-
-      if (fields.length === 0) {
-        throw new Error('No fields to update');
+      const { rows } = await this.pool.query(
+        `UPDATE parts
+            SET ${sets.join(', ')}, updated_at = NOW()
+          WHERE id = $${values.length - 1} AND workspace_id = $${values.length}
+          RETURNING *`,
+        values
+      );
+      if (!rows.length) throw new NotFoundError('Part not found.');
+      return rows[0];
+    } catch (e) {
+      if (e.code === '23505') {
+        throw new ConflictError('That part number already exists in this workspace.');
       }
-
-      fields.push(`updated_at = NOW()`);
-
-      const updateQuery = `
-        UPDATE parts
-        SET ${fields.join(', ')}
-        WHERE id = $${paramCount} AND workspace_id = $${paramCount + 1}
-        RETURNING *
-      `;
-
-      values.push(partId, workspaceId);
-
-      const result = await client.query(updateQuery, values);
-
-      if (result.rows.length === 0) {
-        throw new Error('Part not found');
-      }
-
-      await client.query('COMMIT');
-      return result.rows[0];
-
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
+      throw e;
     }
   }
 
   /**
-   * Adjust inventory quantity
+   * Adjust stock on hand by a signed amount.
    */
-  async adjustInventory(partId, workspaceId, adjustment, reason, performedBy) {
-    const client = await this.pool.connect();
+  async adjustInventory(partId, adjustment, reason, workspaceId, performedBy) {
+    const delta = parseNumber(adjustment, 'adjustment', { min: -1e6, max: 1e6, integer: true });
+    if (delta === 0) throw new ValidationError('adjustment must not be zero.');
 
+    const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
 
-      // Get current quantity
-      const currentResult = await client.query(
-        'SELECT quantity_on_hand, name FROM parts WHERE id = $1 AND workspace_id = $2',
+      const { rows: current } = await client.query(
+        'SELECT quantity_on_hand, name FROM parts WHERE id = $1 AND workspace_id = $2 FOR UPDATE',
         [partId, workspaceId]
       );
+      if (!current.length) throw new NotFoundError('Part not found.');
 
-      if (currentResult.rows.length === 0) {
-        throw new Error('Part not found');
-      }
+      const newQuantity = Number(current[0].quantity_on_hand) + delta;
+      if (newQuantity < 0) throw new ValidationError('Cannot reduce inventory below zero.');
 
-      const currentQuantity = currentResult.rows[0].quantity_on_hand;
-      const newQuantity = currentQuantity + adjustment;
-
-      if (newQuantity < 0) {
-        throw new Error('Cannot reduce inventory below zero');
-      }
-
-      // Update quantity
-      const updateResult = await client.query(
-        'UPDATE parts SET quantity_on_hand = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-        [newQuantity, partId]
+      const { rows } = await client.query(
+        `UPDATE parts SET quantity_on_hand = $1, updated_at = NOW()
+          WHERE id = $2 AND workspace_id = $3
+          RETURNING *`,
+        [newQuantity, partId, workspaceId]
       );
 
-      // Log inventory adjustment (you might want to create an inventory_log table)
-      console.log(`[Inventory] ${reason}: ${currentResult.rows[0].name} (${currentQuantity} → ${newQuantity}) by user ${performedBy}`);
-
       await client.query('COMMIT');
-      return updateResult.rows[0];
-
-    } catch (error) {
+      console.log(
+        `[Inventory] ws=${workspaceId} part=${partId} ${current[0].quantity_on_hand} -> ${newQuantity} ` +
+        `by user ${performedBy}: ${reason || 'no reason given'}`
+      );
+      return rows[0];
+    } catch (e) {
       await client.query('ROLLBACK');
-      throw error;
+      throw e;
     } finally {
       client.release();
     }
   }
 
   /**
-   * Get parts with low stock alerts
+   * Parts at or below their minimum stock level.
    */
   async getLowStockParts(workspaceId) {
-    const query = `
-      SELECT *,
-             (quantity_on_hand <= minimum_stock) as is_low_stock,
-             (quantity_on_hand - minimum_stock) as stock_deficit
-      FROM parts
-      WHERE workspace_id = $1
-        AND active = true
-        AND quantity_on_hand <= minimum_stock
-      ORDER BY (quantity_on_hand - minimum_stock) ASC
-    `;
-
-    const result = await this.pool.query(query, [workspaceId]);
-    return result.rows;
+    const { rows } = await this.pool.query(
+      `SELECT *,
+              true AS is_low_stock,
+              (quantity_on_hand - minimum_stock) AS stock_deficit
+         FROM parts
+        WHERE workspace_id = $1
+          AND active = true
+          AND quantity_on_hand <= minimum_stock
+        ORDER BY (quantity_on_hand - minimum_stock) ASC`,
+      [workspaceId]
+    );
+    return rows;
   }
 
   /**
-   * Search parts by various criteria
+   * Free-text search across part number, name and description.
    */
-  async searchParts(workspaceId, searchCriteria) {
-    const { query, category, manufacturer, inStockOnly = false } = searchCriteria;
+  async searchParts(search, workspaceId, { category, manufacturer, inStockOnly = false } = {}) {
+    const term = typeof search === 'string' ? search.trim() : '';
 
-    let sql = `
-      SELECT * FROM parts
-      WHERE workspace_id = $1 AND active = true
-    `;
+    let sql = 'SELECT * FROM parts WHERE workspace_id = $1 AND active = true';
     const params = [workspaceId];
-    let paramCount = 2;
 
-    if (query) {
-      sql += ` AND (part_number ILIKE $${paramCount} OR name ILIKE $${paramCount} OR description ILIKE $${paramCount})`;
-      params.push(`%${query}%`);
-      paramCount++;
+    if (term) {
+      params.push(`%${term}%`);
+      sql += ` AND (part_number ILIKE $${params.length} OR name ILIKE $${params.length} OR description ILIKE $${params.length})`;
     }
-
     if (category) {
-      sql += ` AND category = $${paramCount}`;
       params.push(category);
-      paramCount++;
+      sql += ` AND category = $${params.length}`;
     }
-
     if (manufacturer) {
-      sql += ` AND manufacturer = $${paramCount}`;
       params.push(manufacturer);
-      paramCount++;
+      sql += ` AND manufacturer = $${params.length}`;
     }
+    if (inStockOnly) sql += ' AND quantity_on_hand > 0';
 
-    if (inStockOnly) {
-      sql += ` AND quantity_on_hand > 0`;
-    }
+    sql += ' ORDER BY name';
 
-    sql += ` ORDER BY name`;
-
-    const result = await this.pool.query(sql, params);
-    return result.rows;
+    const { rows } = await this.pool.query(sql, params);
+    return rows;
   }
 
   /**
-   * Get part usage statistics
+   * Usage statistics for one part.
    */
   async getPartUsageStats(partId, workspaceId, dateRange = {}) {
-    const { startDate, endDate } = dateRange;
-
-    let dateFilter = '';
+    const { startDate, endDate } = dateRange || {};
     const params = [partId, workspaceId];
-    let paramCount = 3;
+    let dateFilter = '';
 
     if (startDate) {
-      dateFilter += ` AND ro.created_at >= $${paramCount}`;
       params.push(startDate);
-      paramCount++;
+      dateFilter += ` AND ro.created_at >= $${params.length}`;
     }
-
     if (endDate) {
-      dateFilter += ` AND ro.created_at <= $${paramCount}`;
       params.push(endDate);
-      paramCount++;
+      dateFilter += ` AND ro.created_at <= $${params.length}`;
     }
 
-    const query = `
-      SELECT
-        COUNT(DISTINCT ro.id) as total_repair_orders,
-        SUM(rpl.quantity) as total_quantity_used,
-        AVG(rpl.unit_price) as avg_price,
-        SUM(rpl.line_total) as total_revenue
-      FROM ro_parts_lines rpl
-      JOIN repair_orders ro ON rpl.repair_order_id = ro.id
-      WHERE rpl.part_id = $1 AND ro.workspace_id = $2 ${dateFilter}
-    `;
+    const { rows } = await this.pool.query(
+      `SELECT
+         COUNT(DISTINCT ro.id)         AS total_repair_orders,
+         COALESCE(SUM(rpl.quantity),0) AS total_quantity_used,
+         COALESCE(AVG(rpl.unit_price),0) AS avg_price,
+         COALESCE(SUM(rpl.line_total),0) AS total_revenue
+       FROM ro_parts_lines rpl
+       JOIN repair_orders ro ON rpl.repair_order_id = ro.id
+      WHERE rpl.part_id = $1 AND ro.workspace_id = $2 ${dateFilter}`,
+      params
+    );
 
-    const result = await this.pool.query(query, params);
-    return result.rows[0] || {
+    return rows[0] || {
       total_repair_orders: 0,
       total_quantity_used: 0,
       avg_price: 0,
-      total_revenue: 0
+      total_revenue: 0,
     };
   }
 
   /**
-   * Bulk import parts from CSV data
+   * Bulk import parts. Each row is independent: a bad row is reported and
+   * skipped rather than aborting the batch.
    */
   async bulkImportParts(workspaceId, partsData, performedBy) {
-    const client = await this.pool.connect();
+    const results = { success: 0, errors: [], duplicates: [] };
 
-    try {
-      await client.query('BEGIN');
-
-      const results = {
-        success: 0,
-        errors: [],
-        duplicates: []
-      };
-
-      for (const partData of partsData) {
-        try {
-          // Check for duplicate part number
-          const duplicateCheck = await client.query(
-            'SELECT id FROM parts WHERE workspace_id = $1 AND part_number = $2',
-            [workspaceId, partData.partNumber]
-          );
-
-          if (duplicateCheck.rows.length > 0) {
-            results.duplicates.push({
-              partNumber: partData.partNumber,
-              reason: 'Part number already exists'
-            });
-            continue;
-          }
-
-          // Create part
-          const part = await this.createPart(workspaceId, partData);
-          results.success++;
-
-        } catch (error) {
-          results.errors.push({
-            partNumber: partData.partNumber,
-            error: error.message
-          });
+    for (const partData of partsData || []) {
+      const partNumber = partData?.partNumber ?? partData?.part_number;
+      try {
+        await this.createPart(partData, workspaceId, performedBy);
+        results.success++;
+      } catch (e) {
+        if (e instanceof ConflictError) {
+          results.duplicates.push({ partNumber, reason: 'Part number already exists' });
+        } else {
+          results.errors.push({ partNumber, error: e.message });
         }
       }
-
-      await client.query('COMMIT');
-      return results;
-
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
     }
+
+    return results;
   }
 }
 

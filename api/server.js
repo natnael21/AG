@@ -2,10 +2,21 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express    = require('express');
 const cors       = require('cors');
-const { Pool }   = require('pg');
+const helmet     = require('helmet');
+const rateLimit  = require('express-rate-limit');
+const { Pool, types } = require('pg');
+
+/* A DATE column is a calendar date, not an instant. node-postgres parses it
+   into a JS Date at local midnight, which JSON then serialises through UTC —
+   so appointments.preferred_date arrived at the browser as e.g.
+   "2026-07-20T04:00:00.000Z" and rendered a day early for any client west of
+   the server. Hand DATE through as the plain "YYYY-MM-DD" string it already
+   is; the frontend formatters treat that as a calendar date. (1082 = DATE.) */
+types.setTypeParser(1082, (value) => value);
 const createHealthRoute = require('./src/routes/health');
 const { provisionSignup, rejectSignup, reinstateSignup } = require('./services/signup');
 const { sendRejectionEmail, sendApprovalEmail, sendReinstateEmail, verifyTransporter } = require('./services/email');
+const { route, sendError, parseId, ValidationError, NotFoundError } = require('./services/errors');
 
 function parseCorsOrigins() {
   const raw = process.env.CORS_ORIGINS;
@@ -24,9 +35,66 @@ function parseCorsOrigins() {
 const app = express();
 
 /* ── Middleware ── */
+
+/* Security headers. The pages are hand-written HTML with inline <script> and
+   onclick handlers and pull fonts/Chart.js from CDNs, so the CSP has to allow
+   those; it is set explicitly rather than left at helmet's default, which
+   would break every page. */
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+      /* The pages wire buttons with onclick="" attributes. helmet's default
+         script-src-attr of 'none' blocks inline event handlers outright, which
+         would silently disable every button in the app. */
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  /* Loading Chart.js and Google Fonts cross-origin is incompatible with COEP. */
+  crossOriginEmbedderPolicy: false,
+}));
+
 app.use(cors({ origin: parseCorsOrigins(), credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+/* Rate limits. Credential endpoints are the ones worth protecting: without
+   this, a password can be brute-forced at network speed. Keyed by IP.
+   `trust proxy` is set below so the real client IP is used behind nginx. */
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: 'Too many attempts. Please wait a few minutes and try again.' },
+});
+
+const writeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please wait and try again.' },
+});
+
+/* Behind nginx/ELB the client IP arrives in X-Forwarded-For. Trust exactly one
+   proxy hop rather than `true`, which would let a client spoof the header and
+   defeat the rate limiter. */
+app.set('trust proxy', 1);
+
+/* ── Static frontend ──
+   public/ is served by nginx in the deployed environments; serving it here
+   too means `npm run dev` gives a working app on one port with no extra
+   setup, and keeps the frontend same-origin with the API. */
+app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'] }));
 
 /* ── DB pool ── */
 const pool = new Pool({
@@ -35,21 +103,41 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user:     process.env.DB_USER,
   password: process.env.DB_PASS,
-  ssl:      { rejectUnauthorized: false },
+  /* RDS requires TLS; a local/CI postgres generally has none. */
+  ssl:      process.env.DB_SSL === '0' ? false : { rejectUnauthorized: false },
   max:      10,
+});
+
+pool.on('error', (err) => {
+  console.error('[DB] Idle client error:', err.message);
 });
 
 pool.connect((err, client, release) => {
   if (err) { console.error('[DB] Connection failed:', err.message); return; }
   release();
-  console.log('[DB] Connected to RDS PostgreSQL');
+  console.log('[DB] Connected to PostgreSQL');
 });
+
+/* ── Services ──
+   Instantiated once against the shared pool. Routes stay thin and delegate
+   all business logic and workspace scoping here. */
+const RepairOrderService    = require('./services/repair-order');
+const PartsService          = require('./services/parts');
+const UserManagementService = require('./services/user-management');
+const ReportingService      = require('./services/reporting');
+const CustomerPortalService = require('./services/customer-portal');
+
+const repairOrderService    = new RepairOrderService(pool);
+const partsService          = new PartsService(pool);
+const userManagementService = new UserManagementService(pool);
+const reportingService      = new ReportingService(pool);
+const customerPortalService = new CustomerPortalService(pool);
 
 /* ── Health check ── */
 app.get('/api/health', createHealthRoute({ pool, verifySmtp: verifyTransporter }));
 
 /* ── Auth routes ── */
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Missing email or password.' });
 
@@ -83,8 +171,7 @@ app.post('/api/auth/login', async (req, res) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role, workspaceIds: user.workspace_ids }
     });
   } catch(e) {
-    console.error('[login]', e.message);
-    res.status(500).json({ error: 'Server error.' });
+    sendError(res, e, 'login');
   }
 });
 
@@ -94,7 +181,7 @@ app.post('/api/auth/logout', async (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/signup', async (req, res) => {
+app.post('/api/signup', writeLimiter, async (req, res) => {
   const {
     first,
     last,
@@ -145,10 +232,10 @@ app.post('/api/signup', async (req, res) => {
     );
     res.status(201).json({ ok: true, signup: rows[0] });
   } catch (e) {
-    if (String(e.message).toLowerCase().includes('duplicate key')) {
+    if (e.code === '23505') {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
-    return res.status(500).json({ error: e.message });
+    return sendError(res, e, 'signup');
   }
 });
 
@@ -163,20 +250,31 @@ app.get('/api/workspaces', requireAuth(), async (req, res) => {
     const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch(e) {
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'workspaces');
   }
 });
 
 /* ── User routes ── */
 app.get('/api/users', requireAuth(['super_admin', 'manager']), async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT id, name, email, phone, role, workspace_ids, active, last_login, created_at
-       FROM users ORDER BY name`
-    );
+    /* A manager may only see members of the workspaces they belong to;
+       only a super_admin sees the whole directory. */
+    const isAdmin = req.session.role === 'super_admin';
+    const { rows } = isAdmin
+      ? await pool.query(
+          `SELECT id, name, email, phone, role, workspace_ids, active, last_login, created_at
+             FROM users ORDER BY name`
+        )
+      : await pool.query(
+          `SELECT id, name, email, phone, role, workspace_ids, active, last_login, created_at
+             FROM users
+            WHERE workspace_ids && $1::int[]
+            ORDER BY name`,
+          [(req.session.workspace_ids || []).map(Number)]
+        );
     res.json(rows);
   } catch(e) {
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'users');
   }
 });
 
@@ -193,8 +291,7 @@ app.get('/api/admin/signups', requireAuth(['super_admin']), async (req, res) => 
     );
     res.json(rows);
   } catch (e) {
-    console.error('[admin/signups]', e.message);
-    res.status(500).json({ error: 'Failed to fetch signups: ' + e.message });
+    sendError(res, e, 'admin/signups');
   }
 });
 
@@ -232,8 +329,7 @@ app.post('/api/admin/signups/:id/reject', requireAuth(['super_admin']), async (r
     
     res.json({ ok: true, signup: result.signup, emailSent: emailResult.success });
   } catch (e) {
-    console.error('[admin/signups/reject]', e.message);
-    res.status(500).json({ error: 'Failed to reject signup: ' + e.message });
+    sendError(res, e, 'admin/signups/reject');
   }
 });
 
@@ -263,8 +359,7 @@ app.post('/api/admin/signups/:id/approve', requireAuth(['super_admin']), async (
       emailSent: emailResult.success
     });
   } catch (e) {
-    console.error('[admin/signups/approve]', e.message);
-    res.status(500).json({ error: 'Failed to approve signup: ' + e.message });
+    sendError(res, e, 'admin/signups/approve');
   }
 });
 
@@ -300,8 +395,7 @@ app.post('/api/admin/signups/:id/reinstate', requireAuth(['super_admin']), async
     
     res.json({ ok: true, signup: result.signup, emailSent: emailResult.success });
   } catch (e) {
-    console.error('[admin/signups/reinstate]', e.message);
-    res.status(500).json({ error: 'Failed to reinstate signup: ' + e.message });
+    sendError(res, e, 'admin/signups/reinstate');
   }
 });
 
@@ -335,13 +429,14 @@ app.get('/api/admin/signups/:id', requireAuth(['super_admin']), async (req, res)
     
     res.json({ signup: signupRows[0], auditHistory: auditRows });
   } catch (e) {
-    console.error('[admin/signups/:id]', e.message);
-    res.status(500).json({ error: 'Failed to fetch signup: ' + e.message });
+    sendError(res, e, 'admin/signups/:id');
   }
 });
 
 function resolveWorkspaceId(req, res) {
-  const raw = req.query.workspaceId || req.body.workspaceId || req.session.workspace_ids?.[0];
+  /* express.json() only populates req.body for requests that carry one, and
+     Express 5 leaves it undefined otherwise — so this must be optional. */
+  const raw = req.query.workspaceId || req.body?.workspaceId || req.session.workspace_ids?.[0];
   const workspaceId = Number(raw);
   if (!Number.isInteger(workspaceId) || workspaceId <= 0) {
     res.status(400).json({ error: 'workspaceId is required.' });
@@ -388,88 +483,62 @@ app.post('/api/admin/test-email', requireAuth(['super_admin']), async (req, res)
       error: result.error || null,
     });
   } catch (e) {
-    console.error('[test-email]', e.message);
-    res.status(500).json({ error: 'Test email error: ' + e.message });
+    sendError(res, e, 'test-email');
   }
 });
 
 /* ── Core customers routes ── */
-app.get('/api/customers', requireAuth(), async (req, res) => {
-  const workspaceId = resolveWorkspaceId(req, res);
-  if (!workspaceId) return;
-  try {
-    const { rows } = await pool.query(
-      `SELECT id, workspace_id, full_name, email, phone, created_at, updated_at
-       FROM customers
-       WHERE workspace_id = $1
-       ORDER BY created_at DESC`,
-      [workspaceId]
-    );
-    res.json(rows);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+const CustomerService = require('./services/customer');
+const customerService = new CustomerService(pool);
 
-app.post('/api/customers', requireAuth(['super_admin', 'manager', 'service_advisor']), async (req, res) => {
+app.get('/api/customers', requireAuth(), route('customers', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
-  const { fullName, email, phone } = req.body || {};
-  if (!fullName) return res.status(400).json({ error: 'fullName is required.' });
-  try {
-    const { rows } = await pool.query(
-      `INSERT INTO customers (workspace_id, full_name, email, phone)
-       VALUES ($1,$2,$3,$4)
-       RETURNING id, workspace_id, full_name, email, phone, created_at, updated_at`,
-      [workspaceId, fullName, email || null, phone || null]
-    );
-    res.status(201).json(rows[0]);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  const { search, limit, offset } = req.query;
+  res.json(await customerService.listCustomers(workspaceId, { search, limit, offset }));
+}));
+
+app.post('/api/customers', requireAuth(['super_admin', 'manager', 'service_advisor']), route('customers:create', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.status(201).json(await customerService.createCustomer(req.body || {}, workspaceId));
+}));
+
+app.get('/api/customers/:id', requireAuth(), route('customers:get', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  const customer = await customerService.getCustomer(parseId(req.params.id, 'id'), workspaceId);
+  if (!customer) throw new NotFoundError('Customer not found.');
+  res.json(customer);
+}));
 
 /* ── Core vehicles routes ── */
-app.get('/api/vehicles', requireAuth(), async (req, res) => {
-  const workspaceId = resolveWorkspaceId(req, res);
-  if (!workspaceId) return;
-  const customerId = req.query.customerId ? Number(req.query.customerId) : null;
-  try {
-    const params = [workspaceId];
-    let sql = `SELECT id, workspace_id, customer_id, vin, year, make, model, plate, mileage, created_at, updated_at
-               FROM vehicles
-               WHERE workspace_id = $1`;
-    if (customerId) {
-      params.push(customerId);
-      sql += ` AND customer_id = $2`;
-    }
-    sql += ` ORDER BY created_at DESC`;
-    const { rows } = await pool.query(sql, params);
-    res.json(rows);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+const VehicleService = require('./services/vehicle');
+const vehicleService = new VehicleService(pool);
 
-app.post('/api/vehicles', requireAuth(['super_admin', 'manager', 'service_advisor']), async (req, res) => {
+app.get('/api/vehicles', requireAuth(), route('vehicles', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
-  const { customerId, vin, year, make, model, plate, mileage } = req.body || {};
-  if (!customerId) return res.status(400).json({ error: 'customerId is required.' });
-  if (!vin || !make || !model) return res.status(400).json({ error: 'vin, make and model are required.' });
-  try {
-    const { rows } = await pool.query(
-      `INSERT INTO vehicles
-       (workspace_id, customer_id, vin, year, make, model, plate, mileage)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       RETURNING id, workspace_id, customer_id, vin, year, make, model, plate, mileage, created_at, updated_at`,
-      [workspaceId, customerId, vin, year || null, make, model, plate || null, mileage || null]
-    );
-    res.status(201).json(rows[0]);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  const { customerId, search, limit, offset } = req.query;
+  res.json(await vehicleService.listVehicles(workspaceId, {
+    customerId: customerId ? parseId(customerId, 'customerId') : undefined,
+    search,
+    limit,
+    offset,
+  }));
+}));
+
+app.post('/api/vehicles', requireAuth(['super_admin', 'manager', 'service_advisor']), route('vehicles:create', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.status(201).json(await vehicleService.createVehicle(req.body || {}, workspaceId));
+}));
+
+app.patch('/api/vehicles/:id', requireAuth(['super_admin', 'manager', 'service_advisor']), route('vehicles:update', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await vehicleService.updateVehicle(parseId(req.params.id, 'id'), req.body || {}, workspaceId));
+}));
 
 /* ── CSV bulk import routes ── */
 const multer = require('multer');
@@ -488,8 +557,7 @@ app.post('/api/import/customers',
       const result = await importService.importCustomers(workspaceId, req.file.buffer);
       res.json(result);
     } catch (e) {
-      console.error('[import/customers]', e.message);
-      res.status(500).json({ error: e.message });
+      sendError(res, e, 'import/customers');
     }
   }
 );
@@ -505,544 +573,394 @@ app.post('/api/import/vehicles',
       const result = await importService.importVehicles(workspaceId, req.file.buffer);
       res.json(result);
     } catch (e) {
-      console.error('[import/vehicles]', e.message);
-      res.status(500).json({ error: e.message });
+      sendError(res, e, 'import/vehicles');
     }
   }
 );
 
-/* ── Core repair order routes ── */
-app.get('/api/repair-orders', requireAuth(), async (req, res) => {
+/* ── Core repair order routes ──
+   Handlers stay thin: validation, workspace scoping, status-transition rules
+   and totals all live in RepairOrderService (declared below, hoisted here by
+   const-in-module order — see the service block further down). */
+app.get('/api/repair-orders', requireAuth(), route('repair-orders', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
-  try {
-    const { rows } = await pool.query(
-      `SELECT id, workspace_id, ro_number, customer_id, vehicle_id, status, concern, total_estimate, total_final, created_at, updated_at
-       FROM repair_orders
-       WHERE workspace_id = $1
-       ORDER BY created_at DESC`,
-      [workspaceId]
-    );
-    res.json(rows);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  const { status, customerId, limit, offset } = req.query;
+  res.json(await repairOrderService.listRepairOrders(workspaceId, {
+    status,
+    customerId: customerId ? parseId(customerId, 'customerId') : undefined,
+    limit,
+    offset,
+  }));
+}));
 
-app.post('/api/repair-orders', requireAuth(['super_admin', 'manager', 'service_advisor']), async (req, res) => {
+app.post('/api/repair-orders', requireAuth(['super_admin', 'manager', 'service_advisor']), route('repair-orders:create', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
-  const { customerId, vehicleId, concern, totalEstimate } = req.body || {};
-  if (!customerId || !vehicleId || !concern) {
-    return res.status(400).json({ error: 'customerId, vehicleId and concern are required.' });
-  }
-  try {
-    const roNumber = `RO-${Date.now()}`;
-    const { rows } = await pool.query(
-      `INSERT INTO repair_orders
-       (workspace_id, ro_number, customer_id, vehicle_id, status, concern, total_estimate, total_final)
-       VALUES ($1,$2,$3,$4,'open',$5,$6,0)
-       RETURNING id, workspace_id, ro_number, customer_id, vehicle_id, status, concern, total_estimate, total_final, created_at, updated_at`,
-      [workspaceId, roNumber, customerId, vehicleId, concern, totalEstimate || 0]
-    );
-    res.status(201).json(rows[0]);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  const ro = await repairOrderService.createRepairOrder(workspaceId, req.body || {}, req.session.user_id);
+  res.status(201).json(ro);
+}));
 
-app.patch('/api/repair-orders/:id/status', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), async (req, res) => {
+app.patch('/api/repair-orders/:id/status', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), route('repair-orders:status', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
-  const roId = Number(req.params.id);
   const { status } = req.body || {};
-  if (!roId || !status) return res.status(400).json({ error: 'id and status are required.' });
-  const allowed = new Set(['open', 'in_progress', 'awaiting_parts', 'ready', 'completed', 'cancelled']);
-  if (!allowed.has(status)) return res.status(400).json({ error: 'Invalid status value.' });
-  try {
-    const { rows } = await pool.query(
-      `UPDATE repair_orders
-       SET status = $1, updated_at = NOW()
-       WHERE id = $2 AND workspace_id = $3
-       RETURNING id, workspace_id, ro_number, status, updated_at`,
-      [status, roId, workspaceId]
-    );
-    if (!rows.length) return res.status(404).json({ error: 'Repair order not found.' });
-    res.json(rows[0]);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  if (!status) throw new ValidationError('status is required.');
+  const updated = await repairOrderService.updateRepairOrderStatus(
+    parseId(req.params.id, 'id'), status, workspaceId, req.session.user_id
+  );
+  res.json(updated);
+}));
 
 /* ── ETL status route ── */
-app.get('/api/integrations/mitchell/status', requireAuth(), async (req, res) => {
-  const wsId = req.query.workspaceId || req.session.workspace_ids?.[0];
-  try {
-    const [integration, syncLog, counts] = await Promise.all([
-      pool.query(
-        `SELECT active, connected_at, last_sync_at, total_synced FROM workspace_integrations
-         WHERE workspace_id = $1 AND integration = 'mitchell1'`, [wsId]
-      ),
-      pool.query(
-        `SELECT * FROM etl_sync_log WHERE workspace_id = $1 AND integration = 'mitchell1'
-         ORDER BY last_sync_at DESC LIMIT 1`, [wsId]
-      ),
-      pool.query(
-        `SELECT
-           (SELECT COUNT(*) FROM customers      WHERE workspace_id = $1) AS customers,
-           (SELECT COUNT(*) FROM vehicles       WHERE workspace_id = $1) AS vehicles,
-           (SELECT COUNT(*) FROM repair_orders  WHERE workspace_id = $1) AS repair_orders,
-           (SELECT COUNT(*) FROM ro_labor_lines WHERE workspace_id = $1) AS labor_lines,
-           (SELECT COUNT(*) FROM ro_parts_lines WHERE workspace_id = $1) AS parts_lines`, [wsId]
-      ),
-    ]);
-    res.json({
-      connected:  integration.rows[0]?.active || false,
-      connectedAt: integration.rows[0]?.connected_at,
-      lastSync:   syncLog.rows[0] || null,
-      counts:     counts.rows[0],
-    });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+app.get('/api/integrations/mitchell/status', requireAuth(), route('integrations:mitchell', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
 
-/* ── Customer history route ── */
-app.get('/api/customers/:id/history', requireAuth(), async (req, res) => {
-  const wsId = req.query.workspaceId || req.session.workspace_ids?.[0];
-  try {
-    const { getCustomerHistory } = require('./services/mitchell-etl');
-    const history = await getCustomerHistory(wsId, req.params.id);
-    if (!history) return res.status(404).json({ error: 'Customer not found.' });
-    res.json(history);
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  const [integration, syncLog, counts] = await Promise.all([
+    pool.query(
+      `SELECT active, connected_at, last_sync_at, total_synced FROM workspace_integrations
+       WHERE workspace_id = $1 AND integration = 'mitchell1'`, [workspaceId]
+    ),
+    pool.query(
+      `SELECT * FROM etl_sync_log WHERE workspace_id = $1 AND integration = 'mitchell1'
+       ORDER BY last_sync_at DESC LIMIT 1`, [workspaceId]
+    ),
+    pool.query(
+      `SELECT
+         (SELECT COUNT(*) FROM customers      WHERE workspace_id = $1) AS customers,
+         (SELECT COUNT(*) FROM vehicles       WHERE workspace_id = $1) AS vehicles,
+         (SELECT COUNT(*) FROM repair_orders  WHERE workspace_id = $1) AS repair_orders,
+         (SELECT COUNT(*) FROM ro_labor_lines WHERE workspace_id = $1) AS labor_lines,
+         (SELECT COUNT(*) FROM ro_parts_lines WHERE workspace_id = $1) AS parts_lines`, [workspaceId]
+    ),
+  ]);
 
-/* ── Burn rate route ── */
-app.get('/api/analytics/burn-rate', requireAuth(), async (req, res) => {
-  try {
-    const { burnRateHandler } = require('./services/square-categories');
-    await burnRateHandler(req, res, pool);
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  res.json({
+    connected:   integration.rows[0]?.active || false,
+    connectedAt: integration.rows[0]?.connected_at || null,
+    lastSync:    syncLog.rows[0] || null,
+    counts:      counts.rows[0],
+  });
+}));
+
+/* ── Customer history route ──
+   Backed by CustomerService. This previously called a Mitchell ETL
+   placeholder that always returned null, so the endpoint always 404'd. */
+app.get('/api/customers/:id/history', requireAuth(), route('customers:history', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  const history = await customerService.getCustomerHistory(workspaceId, parseId(req.params.id, 'id'));
+  if (!history) throw new NotFoundError('Customer not found.');
+  res.json(history);
+}));
+
+/* ── Burn rate route ──
+   Derived from completed repair orders by services/analytics.js. It previously
+   used services/square-categories.js, which returned an all-zero dashboard. */
+app.get('/api/analytics/burn-rate', requireAuth(['super_admin', 'manager']), route('analytics:burn-rate', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  const { burnRateHandler } = require('./services/analytics');
+  await burnRateHandler(req, res, pool, workspaceId);
+}));
 
 /* ── Repair Order Management Routes ── */
-const RepairOrderService = require('./services/repair-order');
-const repairOrderService = new RepairOrderService(pool);
 
-app.get('/api/repair-orders/:id', requireAuth(), async (req, res) => {
+app.get('/api/repair-orders/:id', requireAuth(), route('repair-orders:get', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const roId = Number(req.params.id);
-    const repairOrder = await repairOrderService.getRepairOrder(roId, workspaceId);
-    if (!repairOrder) {
-      return res.status(404).json({ error: 'Repair order not found' });
-    }
-    res.json(repairOrder);
-  } catch (e) {
-    console.error('[repair-orders/:id]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  const repairOrder = await repairOrderService.getRepairOrder(parseId(req.params.id, 'id'), workspaceId);
+  if (!repairOrder) throw new NotFoundError('Repair order not found.');
+  res.json(repairOrder);
+}));
 
-app.post('/api/repair-orders/:id/parts', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), async (req, res) => {
+app.post('/api/repair-orders/:id/parts', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), route('repair-orders:parts', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const roId = Number(req.params.id);
-    const partData = req.body;
-    const result = await repairOrderService.addPartToRepairOrder(roId, partData, workspaceId, req.session.user_id);
-    res.json(result);
-  } catch (e) {
-    console.error('[repair-orders/:id/parts]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  const result = await repairOrderService.addPartToRepairOrder(
+    parseId(req.params.id, 'id'), req.body || {}, workspaceId, req.session.user_id
+  );
+  res.status(201).json(result);
+}));
 
-app.post('/api/repair-orders/:id/labor', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), async (req, res) => {
+app.post('/api/repair-orders/:id/labor', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), route('repair-orders:labor', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const roId = Number(req.params.id);
-    const laborData = req.body;
-    const result = await repairOrderService.addLaborToRepairOrder(roId, laborData, workspaceId, req.session.user_id);
-    res.json(result);
-  } catch (e) {
-    console.error('[repair-orders/:id/labor]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  const result = await repairOrderService.addLaborToRepairOrder(
+    parseId(req.params.id, 'id'), req.body || {}, workspaceId, req.session.user_id
+  );
+  res.status(201).json(result);
+}));
 
-app.post('/api/repair-orders/:id/time/clock-in', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), async (req, res) => {
+app.post('/api/repair-orders/:id/time/clock-in', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), route('repair-orders:clock-in', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const roId = Number(req.params.id);
-    const result = await repairOrderService.clockIn(roId, req.session.user_id, workspaceId);
-    res.json(result);
-  } catch (e) {
-    console.error('[repair-orders/:id/clock-in]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  const result = await repairOrderService.clockIn(
+    parseId(req.params.id, 'id'), req.session.user_id, workspaceId, req.body?.description
+  );
+  res.status(201).json(result);
+}));
 
-app.post('/api/repair-orders/:id/time/clock-out', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), async (req, res) => {
+app.post('/api/repair-orders/:id/time/clock-out', requireAuth(['super_admin', 'manager', 'service_advisor', 'technician']), route('repair-orders:clock-out', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const roId = Number(req.params.id);
-    const result = await repairOrderService.clockOut(roId, req.session.user_id, workspaceId);
-    res.json(result);
-  } catch (e) {
-    console.error('[repair-orders/:id/clock-out]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  const result = await repairOrderService.clockOut(parseId(req.params.id, 'id'), req.session.user_id, workspaceId);
+  res.json(result);
+}));
 
-app.patch('/api/repair-orders/:id', requireAuth(['super_admin', 'manager', 'service_advisor']), async (req, res) => {
+/* The technician's currently open time entry, so the tech page can restore
+   its clock state after a reload. */
+app.get('/api/time/open', requireAuth(), route('time:open', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await repairOrderService.getOpenTimeEntry(req.session.user_id, workspaceId));
+}));
+
+app.patch('/api/repair-orders/:id', requireAuth(['super_admin', 'manager', 'service_advisor']), route('repair-orders:update', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const roId = Number(req.params.id);
-    const updates = req.body;
-    const result = await repairOrderService.updateRepairOrder(roId, updates, workspaceId, req.session.user_id);
-    res.json(result);
-  } catch (e) {
-    console.error('[repair-orders/:id]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  const result = await repairOrderService.updateRepairOrder(
+    parseId(req.params.id, 'id'), req.body || {}, workspaceId, req.session.user_id
+  );
+  res.json(result);
+}));
 
 /* ── Parts Management Routes ── */
-const PartsService = require('./services/parts');
-const partsService = new PartsService(pool);
 
-app.get('/api/parts', requireAuth(), async (req, res) => {
+app.get('/api/parts', requireAuth(), route('parts', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const { search, category, lowStock } = req.query;
-    let parts;
+  const { search, category, lowStock } = req.query;
+  let parts;
 
-    if (search) {
-      parts = await partsService.searchParts(search, workspaceId);
-    } else if (lowStock === 'true') {
-      parts = await partsService.getLowStockParts(workspaceId);
-    } else {
-      parts = await partsService.getAllParts(workspaceId, category);
-    }
-
-    res.json(parts);
-  } catch (e) {
-    console.error('[parts]', e.message);
-    res.status(500).json({ error: e.message });
+  if (search) {
+    parts = await partsService.searchParts(search, workspaceId, { category });
+  } else if (lowStock === 'true') {
+    parts = await partsService.getLowStockParts(workspaceId);
+  } else {
+    parts = await partsService.getAllParts(workspaceId, category);
   }
-});
 
-app.post('/api/parts', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  res.json(parts);
+}));
+
+app.post('/api/parts', requireAuth(['super_admin', 'manager']), route('parts:create', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.status(201).json(await partsService.createPart(req.body || {}, workspaceId, req.session.user_id));
+}));
+
+app.patch('/api/parts/:id', requireAuth(['super_admin', 'manager']), route('parts:update', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await partsService.updatePart(parseId(req.params.id, 'id'), req.body || {}, workspaceId, req.session.user_id));
+}));
+
+app.post('/api/parts/:id/adjust-inventory', requireAuth(['super_admin', 'manager']), route('parts:adjust', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const partData = req.body;
-    const result = await partsService.createPart(partData, workspaceId, req.session.user_id);
-    res.status(201).json(result);
-  } catch (e) {
-    console.error('[parts]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  const { adjustment, reason } = req.body || {};
+  res.json(await partsService.adjustInventory(
+    parseId(req.params.id, 'id'), adjustment, reason, workspaceId, req.session.user_id
+  ));
+}));
 
-app.patch('/api/parts/:id', requireAuth(['super_admin', 'manager']), async (req, res) => {
+/* ── User Management Routes ──
+   The service receives req.session (not just the actor's id) so it can apply
+   the authority rules: only a super_admin may grant super_admin, and a
+   manager may only act on non-super_admin members of their own workspace. */
+
+/* Declared before /api/users/:id/* so the literal path wins over the
+   parameterised ones. */
+app.get('/api/users/workspace', requireAuth(), route('users:workspace', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
+  res.json(await userManagementService.getWorkspaceUsers(workspaceId));
+}));
 
-  try {
-    const partId = Number(req.params.id);
-    const updates = req.body;
-    const result = await partsService.updatePart(partId, updates, workspaceId, req.session.user_id);
-    res.json(result);
-  } catch (e) {
-    console.error('[parts/:id]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.patch('/api/users/profile', requireAuth(), route('users:profile', async (req, res) => {
+  res.json(await userManagementService.updateUserProfile(req.session.user_id, req.body || {}));
+}));
 
-app.post('/api/parts/:id/adjust-inventory', requireAuth(['super_admin', 'manager']), async (req, res) => {
+app.post('/api/users/invite', requireAuth(['super_admin', 'manager']), route('users:invite', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
+  res.status(201).json(await userManagementService.inviteUser(workspaceId, req.body || {}, req.session));
+}));
 
-  try {
-    const partId = Number(req.params.id);
-    const { adjustment, reason } = req.body;
-    const result = await partsService.adjustInventory(partId, adjustment, reason, workspaceId, req.session.user_id);
-    res.json(result);
-  } catch (e) {
-    console.error('[parts/:id/adjust-inventory]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-/* ── User Management Routes ── */
-const UserManagementService = require('./services/user-management');
-const userManagementService = new UserManagementService(pool);
-
-app.post('/api/users/invite', requireAuth(['super_admin', 'manager']), async (req, res) => {
+app.patch('/api/users/:id/role', requireAuth(['super_admin', 'manager']), route('users:role', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
+  const { role } = req.body || {};
+  res.json(await userManagementService.updateUserRole(parseId(req.params.id, 'id'), workspaceId, role, req.session));
+}));
 
-  try {
-    const inviteData = req.body;
-    const result = await userManagementService.inviteUser(workspaceId, inviteData, req.session.user_id);
-    res.status(201).json(result);
-  } catch (e) {
-    console.error('[users/invite]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.patch('/api/users/:id/role', requireAuth(['super_admin', 'manager']), async (req, res) => {
+app.delete('/api/users/:id/workspace', requireAuth(['super_admin', 'manager']), route('users:remove', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
+  res.json(await userManagementService.removeUserFromWorkspace(parseId(req.params.id, 'id'), workspaceId, req.session));
+}));
 
-  try {
-    const userId = Number(req.params.id);
-    const { role } = req.body;
-    const result = await userManagementService.updateUserRole(userId, workspaceId, role, req.session.user_id);
-    res.json(result);
-  } catch (e) {
-    console.error('[users/:id/role]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.post('/api/users/:id/deactivate', requireAuth(['super_admin']), route('users:deactivate', async (req, res) => {
+  res.json(await userManagementService.deactivateUser(parseId(req.params.id, 'id'), req.session));
+}));
 
-app.delete('/api/users/:id/workspace', requireAuth(['super_admin', 'manager']), async (req, res) => {
+app.post('/api/users/:id/reactivate', requireAuth(['super_admin']), route('users:reactivate', async (req, res) => {
+  res.json(await userManagementService.reactivateUser(parseId(req.params.id, 'id'), req.session));
+}));
+
+app.post('/api/users/:id/reset-password', requireAuth(['super_admin', 'manager']), route('users:reset-password', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
-
-  try {
-    const userId = Number(req.params.id);
-    const result = await userManagementService.removeUserFromWorkspace(userId, workspaceId, req.session.user_id);
-    res.json(result);
-  } catch (e) {
-    console.error('[users/:id/workspace]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.post('/api/users/:id/deactivate', requireAuth(['super_admin']), async (req, res) => {
-  try {
-    const userId = Number(req.params.id);
-    const result = await userManagementService.deactivateUser(userId, req.session.user_id);
-    res.json(result);
-  } catch (e) {
-    console.error('[users/:id/deactivate]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.post('/api/users/:id/reactivate', requireAuth(['super_admin']), async (req, res) => {
-  try {
-    const userId = Number(req.params.id);
-    const result = await userManagementService.reactivateUser(userId, req.session.user_id);
-    res.json(result);
-  } catch (e) {
-    console.error('[users/:id/reactivate]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.patch('/api/users/profile', requireAuth(), async (req, res) => {
-  try {
-    const profileData = req.body;
-    const result = await userManagementService.updateUserProfile(req.session.user_id, profileData);
-    res.json(result);
-  } catch (e) {
-    console.error('[users/profile]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.post('/api/users/:id/reset-password', requireAuth(['super_admin', 'manager']), async (req, res) => {
-  try {
-    const userId = Number(req.params.id);
-    const result = await userManagementService.resetUserPassword(userId, req.session.user_id);
-    res.json(result);
-  } catch (e) {
-    console.error('[users/:id/reset-password]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get('/api/users/workspace', requireAuth(), async (req, res) => {
-  const workspaceId = resolveWorkspaceId(req, res);
-  if (!workspaceId) return;
-
-  try {
-    const users = await userManagementService.getWorkspaceUsers(workspaceId);
-    res.json(users);
-  } catch (e) {
-    console.error('[users/workspace]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  res.json(await userManagementService.resetUserPassword(parseId(req.params.id, 'id'), workspaceId, req.session));
+}));
 
 /* ── Reporting & Analytics Routes ── */
-const ReportingService = require('./services/reporting');
-const reportingService = new ReportingService(pool);
 
-app.get('/api/reports/financial-summary', requireAuth(['super_admin', 'manager']), async (req, res) => {
+/** Pull an optional {startDate, endDate} window off the query string. */
+function dateRangeFrom(req) {
+  const { startDate, endDate } = req.query;
+  return startDate && endDate ? { startDate, endDate } : {};
+}
+
+app.get('/api/reports/financial-summary', requireAuth(['super_admin', 'manager']), route('reports:financial', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await reportingService.getFinancialSummary(workspaceId, dateRangeFrom(req)));
+}));
+
+app.get('/api/reports/technician-performance', requireAuth(['super_admin', 'manager']), route('reports:tech', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await reportingService.getTechnicianPerformance(workspaceId, dateRangeFrom(req)));
+}));
+
+app.get('/api/reports/customer-analytics', requireAuth(['super_admin', 'manager']), route('reports:customers', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await reportingService.getCustomerAnalytics(workspaceId, dateRangeFrom(req)));
+}));
+
+app.get('/api/reports/parts-analytics', requireAuth(['super_admin', 'manager']), route('reports:parts', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await reportingService.getPartsAnalytics(workspaceId, dateRangeFrom(req)));
+}));
+
+app.get('/api/reports/revenue-trends', requireAuth(['super_admin', 'manager']), route('reports:revenue', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await reportingService.getRevenueTrends(workspaceId, Number(req.query.months) || 12));
+}));
+
+app.get('/api/reports/shop-kpis', requireAuth(['super_admin', 'manager']), route('reports:kpis', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await reportingService.getShopKPIs(workspaceId, dateRangeFrom(req)));
+}));
+
+app.get('/api/reports/export', requireAuth(['super_admin', 'manager']), route('reports:export', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const { startDate, endDate } = req.query;
-    const dateRange = startDate && endDate ? { startDate, endDate } : {};
-    const summary = await reportingService.getFinancialSummary(workspaceId, dateRange);
-    res.json(summary);
-  } catch (e) {
-    console.error('[reports/financial-summary]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  const { format = 'json' } = req.query;
+  const data = await reportingService.exportRepairOrderData(workspaceId, format, dateRangeFrom(req));
 
-app.get('/api/reports/technician-performance', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  /* exportRepairOrderData already renders CSV; send it as a file rather than
+     wrapping the string in JSON. */
+  if (format === 'csv') {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="repair-orders.csv"');
+    return res.send(data);
+  }
+  res.json(data);
+}));
+
+/* ── Staff-side appointments ──
+   The portal lets customers request appointments; the shop needs to see and
+   act on them. Scoped by workspace_id (added in migration 007). */
+app.get('/api/appointments', requireAuth(), route('appointments', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const { startDate, endDate } = req.query;
-    const dateRange = startDate && endDate ? { startDate, endDate } : {};
-    const performance = await reportingService.getTechnicianPerformance(workspaceId, dateRange);
-    res.json(performance);
-  } catch (e) {
-    console.error('[reports/technician-performance]', e.message);
-    res.status(500).json({ error: e.message });
+  const params = [workspaceId];
+  let sql = 'SELECT * FROM appointment_summary WHERE workspace_id = $1';
+  if (req.query.status) {
+    params.push(req.query.status);
+    sql += ` AND status = $${params.length}`;
   }
-});
+  sql += ' ORDER BY preferred_date ASC, preferred_time ASC NULLS LAST LIMIT 200';
 
-app.get('/api/reports/customer-analytics', requireAuth(['super_admin', 'manager']), async (req, res) => {
+  const { rows } = await pool.query(sql, params);
+  res.json(rows);
+}));
+
+app.patch('/api/appointments/:id', requireAuth(['super_admin', 'manager', 'service_advisor']), route('appointments:update', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
 
-  try {
-    const { startDate, endDate } = req.query;
-    const dateRange = startDate && endDate ? { startDate, endDate } : {};
-    const analytics = await reportingService.getCustomerAnalytics(workspaceId, dateRange);
-    res.json(analytics);
-  } catch (e) {
-    console.error('[reports/customer-analytics]', e.message);
-    res.status(500).json({ error: e.message });
+  const { status } = req.body || {};
+  const allowed = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
+  if (!allowed.includes(status)) {
+    throw new ValidationError(`status must be one of: ${allowed.join(', ')}.`);
   }
-});
 
-app.get('/api/reports/parts-analytics', requireAuth(['super_admin', 'manager']), async (req, res) => {
-  const workspaceId = resolveWorkspaceId(req, res);
-  if (!workspaceId) return;
-
-  try {
-    const { startDate, endDate } = req.query;
-    const dateRange = startDate && endDate ? { startDate, endDate } : {};
-    const analytics = await reportingService.getPartsAnalytics(workspaceId, dateRange);
-    res.json(analytics);
-  } catch (e) {
-    console.error('[reports/parts-analytics]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get('/api/reports/revenue-trends', requireAuth(['super_admin', 'manager']), async (req, res) => {
-  const workspaceId = resolveWorkspaceId(req, res);
-  if (!workspaceId) return;
-
-  try {
-    const months = Number(req.query.months) || 12;
-    const trends = await reportingService.getRevenueTrends(workspaceId, months);
-    res.json(trends);
-  } catch (e) {
-    console.error('[reports/revenue-trends]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get('/api/reports/shop-kpis', requireAuth(['super_admin', 'manager']), async (req, res) => {
-  const workspaceId = resolveWorkspaceId(req, res);
-  if (!workspaceId) return;
-
-  try {
-    const { startDate, endDate } = req.query;
-    const dateRange = startDate && endDate ? { startDate, endDate } : {};
-    const kpis = await reportingService.getShopKPIs(workspaceId, dateRange);
-    res.json(kpis);
-  } catch (e) {
-    console.error('[reports/shop-kpis]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get('/api/reports/export', requireAuth(['super_admin', 'manager']), async (req, res) => {
-  const workspaceId = resolveWorkspaceId(req, res);
-  if (!workspaceId) return;
-
-  try {
-    const { format = 'json', startDate, endDate } = req.query;
-    const dateRange = startDate && endDate ? { startDate, endDate } : {};
-    const data = await reportingService.exportRepairOrderData(workspaceId, format, dateRange);
-    res.json(data);
-  } catch (e) {
-    console.error('[reports/export]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  /* $1 is cast explicitly: it is both assigned to status and compared inside
+     the CASE, which otherwise leaves its type ambiguous. */
+  const { rows } = await pool.query(
+    `UPDATE appointments
+        SET status = $1::text,
+            confirmed_by = CASE WHEN $1::text = 'confirmed' THEN $2::int ELSE confirmed_by END,
+            confirmed_date = CASE WHEN $1::text = 'confirmed' THEN NOW() ELSE confirmed_date END
+      WHERE id = $3 AND workspace_id = $4
+      RETURNING *`,
+    [status, req.session.user_id, parseId(req.params.id, 'id'), workspaceId]
+  );
+  if (!rows.length) throw new NotFoundError('Appointment not found.');
+  res.json(rows[0]);
+}));
 
 /* ── Customer Portal Routes ── */
-const CustomerPortalService = require('./services/customer-portal');
-const customerPortalService = new CustomerPortalService(pool);
+
+/* Public: the portal login page needs to offer a shop to sign in to. Only
+   id and name are exposed. */
+app.get('/api/customer/workspaces', route('customer:workspaces', async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT id, name FROM workspaces WHERE active = true ORDER BY name'
+  );
+  res.json(rows);
+}));
 
 // Customer authentication
-app.post('/api/customer/login', async (req, res) => {
-  const { email, password, workspaceId } = req.body;
+app.post('/api/customer/login', authLimiter, route('customer:login', async (req, res) => {
+  const { email, password, workspaceId } = req.body || {};
 
   if (!email || !password || !workspaceId) {
-    return res.status(400).json({ error: 'Email, password, and workspaceId are required' });
+    throw new ValidationError('Email, password, and workspaceId are required.');
   }
 
-  try {
-    const result = await customerPortalService.customerLogin(email, password, workspaceId);
-    res.json(result);
-  } catch (e) {
-    console.error('[customer/login]', e.message);
-    res.status(401).json({ error: e.message });
-  }
-});
+  const result = await customerPortalService.customerLogin(email, password, parseId(workspaceId, 'workspaceId'));
+  res.json(result);
+}));
 
-app.post('/api/customer/logout', async (req, res) => {
+app.post('/api/customer/logout', route('customer:logout', async (req, res) => {
   const sessionToken = req.headers.authorization?.slice(7);
+  if (!sessionToken) throw new ValidationError('Session token required.');
 
-  if (!sessionToken) {
-    return res.status(400).json({ error: 'Session token required' });
-  }
-
-  try {
-    await customerPortalService.logout(sessionToken);
-    res.json({ success: true });
-  } catch (e) {
-    console.error('[customer/logout]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  await customerPortalService.logout(sessionToken);
+  res.json({ success: true });
+}));
 
 // Customer portal middleware
 function requireCustomerAuth() {
@@ -1050,152 +968,96 @@ function requireCustomerAuth() {
     const sessionToken = req.headers.authorization?.slice(7);
 
     if (!sessionToken) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ error: 'Authentication required.' });
     }
 
     try {
       const customer = await customerPortalService.validateSession(sessionToken);
       if (!customer) {
-        return res.status(401).json({ error: 'Invalid or expired session' });
+        return res.status(401).json({ error: 'Invalid or expired session.' });
       }
 
       req.customer = customer;
       next();
     } catch (e) {
-      console.error('[customer auth]', e.message);
-      res.status(500).json({ error: 'Authentication error' });
+      sendError(res, e, 'customer:auth');
     }
   };
 }
 
 // Customer service history
-app.get('/api/customer/service-history', requireCustomerAuth(), async (req, res) => {
-  try {
-    const { limit = 50, offset = 0 } = req.query;
-    const history = await customerPortalService.getServiceHistory(req.customer.id, limit, offset);
-    res.json(history);
-  } catch (e) {
-    console.error('[customer/service-history]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.get('/api/customer/service-history', requireCustomerAuth(), route('customer:history', async (req, res) => {
+  const { limit = 50, offset = 0 } = req.query;
+  res.json(await customerPortalService.getServiceHistory(req.customer.id, limit, offset));
+}));
 
 // Customer vehicles
-app.get('/api/customer/vehicles', requireCustomerAuth(), async (req, res) => {
-  try {
-    const vehicles = await customerPortalService.getCustomerVehicles(req.customer.id);
-    res.json(vehicles);
-  } catch (e) {
-    console.error('[customer/vehicles]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.get('/api/customer/vehicles', requireCustomerAuth(), route('customer:vehicles', async (req, res) => {
+  res.json(await customerPortalService.getCustomerVehicles(req.customer.id));
+}));
 
 // Customer appointments
-app.post('/api/customer/appointments', requireCustomerAuth(), async (req, res) => {
-  try {
-    const appointmentData = req.body;
-    const result = await customerPortalService.scheduleAppointment(req.customer.id, appointmentData);
-    res.status(201).json(result);
-  } catch (e) {
-    console.error('[customer/appointments]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.post('/api/customer/appointments', requireCustomerAuth(), route('customer:appointments:create', async (req, res) => {
+  res.status(201).json(await customerPortalService.scheduleAppointment(req.customer.id, req.body || {}));
+}));
 
-app.get('/api/customer/appointments', requireCustomerAuth(), async (req, res) => {
-  try {
-    const { status } = req.query;
-    const appointments = await customerPortalService.getCustomerAppointments(req.customer.id, status);
-    res.json(appointments);
-  } catch (e) {
-    console.error('[customer/appointments]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.get('/api/customer/appointments', requireCustomerAuth(), route('customer:appointments', async (req, res) => {
+  res.json(await customerPortalService.getCustomerAppointments(req.customer.id, req.query.status));
+}));
 
-app.patch('/api/customer/appointments/:id', requireCustomerAuth(), async (req, res) => {
-  try {
-    const appointmentId = Number(req.params.id);
-    const updateData = req.body;
-    const result = await customerPortalService.updateAppointment(appointmentId, req.customer.id, updateData);
-    res.json(result);
-  } catch (e) {
-    console.error('[customer/appointments/:id]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.patch('/api/customer/appointments/:id', requireCustomerAuth(), route('customer:appointments:update', async (req, res) => {
+  res.json(await customerPortalService.updateAppointment(
+    parseId(req.params.id, 'id'), req.customer.id, req.body || {}
+  ));
+}));
 
-app.delete('/api/customer/appointments/:id', requireCustomerAuth(), async (req, res) => {
-  try {
-    const appointmentId = Number(req.params.id);
-    const result = await customerPortalService.cancelAppointment(appointmentId, req.customer.id);
-    res.json(result);
-  } catch (e) {
-    console.error('[customer/appointments/:id]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.delete('/api/customer/appointments/:id', requireCustomerAuth(), route('customer:appointments:cancel', async (req, res) => {
+  res.json(await customerPortalService.cancelAppointment(parseId(req.params.id, 'id'), req.customer.id));
+}));
+
+// Customer feedback
+app.post('/api/customer/feedback', requireCustomerAuth(), route('customer:feedback', async (req, res) => {
+  const { repairOrderId, rating, comments, feedbackType } = req.body || {};
+  res.status(201).json(await customerPortalService.submitFeedback(
+    req.customer.id, parseId(repairOrderId, 'repairOrderId'), { rating, comments, feedbackType }
+  ));
+}));
 
 // Customer profile management
-app.get('/api/customer/profile', requireCustomerAuth(), async (req, res) => {
-  try {
-    const profile = await customerPortalService.getCustomerProfile(req.customer.id);
-    res.json(profile);
-  } catch (e) {
-    console.error('[customer/profile]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.get('/api/customer/profile', requireCustomerAuth(), route('customer:profile', async (req, res) => {
+  res.json(await customerPortalService.getCustomerProfile(req.customer.id));
+}));
 
-app.patch('/api/customer/profile', requireCustomerAuth(), async (req, res) => {
-  try {
-    const profileData = req.body;
-    const result = await customerPortalService.updateCustomerProfile(req.customer.id, profileData);
-    res.json(result);
-  } catch (e) {
-    console.error('[customer/profile]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.patch('/api/customer/profile', requireCustomerAuth(), route('customer:profile:update', async (req, res) => {
+  res.json(await customerPortalService.updateCustomerProfile(req.customer.id, req.body || {}));
+}));
 
-app.patch('/api/customer/change-password', requireCustomerAuth(), async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    const result = await customerPortalService.updatePortalPassword(req.customer.id, currentPassword, newPassword);
-    res.json(result);
-  } catch (e) {
-    console.error('[customer/change-password]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+app.patch('/api/customer/change-password', requireCustomerAuth(), route('customer:password', async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  res.json(await customerPortalService.updatePortalPassword(req.customer.id, currentPassword, newPassword));
+}));
 
-// Admin endpoints for customer portal management
-app.post('/api/admin/customers/:id/enable-portal', requireAuth(['super_admin', 'manager']), async (req, res) => {
-  try {
-    const customerId = Number(req.params.id);
-    const tempPassword = customerPortalService.generateTempPassword();
-    const result = await customerPortalService.enablePortalAccess(customerId, tempPassword);
-    res.json(result);
-  } catch (e) {
-    console.error('[admin/customers/:id/enable-portal]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+/* Admin endpoints for customer portal management.
+   These take the workspace from the session and scope the update to it, so a
+   manager cannot enable portal access for, or reset the password of, a
+   customer belonging to another shop. */
+app.post('/api/admin/customers/:id/enable-portal', requireAuth(['super_admin', 'manager']), route('admin:enable-portal', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
 
-app.post('/api/admin/customers/:id/reset-portal-password', requireAuth(['super_admin', 'manager']), async (req, res) => {
-  try {
-    const customerId = Number(req.params.id);
-    const result = await customerPortalService.resetPortalPassword(customerId);
-    res.json(result);
-  } catch (e) {
-    console.error('[admin/customers/:id/reset-portal-password]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
+  const tempPassword = customerPortalService.generateTempPassword();
+  res.json(await customerPortalService.enablePortalAccess(parseId(req.params.id, 'id'), tempPassword, workspaceId));
+}));
+
+app.post('/api/admin/customers/:id/reset-portal-password', requireAuth(['super_admin', 'manager']), route('admin:reset-portal', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+
+  res.json(await customerPortalService.resetPortalPassword(parseId(req.params.id, 'id'), workspaceId));
+}));
 
 /* ── Forgot password ── */
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
   const { email } = req.body;
   /* Always return ok — never reveal if email exists */
   res.json({ ok: true, message: 'If that email is registered, a reset link has been sent.' });
@@ -1224,7 +1086,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 });
 
 /* ── Reset password ── */
-app.post('/api/auth/reset-password', async (req, res) => {
+app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
   const { token, password } = req.body;
   if (!token || !password) return res.status(400).json({ error: 'Missing fields.' });
   if (password.length < 8)  return res.status(400).json({ error: 'Password must be at least 8 characters.' });
@@ -1269,7 +1131,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
       },
     });
   } catch(e) {
-    res.status(500).json({ error: e.message });
+    sendError(res, e, 'reset-password');
   }
 });
 
@@ -1306,11 +1168,40 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
-/* ── Start server ── */
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`[AG Shop Pro API] Running on port ${PORT}`);
-  console.log(`[AG Shop Pro API] Health: http://localhost:${PORT}/api/health`);
+/* ── Root ──
+   public/ has no index.html, so the bare domain would 404. Send people to the
+   staff sign-in, which redirects on to their portal once authenticated. */
+app.get('/', (req, res) => res.redirect('/login.html'));
+
+/* ── Fallbacks ──
+   An unmatched /api/* path fell through to Express's default handler, which
+   returns an HTML error page — every other API response is JSON, and a client
+   parsing this would fail on the markup rather than read the status. */
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Endpoint not found.' });
 });
 
+/* Last-resort error handler. Anything that reaches here is a fault we did not
+   anticipate: log it in full, tell the client nothing about it. Express needs
+   all four parameters to recognise this as an error handler. */
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  sendError(res, err, `${req.method} ${req.path}`);
+});
+
+/* ── Start server ──
+   Only when run directly (`node server.js`). Importing this module — as the
+   tests do — gives you the app and pool without binding a port. */
+const PORT = process.env.PORT || 3000;
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`[AG Shop Pro API] Running on port ${PORT}`);
+    console.log(`[AG Shop Pro API] Health: http://localhost:${PORT}/api/health`);
+  });
+}
+
 module.exports = app;
+module.exports.app = app;
+module.exports.pool = pool;
