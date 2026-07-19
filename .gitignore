@@ -10,6 +10,6 @@ coverage/
 *graphify*
 
 # Claude Code captures bash command lines (with literal env values) into
-# settings.local.json — never commit it.
+# settings.local.json — never commit it. 
 .claude/settings.local.json
 github-workflows.yml.backup
