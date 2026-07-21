@@ -101,33 +101,55 @@ class ReportingService {
       paramCount++;
     }
 
+    /* Labor lines and time entries are each rolled up per technician in their
+       own subquery. Joining both line tables to users directly produced one
+       row per (labor line x time entry) pair on a shared repair order, so
+       total_hours, labor_revenue and total_tracked_minutes were all multiplied
+       by the other table's row count -- the same fan-out fixed in the
+       financial and revenue reports. Every active workspace member is still
+       listed (LEFT JOIN LATERAL), with zeros when they logged no work. */
     const query = `
       SELECT
         u.id,
         u.name,
-        COUNT(DISTINCT ro.id) as repair_orders_completed,
-        COALESCE(SUM(rll.hours), 0) as total_hours,
-        COALESCE(SUM(rll.line_total), 0) as labor_revenue,
-        COALESCE(AVG(rll.line_total), 0) as avg_labor_per_order,
-        COUNT(DISTINCT ro.customer_id) as unique_customers_served,
+        COALESCE(labor.repair_orders_completed, 0) as repair_orders_completed,
+        COALESCE(labor.total_hours, 0)             as total_hours,
+        COALESCE(labor.labor_revenue, 0)           as labor_revenue,
+        COALESCE(labor.avg_labor_per_order, 0)     as avg_labor_per_order,
+        COALESCE(labor.unique_customers_served, 0) as unique_customers_served,
 
         -- Time tracking
-        COALESCE(SUM(te.duration_minutes), 0) as total_tracked_minutes,
-        COALESCE(AVG(te.duration_minutes), 0) as avg_time_per_entry,
+        COALESCE(tracked.total_tracked_minutes, 0) as total_tracked_minutes,
+        COALESCE(tracked.avg_time_per_entry, 0)    as avg_time_per_entry,
 
         -- Efficiency metrics
         CASE
-          WHEN COUNT(DISTINCT ro.id) > 0
-          THEN SUM(rll.line_total) / COUNT(DISTINCT ro.id)
+          WHEN COALESCE(labor.repair_orders_completed, 0) > 0
+          THEN labor.labor_revenue / labor.repair_orders_completed
           ELSE 0
         END as revenue_per_order
 
       FROM users u
-      LEFT JOIN ro_labor_lines rll ON u.id = rll.technician_id
-      LEFT JOIN repair_orders ro ON rll.repair_order_id = ro.id AND ro.status = 'completed'
-      LEFT JOIN time_entries te ON u.id = te.technician_id AND te.repair_order_id = ro.id
-      WHERE $1 = ANY(u.workspace_ids) AND u.active = true ${dateFilter}
-      GROUP BY u.id, u.name
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(DISTINCT ro.id)              as repair_orders_completed,
+          COALESCE(SUM(rll.hours), 0)        as total_hours,
+          COALESCE(SUM(rll.line_total), 0)   as labor_revenue,
+          COALESCE(AVG(rll.line_total), 0)   as avg_labor_per_order,
+          COUNT(DISTINCT ro.customer_id)     as unique_customers_served
+        FROM ro_labor_lines rll
+        JOIN repair_orders ro ON ro.id = rll.repair_order_id AND ro.status = 'completed'
+        WHERE rll.technician_id = u.id AND ro.workspace_id = $1 ${dateFilter}
+      ) labor ON true
+      LEFT JOIN LATERAL (
+        SELECT
+          COALESCE(SUM(te.duration_minutes), 0) as total_tracked_minutes,
+          COALESCE(AVG(te.duration_minutes), 0) as avg_time_per_entry
+        FROM time_entries te
+        JOIN repair_orders ro ON ro.id = te.repair_order_id AND ro.status = 'completed'
+        WHERE te.technician_id = u.id AND ro.workspace_id = $1 ${dateFilter}
+      ) tracked ON true
+      WHERE $1 = ANY(u.workspace_ids) AND u.active = true
       ORDER BY labor_revenue DESC
     `;
 

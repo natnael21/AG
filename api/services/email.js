@@ -137,6 +137,62 @@ async function sendApprovalEmail(user, workspace, tempPassword) {
 }
 
 /**
+ * Send a password reset link.
+ *
+ * The link carries a single-use token that /api/auth/reset-password consumes.
+ * Called from the forgot-password route, which has already generated and
+ * stored the token; this only delivers it. Returns { success } like the other
+ * senders so the caller can fall back to logging the link when SMTP is not
+ * configured (e.g. local development).
+ */
+async function sendPasswordResetEmail(user, resetUrl) {
+  if (!transporter) {
+    console.error('[sendPasswordResetEmail] Transporter not initialized');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2>Reset your AG Shop Pro password</h2>
+        <p>Hi ${escapeHtml(user.name || 'there')},</p>
+
+        <p>We received a request to reset the password for your AG Shop Pro
+        account. Click the button below to choose a new one. This link expires
+        in one hour and can be used once.</p>
+
+        <p style="margin: 20px 0;">
+          <a href="${resetUrl}" style="display: inline-block; background: #1976d2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Reset password</a>
+        </p>
+
+        <p style="font-size: 13px; color: #666;">If the button does not work, copy and paste this link into your browser:<br>
+        <a href="${resetUrl}">${escapeHtml(resetUrl)}</a></p>
+
+        <p>If you did not request this, you can safely ignore this email — your
+        password will not change.</p>
+
+        <p>Best regards,<br>The AG Shop Pro Team</p>
+      </div>
+    `;
+
+    console.log(`[sendPasswordResetEmail] Sending password reset email to ${user.email}`);
+
+    const result = await transporter.sendMail({
+      from: FROM_EMAIL,
+      to: user.email,
+      subject: 'AG Shop Pro - Password Reset',
+      html,
+    });
+
+    console.log('[sendPasswordResetEmail] Email sent successfully:', result.messageId);
+    return { success: true };
+  } catch (e) {
+    console.error('[sendPasswordResetEmail] Failed to send password reset email:', e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+/**
  * Send reinstatement notification email
  */
 async function sendReinstateEmail(signup) {
@@ -205,5 +261,6 @@ module.exports = {
   sendRejectionEmail,
   sendApprovalEmail,
   sendReinstateEmail,
+  sendPasswordResetEmail,
   verifyTransporter,
 };

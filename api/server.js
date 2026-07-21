@@ -15,7 +15,7 @@ const { Pool, types } = require('pg');
 types.setTypeParser(1082, (value) => value);
 const createHealthRoute = require('./src/routes/health');
 const { provisionSignup, rejectSignup, reinstateSignup } = require('./services/signup');
-const { sendRejectionEmail, sendApprovalEmail, sendReinstateEmail, verifyTransporter } = require('./services/email');
+const { sendRejectionEmail, sendApprovalEmail, sendReinstateEmail, sendPasswordResetEmail, verifyTransporter } = require('./services/email');
 const { route, sendError, parseId, ValidationError, NotFoundError } = require('./services/errors');
 
 function parseCorsOrigins() {
@@ -1078,8 +1078,15 @@ app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
 
     const resetBaseUrl = process.env.RESET_BASE_URL || 'http://localhost:3000';
     const resetURL = `${resetBaseUrl.replace(/\/$/, '')}/reset.html?token=${token}`;
-    console.log(`[forgot-password] Reset link for ${email}: ${resetURL}`);
-    /* TODO: wire AWS SES to send real email */
+
+    /* Deliver the link by email. The login page tells the user one is on its
+       way, so a missing sender is a broken account-recovery flow, not a
+       cosmetic gap. When SMTP is not configured (local dev) sendMail fails
+       fast and we fall back to logging the link so the flow is still usable. */
+    const sent = await sendPasswordResetEmail(rows[0], resetURL);
+    if (!sent.success) {
+      console.warn(`[forgot-password] Email delivery failed (${sent.error}); reset link for ${email}: ${resetURL}`);
+    }
   } catch(e) {
     console.error('[forgot-password]', e.message);
   }

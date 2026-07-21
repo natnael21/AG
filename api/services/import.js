@@ -27,7 +27,10 @@ class ImportService {
 
       for (const [i, row] of rows.entries()) {
         const fullName = (row.full_name || row.name || '').trim();
-        const email = (row.email || '').trim() || null;
+        /* Store email lower-cased to match CustomerService.createCustomer, so a
+           CSV row and a form entry for the same address are one record, not
+           two that differ only by case. */
+        const email = (row.email || '').trim().toLowerCase() || null;
         const phone = (row.phone || '').trim() || null;
 
         if (!fullName) {
@@ -73,13 +76,16 @@ class ImportService {
       await client.query('BEGIN');
 
       for (const [i, row] of rows.entries()) {
-        const vin = (row.vin || '').trim();
+        /* VIN upper-cased and customer_email lower-cased to match the canonical
+           forms (VehicleService.createVehicle / CustomerService), so imported
+           rows dedupe against, and are deduped by, records entered by hand. */
+        const vin = (row.vin || '').trim().toUpperCase();
         const make = (row.make || '').trim();
         const model = (row.model || '').trim();
         const year = parseInt(row.year) || null;
         const plate = (row.plate || row.license_plate || '').trim() || null;
         const mileage = parseInt(row.mileage) || null;
-        const customerEmail = (row.customer_email || '').trim();
+        const customerEmail = (row.customer_email || '').trim().toLowerCase();
 
         if (!vin || !make || !model) {
           result.errors.push({ row: i + 2, reason: 'vin, make and model are required' });

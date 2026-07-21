@@ -76,6 +76,54 @@ test('logout invalidates the session token', async () => {
   assert.equal((await api.get('/api/customers', { token: tmp.token })).status, 401);
 });
 
+/* ── Password reset ── */
+
+test('forgot-password gives the same generic answer whether or not the email exists', async () => {
+  const known = await api.post('/api/auth/forgot-password', { email: 'manager@a.test' });
+  assert.equal(known.status, 200);
+  assert.equal(known.body.ok, true);
+
+  const unknown = await api.post('/api/auth/forgot-password', { email: 'ghost@nowhere.test' });
+  assert.equal(unknown.status, 200);
+  assert.deepEqual(unknown.body, known.body, 'the response must not reveal whether an account exists');
+});
+
+test('a reset token lets a user set a new password, ends old sessions, and is single-use', async () => {
+  const user = await seedUser(ctx.pool, api, { email: 'resetme@a.test', role: 'technician', workspaceIds: [shopA.id] });
+  assert.equal((await api.get('/api/customers', { token: user.token })).status, 200);
+
+  /* Stand in for what forgot-password stores; the email carries this token. */
+  const token = `reset-token-${user.user.id}`;
+  await ctx.pool.query(
+    `UPDATE users SET reset_token = $1, reset_expiry = NOW() + INTERVAL '1 hour' WHERE id = $2`,
+    [token, user.user.id]
+  );
+
+  const res = await api.post('/api/auth/reset-password', { token, password: 'FreshPass123!' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.ok, true);
+  assert.ok(res.body.token, 'a successful reset should return a new session token');
+
+  assert.equal((await api.get('/api/customers', { token: user.token })).status, 401,
+    'resetting the password must invalidate existing sessions');
+
+  const relogin = await api.post('/api/auth/login', { email: 'resetme@a.test', password: 'FreshPass123!' });
+  assert.equal(relogin.status, 200);
+
+  const reuse = await api.post('/api/auth/reset-password', { token, password: 'AnotherPass123!' });
+  assert.equal(reuse.status, 410, 'a consumed reset token must not work a second time');
+});
+
+test('reset-password refuses an expired token', async () => {
+  const user = await seedUser(ctx.pool, api, { email: 'expired@a.test', role: 'technician', workspaceIds: [shopA.id] });
+  await ctx.pool.query(
+    `UPDATE users SET reset_token = 'expired-tok', reset_expiry = NOW() - INTERVAL '1 minute' WHERE id = $1`,
+    [user.user.id]
+  );
+  const res = await api.post('/api/auth/reset-password', { token: 'expired-tok', password: 'FreshPass123!' });
+  assert.equal(res.status, 410);
+});
+
 /* ── Authorization ── */
 
 test('a technician cannot create a customer', async () => {
@@ -1066,6 +1114,44 @@ test('customer analytics does not multiply spend by vehicle count', async () => 
   assert.equal(Number(row.total_spent), 200, 'total_spent must not be multiplied by vehicles_owned');
 });
 
+test('technician performance does not multiply hours or revenue across an RO with several lines', async () => {
+  const ws = await seedWorkspace(ctx.pool, 'Tech Perf Shop');
+  const mgr = await seedUser(ctx.pool, api, { email: 'tp-mgr@r.test', role: 'manager', workspaceIds: [ws.id] });
+  const tech = await seedUser(ctx.pool, api, { email: 'tp-tech@r.test', role: 'technician', workspaceIds: [ws.id], name: 'Perf Tech' });
+  const customer = await seedCustomer(ctx.pool, ws.id, { fullName: 'Perf Customer' });
+  const vehicle = await seedVehicle(ctx.pool, ws.id, customer.id);
+
+  const ro = await api.post('/api/repair-orders',
+    { customerId: customer.id, vehicleId: vehicle.id, concern: 'Perf' }, { token: mgr.token });
+
+  // Two labor lines by the same tech on one RO: 6 hours, $600 total.
+  await api.post(`/api/repair-orders/${ro.body.id}/labor`,
+    { technicianId: tech.user.id, description: 'L1', hours: 3, hourlyRate: 100 }, { token: mgr.token });
+  await api.post(`/api/repair-orders/${ro.body.id}/labor`,
+    { technicianId: tech.user.id, description: 'L2', hours: 3, hourlyRate: 100 }, { token: mgr.token });
+
+  // Two time entries on the same RO. A direct join of both line tables would
+  // multiply the two labor lines by the two time entries (4x), doubling hours
+  // and revenue and doubling tracked minutes.
+  await ctx.pool.query(
+    `INSERT INTO time_entries (repair_order_id, technician_id, start_time, end_time, duration_minutes)
+     SELECT $1, $2, NOW(), NOW(), 60 FROM generate_series(1,2)`,
+    [ro.body.id, tech.user.id]
+  );
+
+  await api.patch(`/api/repair-orders/${ro.body.id}/status`, { status: 'in_progress' }, { token: mgr.token });
+  await api.patch(`/api/repair-orders/${ro.body.id}/status`, { status: 'completed' }, { token: mgr.token });
+
+  const res = await api.get('/api/reports/technician-performance', { token: mgr.token });
+  assert.equal(res.status, 200);
+  const row = res.body.find((r) => r.name === 'Perf Tech');
+  assert.ok(row, 'the technician should appear in the report');
+  assert.equal(Number(row.repair_orders_completed), 1);
+  assert.equal(Number(row.total_hours), 6, 'hours must not be multiplied by the time-entry count');
+  assert.equal(Number(row.labor_revenue), 600, 'labor revenue must not be multiplied by the time-entry count');
+  assert.equal(Number(row.total_tracked_minutes), 120, 'tracked minutes must not be multiplied by the labor-line count');
+});
+
 test('shop KPIs and revenue trends respond for a manager', async () => {
   const kpis = await api.get('/api/reports/shop-kpis', { token: managerA.token });
   assert.equal(kpis.status, 200);
@@ -1079,6 +1165,61 @@ test('shop KPIs and revenue trends respond for a manager', async () => {
 test('reports are scoped to the requested workspace', async () => {
   const res = await api.get(`/api/reports/shop-kpis?workspaceId=${shopB.id}`, { token: managerA.token });
   assert.equal(res.status, 403);
+});
+
+/* ── CSV import ── */
+
+async function importCsv(kind, csvText, token, workspaceId) {
+  const form = new FormData();
+  form.append('file', new Blob([csvText], { type: 'text/csv' }), `${kind}.csv`);
+  const res = await fetch(`${ctx.baseUrl}/api/import/${kind}?workspaceId=${workspaceId}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  return { status: res.status, body: await res.json() };
+}
+
+test('CSV customer import stores email canonically and does not create duplicates', async () => {
+  const ws = await seedWorkspace(ctx.pool, 'Import Shop');
+  const mgr = await seedUser(ctx.pool, api, { email: 'imp-mgr@r.test', role: 'manager', workspaceIds: [ws.id] });
+
+  const first = await importCsv('customers', 'full_name,email\nAda Byron,Ada@Import.Test\n', mgr.token, ws.id);
+  assert.equal(first.status, 200);
+  assert.equal(first.body.success, 1);
+
+  /* A hand entry of the same address in different case is caught as a duplicate. */
+  const dup = await api.post('/api/customers', { fullName: 'Ada Again', email: 'ADA@import.test' }, { token: mgr.token });
+  assert.equal(dup.status, 409);
+
+  /* Re-importing the same address in yet another case is skipped, not doubled. */
+  const second = await importCsv('customers', 'full_name,email\nAda Byron,ada@import.test\n', mgr.token, ws.id);
+  assert.equal(second.body.duplicates, 1);
+  assert.equal(second.body.success, 0);
+
+  const { rows } = await ctx.pool.query('SELECT email FROM customers WHERE workspace_id = $1', [ws.id]);
+  assert.equal(rows.length, 1, 'only one customer row should exist');
+  assert.equal(rows[0].email, 'ada@import.test', 'email should be stored lower-cased');
+});
+
+test('CSV vehicle import upper-cases the VIN and links the customer by email', async () => {
+  const ws = await seedWorkspace(ctx.pool, 'Import Vehicle Shop');
+  const mgr = await seedUser(ctx.pool, api, { email: 'impv-mgr@r.test', role: 'manager', workspaceIds: [ws.id] });
+  const customer = await seedCustomer(ctx.pool, ws.id, { fullName: 'Owner', email: 'owner@iv.test' });
+
+  const imp = await importCsv('vehicles',
+    'vin,make,model,customer_email\nabc123xyz789,Ford,Focus,Owner@IV.test\n', mgr.token, ws.id);
+  assert.equal(imp.status, 200);
+  assert.equal(imp.body.success, 1);
+
+  const list = await api.get(`/api/vehicles?customerId=${customer.id}`, { token: mgr.token });
+  assert.equal(list.body.length, 1, 'vehicle should link to the customer despite email casing');
+  assert.equal(list.body[0].vin, 'ABC123XYZ789', 'VIN should be stored upper-cased');
+
+  /* A hand entry of the same VIN in any case is now a duplicate. */
+  const dup = await api.post('/api/vehicles',
+    { customerId: customer.id, vin: 'abc123xyz789', make: 'Ford', model: 'Focus' }, { token: mgr.token });
+  assert.equal(dup.status, 409);
 });
 
 /* ── Error handling ── */
