@@ -76,23 +76,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 </head>
 <body>
 <script src="auth.js"></script>
+<script src="api.js"></script>
 <script>
 (function(){
-  var s = AUTH.requireAuth();
+  var s = AUTH.requireRoles(['technician', 'manager', 'super_admin']);
   if(!s) return;
-  // Update sidebar user info
-  document.addEventListener('DOMContentLoaded', function(){
-    var n = document.getElementById('sidebar-username');
-    var sh = document.getElementById('sidebar-shopname');
-    if(n) n.textContent = s.name || 'User';
-    if(sh) sh.textContent = s.activeWorkspaceName || s.shop || '';
-  });
 })();
-function logout(){ AUTH.logout(); }
 </script>
-
-
-<div class="toast" id="toast"></div>
 
 <div class="topbar">
   <div>
@@ -100,9 +90,9 @@ function logout(){ AUTH.logout(); }
     <div style="font-size:.62rem;color:rgba(255,255,255,.35)">Technician portal</div>
   </div>
   <div class="tech-info">
-    <div class="tech-name">Alex Torres</div>
-    <div id="clock-status" class="clock-status">● Clocked in</div>
-    <div class="tech-status" id="live-time">8:00 AM</div>
+    <div class="tech-name" id="topbar-name">—</div>
+    <div id="clock-status" class="clock-status">—</div>
+    <div class="tech-status" id="live-time">—</div>
   </div>
 </div>
 
@@ -113,138 +103,65 @@ function logout(){ AUTH.logout(); }
     <div class="clock-card">
       <div class="clock-time">
         <div class="clock-big" id="clock-display">—</div>
-        <div class="clock-date">Apr 27, 2026</div>
+        <div class="clock-date" id="clock-date">—</div>
       </div>
-      <button class="clock-btn btn-clk-out" id="main-clock-btn" onclick="toggleClock()">Clock Out</button>
-    </div>
-
-    <div class="section-label">My assigned ROs today</div>
-
-    <!-- RO 1 - ACTIVE -->
-    <div class="ro-card">
-      <div class="ro-card-header">
-        <div>
-          <div class="ro-number">RO-1041</div>
-          <div class="ro-customer">Marcus Johnson</div>
-          <div class="ro-vehicle">2019 BMW 3 Series · Front end collision</div>
-        </div>
-        <span class="badge badge-blue">Active</span>
-      </div>
-      <div class="ro-complaint">Front bumper replacement + hood realignment + headlight assembly. Radiator support additional approved by customer.</div>
-      <div class="status-buttons">
-        <button class="status-big-btn btn-start" onclick="logStatus('Started work on RO-1041')">▶ Start</button>
-        <button class="status-big-btn btn-pause" onclick="logStatus('Paused RO-1041')">⏸ Pause</button>
-        <button class="status-big-btn btn-done" onclick="logStatus('Labor line completed on RO-1041')">✓ Done</button>
-      </div>
-      <div class="parts-section">
-        <div class="parts-label">Parts status</div>
-        <div class="part-row"><span class="part-name">Front bumper cover · 51117370763</span><span class="badge badge-green">Received</span></div>
-        <div class="part-row"><span class="part-name">Headlight assembly · 63117388990</span><span class="badge badge-yellow">Ordered</span></div>
-        <div class="part-row"><span class="part-name">Bumper mounting bracket</span><span class="badge badge-green">Received</span></div>
-      </div>
-      <div class="note-section">
-        <textarea class="note-input" id="note-1041" placeholder="Tech note (auto-timestamped on save)..."></textarea>
-        <div class="note-footer">
-          <span class="note-hint">Enter to save · timestamp auto-added</span>
-          <button class="note-btn" onclick="saveNote('note-1041','RO-1041')">Save note</button>
-        </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div class="note-hint" id="clock-target">—</div>
+        <button class="clock-btn btn-clk-in" id="main-clock-btn" type="button">Clock In</button>
       </div>
     </div>
 
-    <!-- RO 2 - PENDING -->
-    <div class="ro-card">
-      <div class="ro-card-header">
-        <div>
-          <div class="ro-number">RO-1039</div>
-          <div class="ro-customer">David Chen</div>
-          <div class="ro-vehicle">2018 Honda Accord · Full service</div>
-        </div>
-        <span class="badge badge-gray">Pending</span>
-      </div>
-      <div class="ro-complaint">Full service oil change (synthetic) + brake inspection + cabin air filter replacement.</div>
-      <div class="status-buttons">
-        <button class="status-big-btn btn-start" style="grid-column:1/-1" onclick="logStatus('Started RO-1039')">▶ Start work on this RO</button>
-      </div>
-      <div class="parts-section">
-        <div class="parts-label">Parts status</div>
-        <div class="part-row"><span class="part-name">Oil filter · FIL-5030A</span><span class="badge badge-green">In stock</span></div>
-        <div class="part-row"><span class="part-name">Cabin air filter · AIR-CF10</span><span class="badge badge-green">In stock</span></div>
-        <div class="part-row"><span class="part-name">Synthetic 5W-30 (5 qts)</span><span class="badge badge-green">In stock</span></div>
-      </div>
-      <div class="note-section">
-        <textarea class="note-input" id="note-1039" placeholder="Tech note..."></textarea>
-        <div class="note-footer">
-          <span class="note-hint">Enter to save</span>
-          <button class="note-btn" onclick="saveNote('note-1039','RO-1039')">Save note</button>
-        </div>
-      </div>
-    </div>
+    <div class="section-label">Active repair orders</div>
+    <div id="ro-list"></div>
   </div>
 
   <!-- TIME PAGE -->
   <div class="page" id="page-time">
-    <div class="section-label">Today's time entries</div>
-    <div class="profile-section">
-      <div class="profile-row"><span style="color:var(--muted)">Clock in</span><span style="font-weight:600">7:58 AM</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Clock out</span><span>—</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Hours worked</span><span style="font-weight:600;color:var(--green)">2.4h (ongoing)</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Active on</span><span>RO-1041</span></div>
-    </div>
-    <div class="section-label">This week</div>
-    <div class="profile-section">
-      <div class="profile-row"><span style="color:var(--muted)">Monday</span><span>8.2h · RO-1035, RO-1036</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Tuesday</span><span>7.8h · RO-1038, RO-1039</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Wednesday</span><span>8.0h · RO-1040</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Thursday</span><span style="color:var(--green);font-weight:600">2.4h (today, ongoing)</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Week total</span><span style="font-weight:600">26.4h</span></div>
-    </div>
+    <div class="section-label">Current time entry</div>
+    <div class="profile-section" id="time-open"></div>
+
+    <div class="section-label">My completed time entries</div>
+    <div class="profile-section" id="time-entries"></div>
+    <div class="note-hint" id="time-scope" style="margin-bottom:10px"></div>
+
     <div class="section-label">Clock in / out</div>
     <div class="clock-card">
       <div class="clock-time">
         <div class="clock-big" id="clock-display2">—</div>
-        <div class="clock-date">Apr 27</div>
+        <div class="clock-date" id="clock-date2">—</div>
       </div>
-      <button class="clock-btn btn-clk-out" id="time-clock-btn" onclick="toggleClock()">Clock Out</button>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div class="note-hint" id="clock-target2">—</div>
+        <button class="clock-btn btn-clk-in" id="time-clock-btn" type="button">Clock In</button>
+      </div>
     </div>
   </div>
 
   <!-- HISTORY PAGE -->
   <div class="page" id="page-history">
-    <div class="section-label">My completed ROs this week</div>
-    <div class="profile-section">
-      <div class="history-row"><div class="history-icon" style="background:#c6f6d5;color:#276749">✓</div><div class="history-info"><div class="history-title">RO-1036 · Patricia Moore</div><div class="history-sub">2016 Nissan Altima · Transmission flush · Completed Apr 24</div></div><span style="font-size:.75rem;font-weight:600;color:var(--green)">7.5h</span></div>
-      <div class="history-row"><div class="history-icon" style="background:#c6f6d5;color:#276749">✓</div><div class="history-info"><div class="history-title">RO-1035 · Brian Taylor</div><div class="history-sub">2018 Audi A4 · Full service · Completed Apr 23</div></div><span style="font-size:.75rem;font-weight:600;color:var(--green)">6.2h</span></div>
-      <div class="history-row"><div class="history-icon" style="background:#c6f6d5;color:#276749">✓</div><div class="history-info"><div class="history-title">RO-1034 · Jennifer Wu</div><div class="history-sub">2020 Tesla Model 3 · Brake job · Completed Apr 22</div></div><span style="font-size:.75rem;font-weight:600;color:var(--green)">4.0h</span></div>
-    </div>
-    <div class="section-label">Performance this month</div>
-    <div class="profile-section">
-      <div class="profile-row"><span style="color:var(--muted)">ROs completed</span><span style="font-weight:600">18</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Total hours</span><span style="font-weight:600">72.4h</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Efficiency</span><span style="font-weight:600;color:var(--green)">94%</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Revenue generated</span><span style="font-weight:600">$8,640</span></div>
+    <div class="section-label">Completed repair orders</div>
+    <div class="profile-section" id="history-list"></div>
+
+    <div id="perf-block" style="display:none">
+      <div class="section-label">Team performance this month</div>
+      <div class="profile-section" id="perf-list"></div>
     </div>
   </div>
 
   <!-- PROFILE PAGE -->
   <div class="page" id="page-profile">
     <div style="text-align:center;padding:20px 0">
-      <div style="width:64px;height:64px;border-radius:50%;background:rgba(233,69,96,.15);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:600;color:var(--accent);margin:0 auto 10px">AT</div>
-      <div style="font-size:1.1rem;font-weight:600">Alex Torres</div>
-      <div style="font-size:.75rem;color:var(--muted)">Technician · Capitol Auto Body</div>
+      <div style="width:64px;height:64px;border-radius:50%;background:rgba(233,69,96,.15);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:600;color:var(--accent);margin:0 auto 10px" id="profile-initials">—</div>
+      <div style="font-size:1.1rem;font-weight:600" id="profile-name">—</div>
+      <div style="font-size:.75rem;color:var(--muted)" id="profile-sub">—</div>
     </div>
     <div class="profile-section">
       <div class="profile-label">My info</div>
-      <div class="profile-row"><span style="color:var(--muted)">Shop</span><span>Capitol Auto Body</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Email</span><span>alex.torres@capitolauto.com</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Role</span><span>Senior technician</span></div>
-      <div class="profile-row"><span style="color:var(--muted)">Employee since</span><span>March 2023</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Shop</span><span id="profile-shop">—</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Email</span><span id="profile-email">—</span></div>
+      <div class="profile-row"><span style="color:var(--muted)">Role</span><span id="profile-role">—</span></div>
     </div>
-    <div class="profile-section">
-      <div class="profile-label">Settings</div>
-      <div class="profile-row"><span>Notification sound</span><span style="color:var(--green)">On</span></div>
-      <div class="profile-row"><span>Auto-timestamp notes</span><span style="color:var(--green)">On</span></div>
-    </div>
-    <button style="width:100%;padding:13px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px" onclick="window.location.href='login.html'">Sign out</button>
+    <button style="width:100%;padding:13px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px" id="signout-btn" type="button">Sign out</button>
   </div>
 
 </div>
@@ -258,61 +175,505 @@ function logout(){ AUTH.logout(); }
 </div>
 
 <script>
-let clockedIn = true;
+/* ============================================================
+   Technician portal — all data comes from the API. Nothing on
+   this page is seeded, mocked or precomputed in the markup.
+   ============================================================ */
+
+var SESSION = AUTH.getSession() || {};
+var MY_ID = SESSION.id;
+var CAN_REPORT = ['manager', 'super_admin'].indexOf(SESSION.role) !== -1;
+
+/* Statuses a technician still has work to do on. */
+var ACTIVE_STATUSES = ['open', 'in_progress', 'awaiting_parts', 'ready'];
+
+/* The repair-order list carries no time entries, so the Time page derives them
+   from RO details. That is one request per RO, hence a bounded scan. */
+var TIME_SCAN_LIMIT = 25;
+
+var BADGE = {
+  open: 'badge-gray',
+  in_progress: 'badge-blue',
+  awaiting_parts: 'badge-yellow',
+  ready: 'badge-green',
+  completed: 'badge-green',
+  cancelled: 'badge-red',
+};
+
+var openEntry = null;   // the tech's single open time entry, or null
+var roCache = [];       // active ROs currently rendered
+
+/* ── helpers ── */
+
+function isAuthError(e) {
+  return e && (e.message === 'Session expired' || e.message === 'Unauthorized');
+}
+
+function reportError(e) {
+  if (!isAuthError(e)) API.toast(e.message || 'Something went wrong.', 'error');
+}
+
+function hoursFromMinutes(mins) {
+  var m = Number(mins);
+  if (!isFinite(m) || m < 0) return '—';
+  return (m / 60).toFixed(1) + 'h';
+}
+
+function elapsedSince(start) {
+  var t = new Date(start).getTime();
+  if (isNaN(t)) return '—';
+  return hoursFromMinutes(Math.max(Math.round((Date.now() - t) / 60000), 0));
+}
+
+/* Run `fn` over `items` with a small concurrency cap. Rejects on first error so
+   a partial failure surfaces rather than showing a silently short list. */
+async function mapLimit(items, limit, fn) {
+  var out = new Array(items.length);
+  var next = 0;
+  async function worker() {
+    while (next < items.length) {
+      var i = next++;
+      out[i] = await fn(items[i], i);
+    }
+  }
+  var workers = [];
+  for (var i = 0; i < Math.min(limit, items.length); i++) workers.push(worker());
+  await Promise.all(workers);
+  return out;
+}
 
 function showPage(id, btn) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function (b) { b.classList.remove('active'); });
   document.getElementById('page-' + id).classList.add('active');
   if (btn) btn.classList.add('active');
+  if (id === 'time') loadTime();
+  if (id === 'history') loadHistory();
 }
 
-function toggleClock() {
-  clockedIn = !clockedIn;
-  const btns = [document.getElementById('main-clock-btn'), document.getElementById('time-clock-btn')];
-  const statusEl = document.getElementById('clock-status');
-  btns.forEach(btn => {
-    if (btn) {
-      btn.className = 'clock-btn ' + (clockedIn ? 'btn-clk-out' : 'btn-clk-in');
-      btn.textContent = clockedIn ? 'Clock Out' : 'Clock In';
-    }
-  });
-  statusEl.textContent = clockedIn ? '● Clocked in' : '○ Clocked out';
-  statusEl.style.color = clockedIn ? '#68d391' : 'rgba(255,255,255,.4)';
-  toast(clockedIn ? 'Clocked in — ' + now() : 'Clocked out — hours saved: ' + now());
-}
-
-function logStatus(msg) {
-  toast('✓ ' + msg + ' · ' + now());
-}
-
-function saveNote(id, ro) {
-  const inp = document.getElementById(id);
-  const text = inp.value.trim();
-  if (!text) return;
-  inp.value = '';
-  toast('Note saved on ' + ro + ' · ' + now());
-}
+/* ── live wall clock ── */
 
 function now() {
-  return new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
 function updateClock() {
-  const t = now();
-  const els = [document.getElementById('clock-display'), document.getElementById('clock-display2'), document.getElementById('live-time')];
-  els.forEach(el => { if (el) el.textContent = t; });
+  var t = now();
+  var d = API.date(new Date());
+  ['clock-display', 'clock-display2', 'live-time'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = t;
+  });
+  ['clock-date', 'clock-date2'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = d;
+  });
+  if (openEntry) renderClock();
 }
 
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
+/* ── clock state (server is the source of truth) ── */
+
+async function refreshOpenEntry() {
+  try {
+    openEntry = await API.get('/api/time/open');
+  } catch (e) {
+    openEntry = null;
+    reportError(e);
+  }
+  renderClock();
 }
 
+function renderClock() {
+  var status = document.getElementById('clock-status');
+  var clockedIn = !!openEntry;
+
+  if (status) {
+    status.textContent = clockedIn ? '● Clocked in' : '○ Clocked out';
+    status.style.color = clockedIn ? '#68d391' : 'rgba(255,255,255,.4)';
+  }
+
+  [['main-clock-btn', 'clock-target'], ['time-clock-btn', 'clock-target2']].forEach(function (pair) {
+    var btn = document.getElementById(pair[0]);
+    var target = document.getElementById(pair[1]);
+    if (btn) {
+      btn.className = 'clock-btn ' + (clockedIn ? 'btn-clk-out' : 'btn-clk-in');
+      btn.textContent = clockedIn ? 'Clock Out' : 'Clock In';
+      /* Clocking in needs a repair order, so it is driven from an RO card. */
+      btn.disabled = !clockedIn;
+      btn.style.opacity = clockedIn ? '1' : '.5';
+      btn.style.cursor = clockedIn ? 'pointer' : 'not-allowed';
+    }
+    if (target) {
+      target.textContent = clockedIn
+        ? 'On ' + (openEntry.ro_number || ('RO #' + openEntry.repair_order_id)) +
+          ' · since ' + API.dateTime(openEntry.start_time)
+        : 'Not clocked in — use “Clock in” on a repair order below.';
+    }
+  });
+}
+
+async function clockOutOpen(btn) {
+  if (!openEntry) return;
+  btn.disabled = true;
+  try {
+    await API.clockOut(openEntry.repair_order_id);
+    API.toast('Clocked out.', 'success');
+  } catch (e) {
+    reportError(e);
+  }
+  await refreshOpenEntry();
+  renderROs(roCache);
+  if (document.getElementById('page-time').classList.contains('active')) loadTime();
+}
+
+/* ── My ROs ── */
+
+async function loadROs() {
+  var el = document.getElementById('ro-list');
+  await API.load(el, async function () {
+    var list = await API.repairOrders();
+    var active = (list || []).filter(function (r) {
+      return ACTIVE_STATUSES.indexOf(r.status) !== -1;
+    });
+    roCache = active;
+    if (active.length) renderROs(active);
+    return active;
+  }, { empty: 'No repair orders assigned yet.' });
+}
+
+function roCardHtml(ro) {
+  var vehicle = API.escape(API.vehicleLabel(ro));
+  if (ro.plate) vehicle += ' · ' + API.escape(ro.plate);
+
+  var badgeClass = BADGE[ro.status] || 'badge-gray';
+  var clockedHere = openEntry && Number(openEntry.repair_order_id) === Number(ro.id);
+  var doneTarget = ro.status === 'ready' ? 'completed' : 'ready';
+
+  var actions = '' +
+    '<div class="status-buttons">' +
+      '<button class="status-big-btn btn-start" data-act="status" data-id="' + ro.id + '" data-target="in_progress">▶ Start</button>' +
+      '<button class="status-big-btn btn-pause" data-act="status" data-id="' + ro.id + '" data-target="awaiting_parts">⏸ Pause</button>' +
+      '<button class="status-big-btn btn-done" data-act="status" data-id="' + ro.id + '" data-target="' + doneTarget + '">✓ ' +
+        (doneTarget === 'completed' ? 'Complete' : 'Done') + '</button>' +
+    '</div>' +
+    '<div class="status-buttons">' +
+      '<button class="status-big-btn ' + (clockedHere ? 'btn-pause' : 'btn-start') + '" style="grid-column:1/-1" ' +
+        'data-act="' + (clockedHere ? 'clock-out' : 'clock-in') + '" data-id="' + ro.id + '">' +
+        (clockedHere ? '⏹ Clock out of this RO' : '⏱ Clock in to this RO') +
+      '</button>' +
+    '</div>';
+
+  return '' +
+    '<div class="ro-card" data-ro="' + ro.id + '">' +
+      '<div class="ro-card-header">' +
+        '<div>' +
+          '<div class="ro-number">' + API.escape(ro.ro_number) + '</div>' +
+          '<div class="ro-customer">' + API.escape(ro.customer_name || '—') + '</div>' +
+          '<div class="ro-vehicle">' + vehicle + '</div>' +
+        '</div>' +
+        '<span class="badge ' + badgeClass + '">' + API.escape(API.statusLabel(ro.status)) + '</span>' +
+      '</div>' +
+      '<div class="ro-complaint">' + API.escape(ro.concern || 'No concern recorded.') + '</div>' +
+      actions +
+      '<div class="parts-section" data-parts="' + ro.id + '"></div>' +
+      '<div class="note-section">' +
+        '<form data-labor="' + ro.id + '">' +
+          '<textarea class="note-input" name="description" placeholder="Labor performed…"></textarea>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">' +
+            '<input class="note-input" style="min-height:0" type="number" step="0.1" min="0.01" name="hours" placeholder="Hours"/>' +
+            '<input class="note-input" style="min-height:0" type="number" step="0.01" min="0" name="hourlyRate" placeholder="Rate $/h"/>' +
+          '</div>' +
+          '<div class="note-footer">' +
+            '<span class="note-hint">Saved as a labor line on this RO</span>' +
+            '<button class="note-btn" type="submit">Add labor</button>' +
+          '</div>' +
+        '</form>' +
+      '</div>' +
+    '</div>';
+}
+
+function renderROs(list) {
+  var el = document.getElementById('ro-list');
+  if (!el) return;
+  el.innerHTML = list.map(roCardHtml).join('');
+  list.forEach(function (ro) {
+    loadParts(ro.id);
+    wireLaborForm(ro.id);
+  });
+}
+
+async function loadParts(id) {
+  var el = document.querySelector('[data-parts="' + id + '"]');
+  if (!el) return;
+  el.innerHTML = '<div class="parts-label">Parts</div><div class="note-hint">Loading…</div>';
+  try {
+    var ro = await API.repairOrder(id);
+    renderParts(el, ro && ro.parts);
+  } catch (e) {
+    if (isAuthError(e)) return;
+    API.showError(el, e.message, null, function () { loadParts(id); });
+  }
+}
+
+function renderParts(el, parts) {
+  if (!parts || !parts.length) {
+    el.innerHTML = '<div class="parts-label">Parts</div><div class="note-hint">No parts on this repair order.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="parts-label">Parts</div>' + parts.map(function (p) {
+    var name = API.escape(p.part_name || 'Part');
+    var num = p.part_number ? ' · ' + API.escape(p.part_number) : '';
+    var qty = Number(p.quantity) || 0;
+    return '<div class="part-row">' +
+      '<span class="part-name">' + name + num + '</span>' +
+      '<span class="badge badge-gray">×' + qty + ' · ' + API.money(p.line_total) + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function wireLaborForm(id) {
+  var form = document.querySelector('[data-labor="' + id + '"]');
+  if (!form) return;
+  API.onSubmit(form, async function (data) {
+    await API.addLabor(id, {
+      description: data.description.trim(),
+      hours: Number(data.hours),
+      hourlyRate: Number(data.hourlyRate),
+    });
+    form.reset();
+    API.toast('Labor added.', 'success');
+  }, {
+    validate: function (data) {
+      var errors = {};
+      if (!data.description || !data.description.trim()) errors.description = 'Describe the labor performed.';
+      if (!(Number(data.hours) > 0)) errors.hours = 'Enter hours greater than 0.';
+      if (!(Number(data.hourlyRate) >= 0)) errors.hourlyRate = 'Enter an hourly rate.';
+      return errors;
+    },
+  });
+}
+
+/* ── RO card actions ── */
+
+document.getElementById('ro-list').addEventListener('click', function (ev) {
+  var btn = ev.target.closest('[data-act]');
+  if (!btn) return;
+  var act = btn.getAttribute('data-act');
+  var id = Number(btn.getAttribute('data-id'));
+  if (act === 'status') setStatus(btn, id, btn.getAttribute('data-target'));
+  if (act === 'clock-in') clockInTo(btn, id);
+  if (act === 'clock-out') clockOutFrom(btn, id);
+});
+
+function lockCard(btn, locked) {
+  var card = btn.closest('.ro-card');
+  if (!card) return;
+  card.querySelectorAll('button').forEach(function (b) { b.disabled = locked; });
+}
+
+async function setStatus(btn, id, target) {
+  lockCard(btn, true);
+  try {
+    await API.setROStatus(id, target);
+    API.toast('Status set to ' + API.statusLabel(target) + '.', 'success');
+    await loadROs();     // re-read from the server rather than assuming
+  } catch (e) {
+    reportError(e);      // includes the server's 409 workflow message
+    lockCard(btn, false);
+  }
+}
+
+async function clockInTo(btn, id) {
+  lockCard(btn, true);
+  try {
+    await API.clockIn(id);
+    API.toast('Clocked in.', 'success');
+  } catch (e) {
+    reportError(e);      // includes the 409 naming the other RO
+  }
+  await refreshOpenEntry();
+  renderROs(roCache);
+}
+
+async function clockOutFrom(btn, id) {
+  lockCard(btn, true);
+  try {
+    await API.clockOut(id);
+    API.toast('Clocked out.', 'success');
+  } catch (e) {
+    reportError(e);
+  }
+  await refreshOpenEntry();
+  renderROs(roCache);
+}
+
+/* ── Time page ── */
+
+function renderOpenEntry() {
+  var el = document.getElementById('time-open');
+  if (!el) return;
+  if (!openEntry) {
+    el.innerHTML = '<div class="note-hint" style="text-align:center;padding:8px 0">Not clocked in.</div>';
+    return;
+  }
+  el.innerHTML = '' +
+    '<div class="profile-row"><span style="color:var(--muted)">Repair order</span><span style="font-weight:600">' +
+      API.escape(openEntry.ro_number || ('RO #' + openEntry.repair_order_id)) + '</span></div>' +
+    '<div class="profile-row"><span style="color:var(--muted)">Clock in</span><span>' +
+      API.dateTime(openEntry.start_time) + '</span></div>' +
+    '<div class="profile-row"><span style="color:var(--muted)">Elapsed</span><span style="font-weight:600;color:var(--green)">' +
+      elapsedSince(openEntry.start_time) + ' (ongoing)</span></div>';
+}
+
+async function loadTime() {
+  await refreshOpenEntry();
+  renderOpenEntry();
+
+  var el = document.getElementById('time-entries');
+  var scope = document.getElementById('time-scope');
+  if (scope) scope.textContent = '';
+
+  await API.load(el, async function () {
+    var list = await API.repairOrders({ limit: TIME_SCAN_LIMIT });
+    var details = await mapLimit(list || [], 4, function (r) { return API.repairOrder(r.id); });
+
+    var entries = [];
+    details.forEach(function (d) {
+      if (!d) return;
+      (d.timeEntries || []).forEach(function (te) {
+        if (Number(te.technician_id) === Number(MY_ID) && te.end_time) {
+          entries.push({ te: te, ro_number: d.ro_number });
+        }
+      });
+    });
+    entries.sort(function (a, b) {
+      return new Date(b.te.start_time) - new Date(a.te.start_time);
+    });
+
+    if (entries.length) renderTimeEntries(el, entries, (list || []).length);
+    return entries;
+  }, { empty: 'No completed time entries on your recent repair orders.' });
+}
+
+function renderTimeEntries(el, entries, scanned) {
+  var total = entries.reduce(function (sum, e) {
+    var m = Number(e.te.duration_minutes);
+    return sum + (isFinite(m) && m > 0 ? m : 0);
+  }, 0);
+
+  el.innerHTML = entries.map(function (e) {
+    return '<div class="profile-row">' +
+      '<span style="color:var(--muted)">' + API.escape(e.ro_number) + ' · ' + API.date(e.te.start_time) + '</span>' +
+      '<span style="font-weight:600">' + hoursFromMinutes(e.te.duration_minutes) + '</span>' +
+    '</div>';
+  }).join('') +
+  '<div class="profile-row"><span style="font-weight:600">Total shown</span>' +
+    '<span style="font-weight:600">' + hoursFromMinutes(total) + '</span></div>';
+
+  var scope = document.getElementById('time-scope');
+  if (scope) {
+    scope.textContent = 'From your ' + scanned + ' most recent repair order' + (scanned === 1 ? '' : 's') +
+      '. The API exposes no per-technician time report, so this is not an all-time total.';
+  }
+}
+
+/* ── History page ── */
+
+async function loadHistory() {
+  var el = document.getElementById('history-list');
+  await API.load(el, async function () {
+    var list = await API.repairOrders({ status: 'completed' });
+    if (list && list.length) renderHistory(el, list);
+    return list;
+  }, { empty: 'No completed repair orders yet.' });
+
+  loadPerformance();
+}
+
+function renderHistory(el, list) {
+  el.innerHTML = list.map(function (ro) {
+    var vehicle = API.vehicleLabel(ro);
+    return '<div class="history-row">' +
+      '<div class="history-icon" style="background:#c6f6d5;color:#276749">✓</div>' +
+      '<div class="history-info">' +
+        '<div class="history-title">' + API.escape(ro.ro_number) + ' · ' + API.escape(ro.customer_name || '—') + '</div>' +
+        '<div class="history-sub">' + API.escape(vehicle) + ' · ' + API.escape(ro.concern || '—') +
+          ' · Completed ' + API.date(ro.actual_completion || ro.updated_at || ro.created_at) + '</div>' +
+      '</div>' +
+      '<span style="font-size:.75rem;font-weight:600;color:var(--green)">' + API.money(ro.total_final) + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+/* Technician-performance is manager-gated (403 for technicians), so it is only
+   requested for roles that can actually read it. */
+function loadPerformance() {
+  var block = document.getElementById('perf-block');
+  if (!CAN_REPORT || !block) return;
+  block.style.display = '';
+
+  var el = document.getElementById('perf-list');
+  var today = new Date();
+  var start = new Date(today.getFullYear(), today.getMonth(), 1);
+  var iso = function (d) { return d.toISOString().slice(0, 10); };
+
+  return API.load(el, async function () {
+    var rows = await API.techPerformance({ startDate: iso(start), endDate: iso(today) });
+    if (rows && rows.length) renderPerformance(el, rows);
+    return rows;
+  }, { empty: 'No technician activity this month.' });
+}
+
+function renderPerformance(el, rows) {
+  el.innerHTML = rows.map(function (r) {
+    return '<div class="profile-row">' +
+      '<span style="color:var(--muted)">' + API.escape(r.name) + '</span>' +
+      '<span style="font-weight:600">' + (Number(r.repair_orders_completed) || 0) + ' ROs · ' +
+        (Number(r.total_hours) || 0).toFixed(1) + 'h · ' + API.money(r.labor_revenue) + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+/* ── Profile & topbar ── */
+
+function initials(name) {
+  return String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(function (w) { return w[0].toUpperCase(); })
+    .join('') || '—';
+}
+
+function renderProfile() {
+  var name = SESSION.name || '—';
+  var shop = SESSION.activeWorkspaceName || '—';
+  var role = API.statusLabel(SESSION.role);
+
+  document.getElementById('topbar-name').textContent = name;
+  document.getElementById('profile-initials').textContent = initials(SESSION.name);
+  document.getElementById('profile-name').textContent = name;
+  document.getElementById('profile-sub').textContent = role + ' · ' + shop;
+  document.getElementById('profile-shop').textContent = shop;
+  document.getElementById('profile-email').textContent = SESSION.email || '—';
+  document.getElementById('profile-role').textContent = role;
+}
+
+document.getElementById('signout-btn').addEventListener('click', function () { AUTH.logout(); });
+document.getElementById('main-clock-btn').addEventListener('click', function () { clockOutOpen(this); });
+document.getElementById('time-clock-btn').addEventListener('click', function () { clockOutOpen(this); });
+
+/* ── boot ── */
+
+renderProfile();
 updateClock();
 setInterval(updateClock, 30000);
+
+(async function init() {
+  await refreshOpenEntry();
+  await loadROs();
+})();
 </script>
 </body>
 </html>

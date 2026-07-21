@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AG Shop Pro — My Vehicles</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--navy:#0a1628;--navy2:#111f35;--accent:#e94560;--gold:#c9a84c;--bg:#f0f2f7;--card:#fff;--border:#e2e8f0;--text:#1a2035;--muted:#718096;--green:#2f855a;--yellow:#b7791f;--red:#c53030;--blue:#2b6cb0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--navy);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.brand{font-size:.9rem;font-weight:500;color:#fff}
+.brand span{color:var(--accent)}
+.brand-sub{font-size:.62rem;color:rgba(255,255,255,.35)}
+.who{text-align:right}
+.who-name{font-size:.78rem;font-weight:500;color:#fff}
+.who-shop{font-size:.65rem;color:rgba(255,255,255,.4)}
+.content{flex:1;padding:12px;padding-bottom:84px}
+.page{display:none}
+.page.active{display:block}
+.section-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:600;margin:10px 0 8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px}
+.card-title{font-size:.92rem;font-weight:600}
+.card-sub{font-size:.72rem;color:var(--muted);margin-top:1px}
+.row{display:flex;justify-content:space-between;font-size:.78rem;padding:6px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.row-label{color:var(--muted)}
+.row-value{font-weight:500;text-align:right}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.tile{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
+.tile-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+.tile-value{font-size:1.25rem;font-weight:600;margin-top:4px}
+.badge{display:inline-flex;padding:2px 8px;border-radius:50px;font-size:.65rem;font-weight:600;white-space:nowrap}
+.badge-green{background:#c6f6d5;color:#276749}
+.badge-yellow{background:#fefcbf;color:#744210}
+.badge-blue{background:#bee3f8;color:#2a4365}
+.badge-red{background:#fed7d7;color:#822727}
+.badge-gray{background:#edf2f7;color:#4a5568}
+.state{padding:22px;text-align:center;color:var(--muted);font-size:.8rem}
+.state-error{color:var(--red)}
+.btn{padding:11px 14px;border-radius:9px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:var(--accent);color:#fff}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:#fed7d7;color:#822727}
+.btn-full{width:100%}
+.btn-sm{padding:7px 12px;font-size:.72rem}
+label{display:block;font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:5px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);background:#fff}
+input[data-invalid],select[data-invalid],textarea[data-invalid]{border-color:var(--red)}
+textarea{resize:vertical;min-height:66px}
+.field{margin-bottom:12px}
+.field-error{color:var(--red);font-size:.7rem;margin-top:4px}
+.lines{margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.line{display:flex;justify-content:space-between;font-size:.74rem;padding:3px 0;color:var(--muted)}
+.line-total{display:flex;justify-content:space-between;font-size:.82rem;font-weight:600;padding-top:7px;margin-top:5px;border-top:1px solid var(--border)}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;background:var(--card);border-top:1px solid var(--border);padding:8px 12px 16px;display:flex;justify-content:space-around}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.62rem;color:var(--muted);cursor:pointer;padding:6px 10px;border-radius:8px;border:none;background:none;font-family:'DM Sans',sans-serif}
+.nav-btn.active{color:var(--accent)}
+.nav-icon{font-size:1.1rem}
+.stars{display:flex;gap:6px;margin-bottom:10px}
+.star{font-size:1.5rem;cursor:pointer;color:var(--border);background:none;border:none;padding:0;line-height:1}
+.star.on{color:var(--gold)}
+.modal{position:fixed;inset:0;background:rgba(10,22,40,.55);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+.modal.show{display:flex}
+.modal-card{background:var(--card);border-radius:14px;padding:18px;width:100%;max-width:420px;max-height:88vh;overflow:auto}
+.modal-title{font-size:.98rem;font-weight:600;margin-bottom:12px}
+.modal-actions{display:flex;gap:8px;margin-top:6px}
+.modal-actions .btn{flex:1}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="brand">AG <span>Shop Pro</span></div>
+    <div class="brand-sub">Customer portal</div>
+  </div>
+  <div class="who">
+    <div class="who-name" id="who-name">—</div>
+    <div class="who-shop" id="who-shop">—</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- VEHICLES -->
+  <div class="page active" id="page-vehicles">
+    <div class="section-label">My vehicles</div>
+    <div id="vehicles-list"></div>
+    <button class="btn btn-full" id="book-from-vehicles">Book an appointment</button>
+  </div>
+
+  <!-- SERVICE HISTORY -->
+  <div class="page" id="page-history">
+    <div class="section-label">Service history</div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- APPOINTMENTS -->
+  <div class="page" id="page-appointments">
+    <div class="section-label">Book an appointment</div>
+    <div class="card">
+      <form id="book-form" novalidate>
+        <div class="field">
+          <label for="vehicleId">Vehicle</label>
+          <select id="vehicleId" name="vehicleId" required><option value="">Loading…</option></select>
+        </div>
+        <div class="field">
+          <label for="preferredDate">Preferred date</label>
+          <input type="date" id="preferredDate" name="preferredDate" required/>
+        </div>
+        <div class="field">
+          <label for="preferredTime">Preferred time (optional)</label>
+          <input type="time" id="preferredTime" name="preferredTime"/>
+        </div>
+        <div class="field">
+          <label for="concern">What needs attention?</label>
+          <textarea id="concern" name="concern" placeholder="Describe the problem…" required></textarea>
+        </div>
+        <div class="field">
+          <label for="contactMethod">Preferred contact</label>
+          <select id="contactMethod" name="contactMethod">
+            <option value="email">Email</option>
+            <option value="phone">Phone</option>
+            <option value="text">Text</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-full">Request appointment</button>
+      </form>
+    </div>
+
+    <div class="section-label">My appointments</div>
+    <div id="appointments-list"></div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="page" id="page-profile">
+    <div class="section-label">My details</div>
+    <div id="profile-summary"></div>
+
+    <div class="section-label">Update my details</div>
+    <div class="card">
+      <form id="profile-form" novalidate>
+        <div class="field"><label for="full_name">Full name</label><input id="full_name" name="full_name" required/></div>
+        <div class="field"><label for="phone">Phone</label><input id="phone" name="phone"/></div>
+        <div class="field"><label for="address">Address</label><input id="address" name="address"/></div>
+        <div class="field"><label for="city">City</label><input id="city" name="city"/></div>
+        <div class="field"><label for="state">State</label><input id="state" name="state"/></div>
+        <div class="field"><label for="zip_code">ZIP code</label><input id="zip_code" name="zip_code"/></div>
+        <button type="submit" class="btn btn-full">Save changes</button>
+      </form>
+    </div>
+
+    <div class="section-label">Change password</div>
+    <div class="card">
+      <form id="password-form" novalidate>
+        <div class="field"><label for="currentPassword">Current password</label><input type="password" id="currentPassword" name="currentPassword" autocomplete="current-password" required/></div>
+        <div class="field"><label for="newPassword">New password</label><input type="password" id="newPassword" name="newPassword" autocomplete="new-password" required/></div>
+        <div class="field"><label for="confirmPassword">Confirm new password</label><input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password" required/></div>
+        <button type="submit" class="btn btn-full">Change password</button>
+      </form>
+    </div>
+
+    <button class="btn btn-secondary btn-full" id="logout-btn" style="margin-top:6px">Sign out</button>
+  </div>
+
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal" id="feedback-modal">
+  <div class="modal-card">
+    <div class="modal-title" id="feedback-title">Rate your service</div>
+    <form id="feedback-form" novalidate>
+      <input type="hidden" name="repairOrderId" id="feedback-ro"/>
+      <div class="stars" id="feedback-stars"></div>
+      <input type="hidden" name="rating" id="feedback-rating"/>
+      <div class="field">
+        <label for="feedback-comments">Comments (optional)</label>
+        <textarea id="feedback-comments" name="comments" placeholder="Tell the shop how it went…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="feedback-cancel">Cancel</button>
+        <button type="submit" class="btn">Submit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" data-page="vehicles"><span class="nav-icon">🚗</span>Vehicles</button>
+  <button class="nav-btn" data-page="history"><span class="nav-icon">📋</span>History</button>
+  <button class="nav-btn" data-page="appointments"><span class="nav-icon">📅</span>Book</button>
+  <button class="nav-btn" data-page="profile"><span class="nav-icon">👤</span>Profile</button>
+</div>
+
+<script src="portal-api.js"></script>
+<script>
+(function () {
+  const session = PORTAL.requireAuth();
+  if (!session) return;
+
+  const e = PORTAL.escape;
+  let vehicles = [];
+
+  /* ── Navigation ── */
+  const loaders = {
+    vehicles: loadVehicles,
+    history: loadHistory,
+    appointments: loadAppointments,
+    profile: loadProfile,
+  };
+
+  document.querySelectorAll('.nav-btn').forEach((btn) => {
+    btn.addEventListener('click', () => showPage(btn.dataset.page, btn));
+  });
+
+  function showPage(name, btn) {
+    document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach((b) => b.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    if (btn) btn.classList.add('active');
+    else document.querySelector(`.nav-btn[data-page="${name}"]`)?.classList.add('active');
+    if (loaders[name]) loaders[name]();
+  }
+
+  document.getElementById('book-from-vehicles').addEventListener('click', () => showPage('appointments'));
+  document.getElementById('logout-btn').addEventListener('click', () => PORTAL.logout());
+
+  /* ── Header ── */
+  (function header() {
+    const c = session.customer || {};
+    document.getElementById('who-name').textContent = c.full_name || c.email || 'My account';
+  })();
+
+  /* ── Vehicles ── */
+  function vehicleBadge(v) {
+    const count = Number(v.total_repair_orders || 0);
+    return count > 0
+      ? `<span class="badge badge-blue">${count} visit${count === 1 ? '' : 's'}</span>`
+      : '<span class="badge badge-gray">No visits yet</span>';
+  }
+
+  async function loadVehicles() {
+    const el = document.getElementById('vehicles-list');
+    const data = await PORTAL.load(el, () => PORTAL.vehicles(), {
+      empty: 'No vehicles on file yet. Your shop adds vehicles when you visit.',
+    });
+    if (!data || !data.length) return;
+
+    vehicles = data;
+    el.innerHTML = data.map((v) => `
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">${e(PORTAL.vehicleLabel(v))}</div>
+            <div class="card-sub">${v.plate ? 'Plate ' + e(v.plate) + ' · ' : ''}VIN ${e(v.vin || '—')}</div>
+          </div>
+          ${vehicleBadge(v)}
+        </div>
+        <div class="row"><span class="row-label">Mileage</span><span class="row-value">${v.mileage ? e(Number(v.mileage).toLocaleString('en-US')) + ' mi' : '—'}</span></div>
+        <div class="row"><span class="row-label">Last service</span><span class="row-value">${e(PORTAL.date(v.last_service_date))}</span></div>
+        <div class="row"><span class="row-label">Total spent</span><span class="row-value">${e(PORTAL.money(v.total_spent))}</span></div>
+      </div>
+    `).join('');
+  }
+
+  /* ── Service history ── */
+  const STATUS_BADGE = {
+    completed: 'badge-green',
+    in_progress: 'badge-blue',
+    awaiting_parts: 'badge-yellow',
+    ready: 'badge-green',
+    cancelled: 'badge-red',
+    open: 'badge-gray',
+  };
+
+  function lineRows(items, render) {
+    if (!items || !items.length) return '';
+    return `<div class="lines">${items.map(render).join('')}</div>`;
+  }
+
+  async function loadHistory() {
+    const el = document.getElementById('history-list');
+    const data = await PORTAL.load(el, () => PORTAL.serviceHistory(), {
+      empty: 'No service history yet.',
+    });
+    if (!data || !data.length) return;
+
+    el.innerHTML = data.map((ro) => {
+      const canRate = ro.status === 'completed' && !ro.feedback;
+      const rated = ro.feedback
+        ? `<span class="badge badge-gray">You rated ${e(ro.feedback.rating)}/5</span>`
+        : '';
+
+      return `
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">${e(ro.ro_number)}</div>
+              <div class="card-sub">${e(PORTAL.vehicleLabel(ro))} · ${e(PORTAL.date(ro.created_at))}</div>
+            </div>
+            <span class="badge ${STATUS_BADGE[ro.status] || 'badge-gray'}">${e(PORTAL.statusLabel(ro.status))}</span>
+          </div>
+          <div style="font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:4px">${e(ro.concern || '')}</div>
+          ${lineRows(ro.parts_lines, (p) => `<div class="line"><span>${e(p.part_name)} × ${e(p.quantity)}</span><span>${e(PORTAL.money(p.line_total))}</span></div>`)}
+          ${lineRows(ro.labor_lines, (l) => `<div class="line"><span>${e(l.description)}${l.technician_name ? ' · ' + e(l.technician_name) : ''}</span><span>${e(PORTAL.money(l.line_total))}</span></div>`)}
+          <div class="line-total"><span>Total</span><span>${e(PORTAL.money(ro.total_final))}</span></div>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px">
+            ${rated}
+            ${canRate ? `<button class="btn btn-sm" data-rate="${e(ro.id)}" data-ro="${e(ro.ro_number)}">Rate this service</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    el.querySelectorAll('[data-rate]').forEach((btn) => {
+      btn.addEventListener('click', () => openFeedback(btn.dataset.rate, btn.dataset.ro));
+    });
+  }
+
+  /* ── Appointments ── */
+  function apptBadge(status) {
+    const map = { pending: 'badge-yellow', confirmed: 'badge-green', in_progress: 'badge-blue', completed: 'badge-gray', cancelled: 'badge-red' };
+    return `<span class="badge ${map[status] || 'badge-gray'}">${e(PORTAL.statusLabel(status))}</span>`;
+  }
+
+  async function loadAppointments() {
+    await populateVehiclePicker();
+
+    const el = document.getElementById('appointments-list');
+    const data = await PORTAL.load(el, () => PORTAL.appointments(), {
+      empty: 'No appointments yet.',
+    });
+    if (!data || !data.length) return;
+
+    el.innerHTML = data.map((a) => {
+      const cancellable = a.status === 'pending' || a.status === 'confirmed';
+      return `
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">${e(PORTAL.date(a.preferred_date))}${a.preferred_time ? ' · ' + e(String(a.preferred_time).slice(0, 5)) : ''}</div>
+              <div class="card-sub">${e(PORTAL.vehicleLabel(a))}${a.plate ? ' · ' + e(a.plate) : ''}</div>
+            </div>
+            ${apptBadge(a.status)}
+          </div>
+          <div style="font-size:.78rem;color:var(--muted);line-height:1.5">${e(a.concern || '')}</div>
+          ${cancellable ? `<div style="margin-top:10px;text-align:right"><button class="btn btn-sm btn-danger" data-cancel="${e(a.id)}">Cancel</button></div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    el.querySelectorAll('[data-cancel]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try {
+          await PORTAL.cancel(btn.dataset.cancel);
+          PORTAL.toast('Appointment cancelled.', 'success');
+          loadAppointments();
+        } catch (err) {
+          PORTAL.toast(err.message, 'error');
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  async function populateVehiclePicker() {
+    const select = document.getElementById('vehicleId');
+    try {
+      if (!vehicles.length) vehicles = await PORTAL.vehicles();
+    } catch (err) {
+      select.innerHTML = '<option value="">Could not load vehicles</option>';
+      return;
+    }
+
+    if (!vehicles.length) {
+      select.innerHTML = '<option value="">No vehicles on file</option>';
+      return;
+    }
+    const current = select.value;
+    select.innerHTML = '<option value="">Select a vehicle…</option>' +
+      vehicles.map((v) => `<option value="${e(v.id)}">${e(PORTAL.vehicleLabel(v))}${v.plate ? ' · ' + e(v.plate) : ''}</option>`).join('');
+    if (current) select.value = current;
+  }
+
+  /* Don't offer a date the API will reject. */
+  document.getElementById('preferredDate').min = new Date().toISOString().slice(0, 10);
+
+  PORTAL.onSubmit(document.getElementById('book-form'), async (data) => {
+    const created = await PORTAL.book({
+      vehicleId: Number(data.vehicleId),
+      preferredDate: data.preferredDate,
+      preferredTime: data.preferredTime || undefined,
+      concern: data.concern,
+      contactMethod: data.contactMethod || 'email',
+    });
+    PORTAL.toast(`Appointment requested for ${PORTAL.date(created.preferred_date)}.`, 'success');
+    document.getElementById('book-form').reset();
+    loadAppointments();
+  }, {
+    validate(data) {
+      const errors = {};
+      if (!data.vehicleId) errors.vehicleId = 'Choose a vehicle.';
+      if (!data.preferredDate) errors.preferredDate = 'Choose a date.';
+      else if (data.preferredDate < new Date().toISOString().slice(0, 10)) errors.preferredDate = 'Choose a date in the future.';
+      if (!data.concern || !data.concern.trim()) errors.concern = 'Tell us what needs attention.';
+      return errors;
+    },
+  });
+
+  /* ── Profile ── */
+  async function loadProfile() {
+    const el = document.getElementById('profile-summary');
+    const p = await PORTAL.load(el, () => PORTAL.profile());
+    if (!p) return;
+
+    document.getElementById('who-shop').textContent = p.workspace_name || '';
+
+    el.innerHTML = `
+      <div class="tiles">
+        <div class="tile"><div class="tile-label">Vehicles</div><div class="tile-value">${e(p.total_vehicles)}</div></div>
+        <div class="tile"><div class="tile-label">Visits</div><div class="tile-value">${e(p.total_repair_orders)}</div></div>
+        <div class="tile"><div class="tile-label">Total spent</div><div class="tile-value">${e(PORTAL.money(p.total_spent))}</div></div>
+        <div class="tile"><div class="tile-label">Last service</div><div class="tile-value" style="font-size:.9rem">${e(PORTAL.date(p.last_service_date))}</div></div>
+      </div>
+      <div class="card">
+        <div class="row"><span class="row-label">Name</span><span class="row-value">${e(p.full_name || '—')}</span></div>
+        <div class="row"><span class="row-label">Email</span><span class="row-value">${e(p.email || '—')}</span></div>
+        <div class="row"><span class="row-label">Phone</span><span class="row-value">${e(p.phone || '—')}</span></div>
+        <div class="row"><span class="row-label">Shop</span><span class="row-value">${e(p.workspace_name || '—')}</span></div>
+        <div class="row"><span class="row-label">Customer since</span><span class="row-value">${e(PORTAL.date(p.created_at))}</span></div>
+      </div>
+    `;
+
+    const form = document.getElementById('profile-form');
+    ['full_name', 'phone', 'address', 'city', 'state', 'zip_code'].forEach((field) => {
+      const input = form.elements[field];
+      if (input) input.value = p[field] || '';
+    });
+  }
+
+  PORTAL.onSubmit(document.getElementById('profile-form'), async (data) => {
+    await PORTAL.updateProfile({
+      full_name: data.full_name,
+      phone: data.phone,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      zip_code: data.zip_code,
+    });
+    PORTAL.toast('Your details were saved.', 'success');
+    loadProfile();
+  }, {
+    validate(data) {
+      const errors = {};
+      if (!data.full_name || !data.full_name.trim()) errors.full_name = 'Name is required.';
+      return errors;
+    },
+  });
+
+  PORTAL.onSubmit(document.getElementById('password-form'), async (data) => {
+    await PORTAL.changePassword({
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword,
+    });
+    /* The API ends every session on a password change, so send them back to
+       sign in with the new password rather than leaving a dead session. */
+    PORTAL.toast('Password changed. Please sign in again.', 'success');
+    setTimeout(() => { PORTAL.clearSession(); window.location.replace('portal-login.html'); }, 1200);
+  }, {
+    validate(data) {
+      const errors = {};
+      if (!data.currentPassword) errors.currentPassword = 'Enter your current password.';
+      if (!data.newPassword || data.newPassword.length < 8) errors.newPassword = 'Use at least 8 characters.';
+      if (data.newPassword !== data.confirmPassword) errors.confirmPassword = 'Passwords do not match.';
+      return errors;
+    },
+  });
+
+  /* ── Feedback ── */
+  const modal = document.getElementById('feedback-modal');
+  const starsHost = document.getElementById('feedback-stars');
+  const ratingInput = document.getElementById('feedback-rating');
+
+  starsHost.innerHTML = [1, 2, 3, 4, 5]
+    .map((n) => `<button type="button" class="star" data-star="${n}" aria-label="${n} star${n === 1 ? '' : 's'}">★</button>`)
+    .join('');
+
+  function paintStars(value) {
+    starsHost.querySelectorAll('.star').forEach((s) => {
+      s.classList.toggle('on', Number(s.dataset.star) <= Number(value));
+    });
+  }
+
+  starsHost.querySelectorAll('.star').forEach((s) => {
+    s.addEventListener('click', () => {
+      ratingInput.value = s.dataset.star;
+      paintStars(s.dataset.star);
+    });
+  });
+
+  function openFeedback(roId, roNumber) {
+    document.getElementById('feedback-ro').value = roId;
+    document.getElementById('feedback-title').textContent = `Rate your service on ${roNumber}`;
+    ratingInput.value = '';
+    document.getElementById('feedback-comments').value = '';
+    paintStars(0);
+    modal.classList.add('show');
+  }
+
+  document.getElementById('feedback-cancel').addEventListener('click', () => modal.classList.remove('show'));
+  modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.classList.remove('show'); });
+
+  PORTAL.onSubmit(document.getElementById('feedback-form'), async (data) => {
+    await PORTAL.feedback({
+      repairOrderId: Number(data.repairOrderId),
+      rating: Number(data.rating),
+      comments: data.comments || undefined,
+    });
+    modal.classList.remove('show');
+    PORTAL.toast('Thanks for the feedback.', 'success');
+    loadHistory();
+  }, {
+    validate(data) {
+      const errors = {};
+      if (!data.rating) errors.comments = 'Please choose a star rating.';
+      return errors;
+    },
+  });
+
+  /* ── Boot ── */
+  loadVehicles();
+  loadProfile();
+})();
+</script>
+</body>
+</html>

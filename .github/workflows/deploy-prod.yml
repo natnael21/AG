@@ -1,8 +1,19 @@
 name: Deploy to Production
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches: [main]
+
+# Two pushes in quick succession would otherwise rsync into the same release
+# tree and flip the `current` symlink concurrently. Deploys queue instead;
+# cancel-in-progress is deliberately false so a half-finished prod deploy is
+# never abandoned mid-way.
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy-prod:
@@ -29,6 +40,7 @@ jobs:
           rm: true
 
       - name: Run deploy script on EC2
+        id: deploy
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -44,17 +56,22 @@ jobs:
           curl --fail --retry 5 --retry-delay 5 --max-time 15 \
             https://agshopro.com/api/health
 
+      # Only roll back when a release actually went live and then failed
+      # verification. `if: failure()` alone also fired when checkout or SCP
+      # failed -- at which point `current` still points at the last good
+      # release, so rollback.sh would step production back to the release
+      # *before* it, causing an outage from a deploy that never happened.
       - name: Rollback on failure
-        if: failure()
+        if: ${{ failure() && steps.deploy.outcome == 'success' }}
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            echo "Healthcheck failed — initiating rollback..."
+            echo "Healthcheck failed - initiating rollback..."
             bash /var/www/agshopro/scripts/rollback.sh
 
       - name: Notify on failure
-        if: failure()
-        run: echo "::error::Prod deploy FAILED and was rolled back. Release: ${{ steps.release.outputs.id }}"
+        if: ${{ failure() }}
+        run: 'echo "::error::Prod deploy FAILED and was rolled back. Release: ${{ steps.release.outputs.id }}"'

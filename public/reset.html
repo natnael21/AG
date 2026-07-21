@@ -94,7 +94,7 @@ h2{font-family:'DM Serif Display',serif;font-size:1.5rem;color:#fff;margin-botto
     <div class="invalid-box">
       <div class="invalid-icon">✅</div>
       <h2 style="margin-bottom:8px">Password updated</h2>
-      <div class="sub">Your password has been changed successfully. Signing you in now...</div>
+      <div class="sub">Your password has been changed. Opening your workspace...</div>
     </div>
   </div>
 </div>
@@ -105,12 +105,6 @@ const token = new URLSearchParams(window.location.search).get('token');
 
 (function init(){
   if(!token){
-    document.getElementById('reset-form').style.display = 'none';
-    document.getElementById('invalid-view').style.display = 'block';
-    return;
-  }
-  const t = AUTH.validateResetToken(token);
-  if(!t){
     document.getElementById('reset-form').style.display = 'none';
     document.getElementById('invalid-view').style.display = 'block';
   }
@@ -134,7 +128,7 @@ function checkStrength(pw){
   lbl.textContent = score > 0 ? labels[score] : 'Enter a password';
 }
 
-function doReset(){
+async function doReset(){
   const err = document.getElementById('reset-error');
   err.classList.remove('show');
   const pw = document.getElementById('new-pw').value;
@@ -145,19 +139,37 @@ function doReset(){
   if(pw.length < 8){ err.textContent='Password must be at least 8 characters.'; err.classList.add('show'); return; }
   btn.textContent = 'Saving...';
   btn.disabled = true;
-  setTimeout(() => {
-    const r = AUTH.resetPassword(token, pw);
-    if(r.ok){
-      document.getElementById('reset-form').style.display = 'none';
-      document.getElementById('success-view').style.display = 'block';
-      setTimeout(() => window.location.replace('login.html'), 2000);
-    } else {
+  try {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ token, password: pw }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok){
+      if(res.status === 410){
+        document.getElementById('reset-form').style.display = 'none';
+        document.getElementById('invalid-view').style.display = 'block';
+      } else {
+        err.textContent = data.error || 'Something went wrong.';
+        err.classList.add('show');
+      }
       btn.textContent = 'Set new password →';
       btn.disabled = false;
-      err.textContent = r.error;
-      err.classList.add('show');
+      return;
     }
-  }, 600);
+    await AUTH.applyAuthPayload({ token: data.token, user: data.user });
+    document.getElementById('reset-form').style.display = 'none';
+    document.getElementById('success-view').style.display = 'block';
+    const dest = AUTH.ROLE_PORTAL[data.user.role] || 'manager.html';
+    setTimeout(() => window.location.replace(dest), 1200);
+  } catch (e) {
+    err.textContent = 'Could not reach server. Try again.';
+    err.classList.add('show');
+    btn.textContent = 'Set new password →';
+    btn.disabled = false;
+  }
 }
 </script>
 </body>

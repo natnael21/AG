@@ -6,6 +6,8 @@ on:
     branches:
       - main
       - develop
+      # staging deploys straight to preprod, so it must be tested too.
+      - staging
 
 jobs:
   detect:
@@ -29,6 +31,32 @@ jobs:
     defaults:
       run:
         working-directory: api
+
+    # The integration suite drives the real app against a real database:
+    # workspace isolation lives in the SQL, so a stubbed pool would not test it.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DB_HOST: 127.0.0.1
+      TEST_DB_PORT: '5432'
+      TEST_DB_USER: postgres
+      TEST_DB_PASS: postgres
+      TEST_DB_NAME: agshop_test
+      TEST_DB_SSL: '0'
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,9 +67,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Lint
-        run: npm run lint --if-present
-      - name: Test
-        run: npm test --if-present
+        run: npm run lint
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Migrations apply to a fresh database
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: '5432'
+          DB_USER: postgres
+          DB_PASS: postgres
+          DB_NAME: agshop_migrate_check
+          DB_SSL: '0'
+        run: |
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE agshop_migrate_check;"
+          npm run migrate:latest
+          # Re-running must be a no-op: every migration is tracked and skipped.
+          npm run migrate:latest
+      - name: Integration tests
+        run: npm run test:integration
       - name: Build
         run: npm run build --if-present
 

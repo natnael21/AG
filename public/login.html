@@ -125,12 +125,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--navy);min-height:100vh;di
         onkeydown="if(event.key==='Enter')doLogin()"/>
       <div style="text-align:right;margin-top:8px"><button class="link-btn" onclick="showPanel('panel-forgot')">Forgot password?</button></div>
       <button class="btn-main" id="login-btn" onclick="doLogin()">Sign in →</button>
-      <div class="divider">or try a demo account</div>
-      <div class="demo-grid">
-        <div class="demo-btn" onclick="demoLogin('super_admin')"><span class="demo-icon">🌐</span><span style="font-weight:500">Super admin</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">All workspaces</div></div>
-        <div class="demo-btn" onclick="demoLogin('manager')"><span class="demo-icon">🏢</span><span style="font-weight:500">Manager</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">AmeriBenz</div></div>
-        <div class="demo-btn" onclick="demoLogin('service_advisor')"><span class="demo-icon">🔧</span><span style="font-weight:500">Service advisor</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">AmeriBenz</div></div>
-        <div class="demo-btn" onclick="demoLogin('technician')"><span class="demo-icon">⚙️</span><span style="font-weight:500">Technician</span><div style="font-size:.6rem;margin-top:2px;opacity:.6">AmeriBenz</div></div>
+      <div class="divider">are you a customer?</div>
+      <div style="text-align:center">
+        <a href="portal-login.html" style="font-size:.78rem;color:var(--accent);text-decoration:none">Track your repairs in the customer portal →</a>
       </div>
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:.75rem;color:rgba(255,255,255,.3)">New to AG Shop Pro?</span>
@@ -313,9 +310,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--navy);min-height:100vh;di
 <script>
 (function(){
   const s = AUTH.getSession();
-  if(s && s.role) window.location.replace(AUTH.ROLE_PORTAL[s.role] || 'manager.html');
+  if(s && s.role && s.token) window.location.replace(AUTH.ROLE_PORTAL[s.role] || 'manager.html');
   const p = new URLSearchParams(window.location.search);
-  if(p.get('token')) window.location.replace('reset.html?token=' + p.get('token'));
+  if(p.get('token')) window.location.replace('reset.html?token=' + encodeURIComponent(p.get('token')));
   if(p.get('signup')) showPanel('panel-signup');
 })();
 
@@ -333,15 +330,14 @@ function showPanel(id){
 function clearMsgs(){ document.querySelectorAll('.msg').forEach(m => m.classList.remove('show')); }
 function showMsg(id, text){ const el = document.getElementById(id); el.textContent = text; el.classList.add('show'); }
 
+/* The role is resolved by the server on sign in. Looking it up from the email
+   as you type would confirm which addresses have accounts, so it doesn't. */
 function onEmailInput(v){
   const hint = document.getElementById('role-hint');
-  const u = AUTH.getUsers().find(x => x.email.toLowerCase() === v.toLowerCase());
-  if(u){ const lbl={super_admin:'Super Admin',manager:'Manager',service_advisor:'Service Advisor',technician:'Technician'}; hint.textContent='→ '+lbl[u.role]+' · '+AUTH.getMyWorkspaces(u).length+' workspace(s)'; }
-  else if(v.length>4&&v.includes('@')) hint.textContent='→ Role detected on sign in';
-  else hint.textContent='';
+  hint.textContent = (v.length>4 && v.includes('@')) ? '→ Your role is assigned on your account' : '';
 }
 
-function doLogin(){
+async function doLogin(){
   clearMsgs();
   const email=document.getElementById('login-email').value.trim();
   const pw=document.getElementById('login-password').value;
@@ -349,31 +345,29 @@ function doLogin(){
   if(!email){showMsg('login-error','Please enter your email.');return;}
   if(!pw){showMsg('login-error','Please enter your password.');return;}
   btn.textContent='Signing in...';btn.disabled=true;
-  setTimeout(()=>{
-    const r=AUTH.login(email,pw);
-    if(r.ok){window.location.replace(AUTH.ROLE_PORTAL[r.role]||'manager.html');}
-    else{btn.textContent='Sign in →';btn.disabled=false;showMsg('login-error',r.error);}
-  },500);
+  const r=await AUTH.loginWithApi(email,pw);
+  if(r.ok){window.location.replace(AUTH.ROLE_PORTAL[r.role]||'manager.html');}
+  else{btn.textContent='Sign in →';btn.disabled=false;showMsg('login-error',r.error);}
 }
 
-function demoLogin(role){
-  const map={super_admin:'demo@admin.com',manager:'demo@manager.com',service_advisor:'demo@service.com',technician:'demo@tech.com'};
-  const r=AUTH.login(map[role],'demo');
-  if(r.ok) window.location.replace(AUTH.ROLE_PORTAL[r.role]);
-}
-
-function doForgot(){
+async function doForgot(){
   clearMsgs();
   const email=document.getElementById('forgot-email').value.trim();
   const btn=document.getElementById('forgot-btn');
   if(!email){showMsg('forgot-error','Please enter your email.');return;}
   btn.textContent='Sending...';btn.disabled=true;
-  setTimeout(()=>{
-    const r=AUTH.requestReset(email);
-    btn.textContent='Send reset link →';btn.disabled=false;
-    if(r.ok) showMsg('forgot-success','Reset link sent to '+email+'. Check your inbox — expires in 1 hour.');
-    else showMsg('forgot-error',r.error);
-  },700);
+  try{
+    await fetch('/api/auth/forgot-password',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      credentials:'same-origin',
+      body:JSON.stringify({ email })
+    });
+    showMsg('forgot-success','If that email is registered, you will receive a reset link shortly (check spam). Link expires in 1 hour.');
+  }catch(e){
+    showMsg('forgot-error','Could not reach server. Try again later.');
+  }
+  btn.textContent='Send reset link →';btn.disabled=false;
 }
 
 /* SIGNUP */
@@ -426,7 +420,7 @@ function toggleTool(btn,name){
   else{selectedTools.add(name);btn.classList.add('selected');}
 }
 
-function doSignup(){
+async function doSignup(){
   const btn=document.getElementById('submit-btn');
   btn.textContent='Submitting...';btn.disabled=true;
   const data={
@@ -445,15 +439,28 @@ function doSignup(){
     tools:[...selectedTools].join(', ')||'None',
     submittedAt:new Date().toISOString()
   };
-  console.log('[AG Shop Pro Signup]', data);
-  /* Production: POST /api/signup → SES sends welcome email to data.email */
-  setTimeout(()=>{
+  try{
+    const res = await fetch('/api/signup',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      credentials:'same-origin',
+      body:JSON.stringify(data)
+    });
+    const payload = await res.json().catch(()=>({}));
+    if(!res.ok){
+      showMsg('signup-error', payload.error || 'Signup failed. Please try again.');
+      btn.textContent='Submit & get started →';btn.disabled=false;
+      return;
+    }
     btn.textContent='Submit & get started →';btn.disabled=false;
     document.getElementById('success-name').textContent=data.first||'there';
     document.getElementById('success-shop').textContent=data.shop||'your shop';
     document.getElementById('success-email').textContent=data.email;
     currentStep=5;updateStep();
-  },1000);
+  }catch(e){
+    showMsg('signup-error','Could not reach server. Please try again.');
+    btn.textContent='Submit & get started →';btn.disabled=false;
+  }
 }
 </script>
 </body>
