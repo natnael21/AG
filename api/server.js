@@ -268,9 +268,9 @@ app.get('/api/users', requireAuth(['super_admin', 'manager']), async (req, res) 
       : await pool.query(
           `SELECT id, name, email, phone, role, workspace_ids, active, last_login, created_at
              FROM users
-            WHERE workspace_ids && $1::int[]
+            WHERE workspace_ids && $1::text[]
             ORDER BY name`,
-          [(req.session.workspace_ids || []).map(Number)]
+          [req.session.workspace_ids || []]
         );
     res.json(rows);
   } catch(e) {
@@ -437,14 +437,15 @@ function resolveWorkspaceId(req, res) {
   /* express.json() only populates req.body for requests that carry one, and
      Express 5 leaves it undefined otherwise — so this must be optional. */
   const raw = req.query.workspaceId || req.body?.workspaceId || req.session.workspace_ids?.[0];
-  const workspaceId = Number(raw);
-  if (!Number.isInteger(workspaceId) || workspaceId <= 0) {
+  // Workspace ids are opaque strings (e.g. "ws-owner-001"), not integers.
+  const workspaceId = raw == null ? '' : String(raw).trim();
+  if (!workspaceId) {
     res.status(400).json({ error: 'workspaceId is required.' });
     return null;
   }
 
   if (req.session.role !== 'super_admin') {
-    const allowed = new Set((req.session.workspace_ids || []).map((x) => Number(x)));
+    const allowed = new Set((req.session.workspace_ids || []).map((x) => String(x)));
     if (!allowed.has(workspaceId)) {
       res.status(403).json({ error: 'Workspace access denied.' });
       return null;
@@ -950,7 +951,8 @@ app.post('/api/customer/login', authLimiter, route('customer:login', async (req,
     throw new ValidationError('Email, password, and workspaceId are required.');
   }
 
-  const result = await customerPortalService.customerLogin(email, password, parseId(workspaceId, 'workspaceId'));
+  // workspaceId is an opaque string (e.g. "ws-owner-001"), not an integer.
+  const result = await customerPortalService.customerLogin(email, password, String(workspaceId).trim());
   res.json(result);
 }));
 

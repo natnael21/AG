@@ -118,7 +118,9 @@ class RepairOrderService {
          cannot see each other's uncommitted rows, so two callers would
          otherwise read the same MAX and collide on the unique index. The lock
          is released when the transaction ends. */
-      await client.query('SELECT pg_advisory_xact_lock($1, $2)', [RO_NUMBER_LOCK_NAMESPACE, workspaceId]);
+      // workspace_id is an opaque string; hashtext() maps it to the int4 that
+      // pg_advisory_xact_lock requires as its second key.
+      await client.query('SELECT pg_advisory_xact_lock($1, hashtext($2))', [RO_NUMBER_LOCK_NAMESPACE, workspaceId]);
 
       const roNumber = await this.nextRoNumber(client, workspaceId);
 

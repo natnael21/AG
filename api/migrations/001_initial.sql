@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone TEXT,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL,
-  workspace_ids VARCHAR(64)[] NOT NULL DEFAULT '{}',
+  workspace_ids TEXT[] NOT NULL DEFAULT '{}',
   active BOOLEAN NOT NULL DEFAULT true,
   last_login TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

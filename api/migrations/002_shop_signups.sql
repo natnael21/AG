@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS shop_signups (
   status TEXT NOT NULL DEFAULT 'pending',
   reviewed_by INTEGER REFERENCES users(id),
   reviewed_at TIMESTAMPTZ,
-  workspace_id TEXT,
+  workspace_id VARCHAR(64),
   user_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
