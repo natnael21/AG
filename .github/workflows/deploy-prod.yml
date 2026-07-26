@@ -49,12 +49,40 @@ jobs:
           script: |
             bash /var/www/agshopro/scripts/deploy.sh ${{ steps.release.outputs.id }}
 
+      # A bare `curl /api/health` is not enough to prove a deploy took effect.
+      # For months prod ran a pre-git build of this app on :3000 while every
+      # deploy reported success: the release landed on disk, but a root-owned
+      # PM2 process held the port and nginx served a stale static directory.
+      # The old app answered /api/health with 200, so the check passed.
+      #
+      # These two assertions close that hole. Each proves a different half of
+      # the stack is actually serving THIS release:
+      #   * the API responds with the payload only src/routes/health.js emits;
+      #   * the served frontend is byte-identical to the commit being deployed.
       - name: Healthcheck production
         run: |
           echo "Waiting for process to come up..."
           sleep 10
-          curl --fail --retry 5 --retry-delay 5 --max-time 15 \
-            https://agshopro.com/api/health
+
+          echo "--- API is this codebase ---"
+          body=$(curl --fail --retry 5 --retry-delay 5 --max-time 15 \
+                   https://agshopro.com/api/health)
+          echo "$body"
+          case "$body" in
+            *'"checks"'*) echo "ok: health payload is from src/routes/health.js" ;;
+            *) echo "::error::Prod /api/health lacks \"checks\" - a DIFFERENT application is serving :3000"; exit 1 ;;
+          esac
+
+          echo "--- Frontend is this release ---"
+          # Cache-busted so a CDN or heuristic browser cache cannot mask a stale tree.
+          served=$(curl --fail --max-time 15 "https://agshopro.com/login.html?deploycheck=${GITHUB_SHA}" | md5sum | cut -d' ' -f1)
+          expected=$(md5sum public/login.html | cut -d' ' -f1)
+          echo "served=$served expected=$expected"
+          if [ "$served" != "$expected" ]; then
+            echo "::error::Prod is serving a different login.html than this commit - check the nginx root points at /var/www/agshopro/current/public"
+            exit 1
+          fi
+          echo "ok: prod serves this release"
 
       # Only roll back when a release actually went live and then failed
       # verification. `if: failure()` alone also fired when checkout or SCP
