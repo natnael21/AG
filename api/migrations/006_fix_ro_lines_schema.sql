@@ -17,7 +17,7 @@
 -- Parts catalog (was rolled back when 004 failed)
 CREATE TABLE IF NOT EXISTS parts (
   id SERIAL PRIMARY KEY,
-  workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  workspace_id VARCHAR(64) NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   part_number TEXT NOT NULL,
   name TEXT NOT NULL,
   description TEXT,

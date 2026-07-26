@@ -29,7 +29,7 @@ ALTER TABLE repair_orders
 
 CREATE TABLE IF NOT EXISTS leads_inbox (
   id SERIAL PRIMARY KEY,
-  workspace_id INTEGER REFERENCES workspaces(id) ON DELETE SET NULL,
+  workspace_id VARCHAR(64) REFERENCES workspaces(id) ON DELETE SET NULL,
   contact_name TEXT NOT NULL,
   contact_email TEXT NOT NULL,
   contact_phone TEXT,

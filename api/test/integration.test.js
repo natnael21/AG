@@ -43,6 +43,62 @@ test.after(async () => {
   if (ctx) await ctx.close();
 });
 
+/* ── Schema integrity: workspace_id foreign keys ── */
+
+// Production's workspaces.id is VARCHAR(64); a prod deploy failed because a
+// migration declared a workspace_id FK as INTEGER, which Postgres rejects as
+// "foreign key constraint ... cannot be implemented". This locks the invariant
+// in: the fresh DB built from every migration must keep workspaces.id and every
+// workspace_id column on the same varchar type. (If a migration reintroduces the
+// mismatch, resetDatabase() in test.before throws before this even runs.)
+test('workspaces.id is varchar(64)', async () => {
+  const { rows } = await ctx.pool.query(
+    `SELECT data_type, character_maximum_length
+       FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'workspaces' AND column_name = 'id'`
+  );
+  assert.equal(rows.length, 1, 'workspaces.id column should exist');
+  assert.equal(rows[0].data_type, 'character varying');
+  assert.equal(rows[0].character_maximum_length, 64);
+});
+
+test('every workspace_id column matches workspaces.id (varchar)', async () => {
+  const { rows } = await ctx.pool.query(
+    `SELECT table_name, data_type
+       FROM information_schema.columns
+      WHERE table_schema = 'public' AND column_name = 'workspace_id'
+      ORDER BY table_name`
+  );
+  assert.ok(rows.length > 0, 'expected workspace_id columns to exist');
+  for (const r of rows) {
+    assert.equal(
+      r.data_type, 'character varying',
+      `${r.table_name}.workspace_id is ${r.data_type}, expected character varying to match workspaces.id`
+    );
+  }
+});
+
+test('every foreign key that references workspaces uses a varchar referencing column', async () => {
+  const { rows } = await ctx.pool.query(`
+    SELECT tc.table_name, kcu.column_name, c.data_type
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu
+        ON kcu.constraint_name = tc.constraint_name AND kcu.table_schema = tc.table_schema
+      JOIN information_schema.constraint_column_usage ccu
+        ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+      JOIN information_schema.columns c
+        ON c.table_schema = tc.table_schema AND c.table_name = tc.table_name AND c.column_name = kcu.column_name
+     WHERE tc.constraint_type = 'FOREIGN KEY'
+       AND ccu.table_name = 'workspaces' AND ccu.column_name = 'id'`);
+  assert.ok(rows.length > 0, 'expected at least one FK referencing workspaces(id)');
+  for (const r of rows) {
+    assert.equal(
+      r.data_type, 'character varying',
+      `FK ${r.table_name}.${r.column_name} -> workspaces.id is ${r.data_type}, expected character varying`
+    );
+  }
+});
+
 /* ── Authentication ── */
 
 test('health check reports database connectivity', async () => {
