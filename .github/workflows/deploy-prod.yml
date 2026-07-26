@@ -46,8 +46,12 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          # Run the script from the upload, not from /var/www/.../scripts/, so the
+          # deploy logic, the nginx vhost and the PM2 ecosystem all come from the
+          # commit being deployed. The host copy is left in place as a manual
+          # fallback.
           script: |
-            bash /var/www/agshopro/scripts/deploy.sh ${{ steps.release.outputs.id }}
+            bash /tmp/agshopro-release/infra/scripts/deploy.sh prod ${{ steps.release.outputs.id }}
 
       # A bare `curl /api/health` is not enough to prove a deploy took effect.
       # For months prod ran a pre-git build of this app on :3000 while every
@@ -65,7 +69,7 @@ jobs:
           sleep 10
 
           echo "--- API is this codebase ---"
-          body=$(curl --fail --retry 5 --retry-delay 5 --max-time 15 \
+          body=$(curl -sS --fail --retry 5 --retry-delay 5 --max-time 15 \
                    https://agshopro.com/api/health)
           echo "$body"
           case "$body" in
@@ -75,7 +79,7 @@ jobs:
 
           echo "--- Frontend is this release ---"
           # Cache-busted so a CDN or heuristic browser cache cannot mask a stale tree.
-          served=$(curl --fail --max-time 15 "https://agshopro.com/login.html?deploycheck=${GITHUB_SHA}" | md5sum | cut -d' ' -f1)
+          served=$(curl -sS --fail --max-time 15 "https://agshopro.com/login.html?deploycheck=${GITHUB_SHA}" | md5sum | cut -d' ' -f1)
           expected=$(md5sum public/login.html | cut -d' ' -f1)
           echo "served=$served expected=$expected"
           if [ "$served" != "$expected" ]; then
