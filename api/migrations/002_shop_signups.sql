@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS shop_signups (
   source TEXT,
   tools TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
-  reviewed_by INTEGER REFERENCES users(id),
+  reviewed_by VARCHAR(64) REFERENCES users(id),
   reviewed_at TIMESTAMPTZ,
   workspace_id VARCHAR(64),
   user_id TEXT,

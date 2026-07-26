@@ -84,6 +84,21 @@ function parseId(value, field = 'id') {
   return n;
 }
 
+/**
+ * Parse an opaque string id, or throw ValidationError.
+ *
+ * Users and workspaces are keyed by app-generated strings ("usr-<uuid>",
+ * "ws-<uuid>") to match production, so their ids must not go through parseId --
+ * it rejects everything non-numeric. Business entities (customers, vehicles,
+ * repair orders, parts) remain SERIAL and keep using parseId.
+ */
+function parseOpaqueId(value, field = 'id') {
+  const s = value == null ? '' : String(value).trim();
+  if (!s) throw new ValidationError(`${field} is required.`);
+  if (s.length > 64) throw new ValidationError(`${field} must be 64 characters or fewer.`);
+  return s;
+}
+
 /** Parse a non-negative money/quantity value, or throw ValidationError. */
 function parseNumber(value, field, { min = 0, max = 1e9, integer = false } = {}) {
   if (value === '' || value === null || value === undefined) {
@@ -121,6 +136,7 @@ module.exports = {
   sendError,
   route,
   parseId,
+  parseOpaqueId,
   parseNumber,
   requireString,
   optionalString,

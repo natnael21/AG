@@ -33,7 +33,7 @@ CREATE TABLE appointments (
   notes TEXT,
   status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled')),
   confirmed_date TIMESTAMP WITH TIME ZONE,
-  confirmed_by INTEGER REFERENCES users(id),
+  confirmed_by VARCHAR(64) REFERENCES users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

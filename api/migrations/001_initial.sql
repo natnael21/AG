@@ -14,7 +14,12 @@ CREATE TABLE IF NOT EXISTS workspaces (
 );
 
 CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
+  -- Matches production: user ids are app-generated strings ("usr-<uuid>"),
+  -- not autoincrement integers. services/signup.js already detects the absence
+  -- of a column default and mints one; UserManagementService.inviteUser does
+  -- the same. Safe to edit for already-migrated environments because
+  -- migrate.js skips filenames already in schema_migrations.
+  id VARCHAR(64) PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   phone TEXT,
@@ -33,7 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_users_reset_token ON users (reset_token) WHERE re
 
 CREATE TABLE IF NOT EXISTS sessions (
   token TEXT PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at TIMESTAMPTZ NOT NULL
 );
 
