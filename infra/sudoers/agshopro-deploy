@@ -1,0 +1,53 @@
+# Lets the CI deploy user install the version-controlled nginx vhost and reload
+# nginx — and nothing else.
+#
+# Install (as root), validating before it takes effect. A malformed file in
+# /etc/sudoers.d can lock out sudo entirely, so never skip the -c check:
+#
+#   sudo install -o root -g root -m 0440 \
+#     /var/www/agshopro/current/infra/sudoers/agshopro-deploy \
+#     /etc/sudoers.d/agshopro-deploy
+#   sudo visudo -cf /etc/sudoers.d/agshopro-deploy
+#
+# Why this exists: infra/scripts/deploy.sh treats a difference between the
+# release's vhost and the installed one as a fatal error, because production
+# once served a stale document root for months while every deploy reported
+# success. Correcting that requires root, and the deploy runs unattended, so it
+# needs a password-free path to exactly these operations.
+#
+# The argument patterns matter. Granting bare `install` or `cp` would be
+# equivalent to full root — the deploy user could overwrite any file on the
+# system. Restricting source and destination limits this to replacing two known
+# vhost files with content that came from a release directory.
+#
+# The command paths must match how deploy.sh invokes them (it uses absolute
+# paths deliberately, since sudoers matches on the resolved path). Verify with
+# `command -v install nginx systemctl` if a rule ever stops matching.
+
+# Side-effect-free capability probe. deploy.sh needs to distinguish "sudo
+# refused" from "the installed nginx config is invalid" -- both exit 1 -- so it
+# probes with `true`, which can only fail if sudo itself refuses. Granting root
+# `true` confers nothing. Both paths are listed because /bin/true is a symlink to
+# /usr/bin/true on merged-/usr systems and sudoers matches the literal path.
+Cmnd_Alias AGSHOPRO_SUDO_PROBE = /usr/bin/true, /bin/true
+
+Cmnd_Alias AGSHOPRO_NGINX_TEST   = /usr/sbin/nginx -t
+Cmnd_Alias AGSHOPRO_NGINX_RELOAD = /usr/bin/systemctl reload nginx
+
+Cmnd_Alias AGSHOPRO_VHOST_INSTALL = \
+  /usr/bin/install -o root -g root -m 0644 /var/www/agshopro/releases/*/infra/nginx/agshopro.conf /etc/nginx/sites-available/agshopro, \
+  /usr/bin/install -o root -g root -m 0644 /var/www/agshopro-preprod/releases/*/infra/nginx/agshopro-preprod.conf /etc/nginx/sites-available/agshopro-preprod
+
+# Restoring the backup after a failed `nginx -t`.
+Cmnd_Alias AGSHOPRO_VHOST_RESTORE = \
+  /usr/bin/install -o root -g root -m 0644 /etc/nginx/sites-available/agshopro.bak-* /etc/nginx/sites-available/agshopro, \
+  /usr/bin/install -o root -g root -m 0644 /etc/nginx/sites-available/agshopro-preprod.bak-* /etc/nginx/sites-available/agshopro-preprod
+
+Cmnd_Alias AGSHOPRO_VHOST_BACKUP = \
+  /usr/bin/cp /etc/nginx/sites-available/agshopro /etc/nginx/sites-available/agshopro.bak-*, \
+  /usr/bin/cp /etc/nginx/sites-available/agshopro-preprod /etc/nginx/sites-available/agshopro-preprod.bak-*
+
+deploy ALL=(root) NOPASSWD: AGSHOPRO_SUDO_PROBE, \
+                            AGSHOPRO_NGINX_TEST, AGSHOPRO_NGINX_RELOAD, \
+                            AGSHOPRO_VHOST_INSTALL, AGSHOPRO_VHOST_RESTORE, \
+                            AGSHOPRO_VHOST_BACKUP

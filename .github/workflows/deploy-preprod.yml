@@ -40,8 +40,9 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          # See deploy-prod.yml: the script comes from the release, not the host.
           script: |
-            bash /var/www/agshopro-preprod/scripts/deploy.sh ${{ steps.release.outputs.id }}
+            bash /tmp/agshopro-release-preprod/infra/scripts/deploy.sh preprod ${{ steps.release.outputs.id }}
 
       # Same two assertions as prod (see deploy-prod.yml for why a bare 200 on
       # /api/health proves nothing). Preprod is the environment prod is supposed
@@ -52,7 +53,7 @@ jobs:
           sleep 8
 
           echo "--- API is this codebase ---"
-          body=$(curl --fail --retry 5 --retry-delay 5 --max-time 15 \
+          body=$(curl -sS --fail --retry 5 --retry-delay 5 --max-time 15 \
                    https://preprod.agshopro.com/api/health)
           echo "$body"
           case "$body" in
@@ -61,7 +62,7 @@ jobs:
           esac
 
           echo "--- Frontend is this release ---"
-          served=$(curl --fail --max-time 15 "https://preprod.agshopro.com/login.html?deploycheck=${GITHUB_SHA}" | md5sum | cut -d' ' -f1)
+          served=$(curl -sS --fail --max-time 15 "https://preprod.agshopro.com/login.html?deploycheck=${GITHUB_SHA}" | md5sum | cut -d' ' -f1)
           expected=$(md5sum public/login.html | cut -d' ' -f1)
           echo "served=$served expected=$expected"
           if [ "$served" != "$expected" ]; then
