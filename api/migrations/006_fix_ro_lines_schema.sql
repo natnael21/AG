@@ -51,7 +51,7 @@ ALTER TABLE ro_parts_lines
 -- Complete the ro_labor_lines schema (stub from 001 had only id + workspace_id).
 ALTER TABLE ro_labor_lines
   ADD COLUMN IF NOT EXISTS repair_order_id INTEGER REFERENCES repair_orders(id) ON DELETE CASCADE,
-  ADD COLUMN IF NOT EXISTS technician_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS technician_id VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS technician_name TEXT,
   ADD COLUMN IF NOT EXISTS description TEXT,
   ADD COLUMN IF NOT EXISTS hours DECIMAL(6,2) NOT NULL DEFAULT 0,
@@ -64,7 +64,7 @@ ALTER TABLE ro_labor_lines
 CREATE TABLE IF NOT EXISTS time_entries (
   id SERIAL PRIMARY KEY,
   repair_order_id INTEGER REFERENCES repair_orders(id) ON DELETE CASCADE,
-  technician_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  technician_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   start_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ,
   duration_minutes INTEGER,
@@ -99,7 +99,7 @@ ALTER TABLE repair_orders
   ADD COLUMN IF NOT EXISTS notes TEXT,
   ADD COLUMN IF NOT EXISTS customer_approval_required BOOLEAN DEFAULT false,
   ADD COLUMN IF NOT EXISTS customer_approved_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS customer_approved_by INTEGER REFERENCES users(id);
+  ADD COLUMN IF NOT EXISTS customer_approved_by VARCHAR(64) REFERENCES users(id);
 
 -- Recalculate-totals helper function (was rolled back when 004 failed)
 CREATE OR REPLACE FUNCTION recalculate_ro_totals(ro_id INTEGER)

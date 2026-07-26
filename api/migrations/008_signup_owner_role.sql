@@ -18,8 +18,11 @@
 -- staff are seeded directly, are not referenced by any signup row, and keep
 -- super_admin.
 --
--- Note: shop_signups.user_id is TEXT (see 002_shop_signups.sql) while users.id
--- is an integer, hence the regex guard before casting.
+-- Note: shop_signups.user_id is TEXT (see 002_shop_signups.sql) and users.id is
+-- VARCHAR(64) (see 001_initial.sql), so these compare directly. An earlier
+-- revision of this file cast s.user_id::bigint behind a '^[0-9]+$' guard, which
+-- matched nothing against production's "usr-<uuid>" ids and silently no-op'd
+-- the demotion this migration exists to perform.
 
 UPDATE users u
    SET role = 'manager',
@@ -29,8 +32,7 @@ UPDATE users u
      SELECT 1
        FROM shop_signups s
       WHERE s.user_id IS NOT NULL
-        AND s.user_id ~ '^[0-9]+$'
-        AND s.user_id::bigint = u.id
+        AND s.user_id = u.id
    );
 
 -- Their existing sessions carry no role of their own (requireAuth re-reads it

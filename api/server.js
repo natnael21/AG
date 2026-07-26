@@ -16,7 +16,7 @@ types.setTypeParser(1082, (value) => value);
 const createHealthRoute = require('./src/routes/health');
 const { provisionSignup, rejectSignup, reinstateSignup } = require('./services/signup');
 const { sendRejectionEmail, sendApprovalEmail, sendReinstateEmail, sendPasswordResetEmail, verifyTransporter } = require('./services/email');
-const { route, sendError, parseId, ValidationError, NotFoundError } = require('./services/errors');
+const { route, sendError, parseId, parseOpaqueId, ValidationError, NotFoundError } = require('./services/errors');
 
 function parseCorsOrigins() {
   const raw = process.env.CORS_ORIGINS;
@@ -804,27 +804,27 @@ app.patch('/api/users/:id/role', requireAuth(['super_admin', 'manager']), route(
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
   const { role } = req.body || {};
-  res.json(await userManagementService.updateUserRole(parseId(req.params.id, 'id'), workspaceId, role, req.session));
+  res.json(await userManagementService.updateUserRole(parseOpaqueId(req.params.id, 'id'), workspaceId, role, req.session));
 }));
 
 app.delete('/api/users/:id/workspace', requireAuth(['super_admin', 'manager']), route('users:remove', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
-  res.json(await userManagementService.removeUserFromWorkspace(parseId(req.params.id, 'id'), workspaceId, req.session));
+  res.json(await userManagementService.removeUserFromWorkspace(parseOpaqueId(req.params.id, 'id'), workspaceId, req.session));
 }));
 
 app.post('/api/users/:id/deactivate', requireAuth(['super_admin']), route('users:deactivate', async (req, res) => {
-  res.json(await userManagementService.deactivateUser(parseId(req.params.id, 'id'), req.session));
+  res.json(await userManagementService.deactivateUser(parseOpaqueId(req.params.id, 'id'), req.session));
 }));
 
 app.post('/api/users/:id/reactivate', requireAuth(['super_admin']), route('users:reactivate', async (req, res) => {
-  res.json(await userManagementService.reactivateUser(parseId(req.params.id, 'id'), req.session));
+  res.json(await userManagementService.reactivateUser(parseOpaqueId(req.params.id, 'id'), req.session));
 }));
 
 app.post('/api/users/:id/reset-password', requireAuth(['super_admin', 'manager']), route('users:reset-password', async (req, res) => {
   const workspaceId = resolveWorkspaceId(req, res);
   if (!workspaceId) return;
-  res.json(await userManagementService.resetUserPassword(parseId(req.params.id, 'id'), workspaceId, req.session));
+  res.json(await userManagementService.resetUserPassword(parseOpaqueId(req.params.id, 'id'), workspaceId, req.session));
 }));
 
 /* ── Reporting & Analytics Routes ── */
@@ -922,7 +922,7 @@ app.patch('/api/appointments/:id', requireAuth(['super_admin', 'manager', 'servi
   const { rows } = await pool.query(
     `UPDATE appointments
         SET status = $1::text,
-            confirmed_by = CASE WHEN $1::text = 'confirmed' THEN $2::int ELSE confirmed_by END,
+            confirmed_by = CASE WHEN $1::text = 'confirmed' THEN $2::varchar ELSE confirmed_by END,
             confirmed_date = CASE WHEN $1::text = 'confirmed' THEN NOW() ELSE confirmed_date END
       WHERE id = $3 AND workspace_id = $4
       RETURNING *`,

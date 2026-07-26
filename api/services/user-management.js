@@ -35,13 +35,13 @@ class UserManagementService {
    */
   assertCanManage(actor, target, workspaceId, { newRole } = {}) {
     const actorRole = actor?.role;
-    const actorId = Number(actor?.user_id);
+    const actorId = String(actor?.user_id ?? '');
 
     if (actorRole !== 'super_admin' && actorRole !== 'manager') {
       throw new ForbiddenError('You do not have permission to manage users.');
     }
 
-    if (target && Number(target.id) === actorId) {
+    if (target && String(target.id) === actorId) {
       throw new ForbiddenError('You cannot change your own role or status.');
     }
 
@@ -116,11 +116,13 @@ class UserManagementService {
       const tempPassword = this.generateTempPassword();
       const passwordHash = await bcrypt.hash(tempPassword, 12);
 
+      /* users.id is VARCHAR(64) with no default, matching production, so the
+         id is minted here the same way services/signup.js mints one. */
       const { rows } = await client.query(
-        `INSERT INTO users (name, email, phone, password_hash, role, workspace_ids, active)
-         VALUES ($1,$2,$3,$4,$5,$6,true)
+        `INSERT INTO users (id, name, email, phone, password_hash, role, workspace_ids, active)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,true)
          RETURNING id, name, email, phone, role, workspace_ids, active, created_at`,
-        [name, email, phone, passwordHash, role, [String(workspaceId)]]
+        [`usr-${crypto.randomUUID()}`, name, email, phone, passwordHash, role, [String(workspaceId)]]
       );
 
       await client.query('COMMIT');
@@ -213,7 +215,7 @@ class UserManagementService {
   }
 
   async deactivateUser(userId, actor) {
-    if (Number(userId) === Number(actor?.user_id)) {
+    if (String(userId) === String(actor?.user_id ?? '')) {
       throw new ForbiddenError('You cannot deactivate your own account.');
     }
 

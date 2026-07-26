@@ -3,6 +3,7 @@ const {
   NotFoundError,
   ConflictError,
   parseId,
+  parseOpaqueId,
   parseNumber,
   requireString,
   optionalString,
@@ -445,7 +446,7 @@ class RepairOrderService {
         : addedBy;
 
       if (rawTech) {
-        technicianId = parseId(rawTech, 'technicianId');
+        technicianId = parseOpaqueId(rawTech, 'technicianId');
         const { rows } = await client.query(
           'SELECT name FROM users WHERE id = $1 AND $2 = ANY(workspace_ids) AND active = true',
           [technicianId, workspaceId]

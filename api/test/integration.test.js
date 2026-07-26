@@ -99,6 +99,62 @@ test('every foreign key that references workspaces uses a varchar referencing co
   }
 });
 
+// Same class of failure, one table over: production's users.id is VARCHAR(64)
+// ("usr-owner-001"), and the prod deploy of 002_shop_signups.sql failed on
+// "shop_signups_reviewed_by_fkey cannot be implemented" because reviewed_by was
+// declared INTEGER. Every FK into users must stay varchar.
+test('users.id is varchar(64)', async () => {
+  const { rows } = await ctx.pool.query(
+    `SELECT data_type, character_maximum_length
+       FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'id'`
+  );
+  assert.equal(rows.length, 1, 'users.id column should exist');
+  assert.equal(rows[0].data_type, 'character varying');
+  assert.equal(rows[0].character_maximum_length, 64);
+});
+
+test('every foreign key that references users uses a varchar referencing column', async () => {
+  const { rows } = await ctx.pool.query(`
+    SELECT tc.table_name, kcu.column_name, c.data_type
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu
+        ON kcu.constraint_name = tc.constraint_name AND kcu.table_schema = tc.table_schema
+      JOIN information_schema.constraint_column_usage ccu
+        ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+      JOIN information_schema.columns c
+        ON c.table_schema = tc.table_schema AND c.table_name = tc.table_name AND c.column_name = kcu.column_name
+     WHERE tc.constraint_type = 'FOREIGN KEY'
+       AND ccu.table_name = 'users' AND ccu.column_name = 'id'`);
+  assert.ok(rows.length > 0, 'expected at least one FK referencing users(id)');
+  for (const r of rows) {
+    assert.equal(
+      r.data_type, 'character varying',
+      `FK ${r.table_name}.${r.column_name} -> users.id is ${r.data_type}, expected character varying`
+    );
+  }
+});
+
+// 003a_legacy_schema_split.sql displaces production's legacy varchar-keyed
+// business tables into a `legacy` schema and rebuilds them here. The app's
+// parseId() only accepts positive integers, so these PKs must stay integral.
+test('business entity ids are integer, as parseId() requires', async () => {
+  const { rows } = await ctx.pool.query(
+    `SELECT table_name, data_type
+       FROM information_schema.columns
+      WHERE table_schema = 'public' AND column_name = 'id'
+        AND table_name IN ('customers','vehicles','repair_orders','ro_labor_lines','ro_parts_lines','parts')
+      ORDER BY table_name`
+  );
+  assert.equal(rows.length, 6, 'expected all six business tables in public');
+  for (const r of rows) {
+    assert.equal(
+      r.data_type, 'integer',
+      `${r.table_name}.id is ${r.data_type}, expected integer to match parseId()`
+    );
+  }
+});
+
 /* ── Authentication ── */
 
 test('health check reports database connectivity', async () => {

@@ -136,11 +136,13 @@ async function seedWorkspace(pool, name) {
  */
 async function seedUser(pool, client, { email, role, workspaceIds, password = 'Password123!', name }) {
   const hash = await bcrypt.hash(password, 4); // low cost: these are throwaway
+  // users.id is VARCHAR(64) with no default, matching production; the app mints
+  // "usr-<uuid>" (see services/signup.js, UserManagementService.inviteUser).
   const { rows } = await pool.query(
-    `INSERT INTO users (name, email, password_hash, role, workspace_ids, active)
-     VALUES ($1,$2,$3,$4,$5,true)
+    `INSERT INTO users (id, name, email, password_hash, role, workspace_ids, active)
+     VALUES ($1,$2,$3,$4,$5,$6,true)
      RETURNING id, name, email, role, workspace_ids`,
-    [name || email, email.toLowerCase(), hash, role, workspaceIds]
+    [`usr-${crypto.randomUUID()}`, name || email, email.toLowerCase(), hash, role, workspaceIds]
   );
 
   const res = await client.post('/api/auth/login', { email, password });
