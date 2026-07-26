@@ -135,9 +135,11 @@ test('every foreign key that references users uses a varchar referencing column'
   }
 });
 
-// 003a_legacy_schema_split.sql displaces production's legacy varchar-keyed
-// business tables into a `legacy` schema and rebuilds them here. The app's
-// parseId() only accepts positive integers, so these PKs must stay integral.
+// Business entities are integer-keyed, unlike users/workspaces. parseId() only
+// accepts positive integers and guards ~25 route handlers, so a migration that
+// made one of these varchar would break every one of those routes at runtime.
+// Production once carried varchar(128) versions of these tables from a pre-git
+// build; that database was rebuilt from these migrations, so the shapes agree.
 test('business entity ids are integer, as parseId() requires', async () => {
   const { rows } = await ctx.pool.query(
     `SELECT table_name, data_type

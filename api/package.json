@@ -9,7 +9,8 @@
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "node --test \"test/unit/*.test.js\"",
     "test:integration": "node --test --test-concurrency=1 test/integration.test.js",
-    "migrate:latest": "node scripts/migrate.js"
+    "migrate:latest": "node scripts/migrate.js",
+    "seed:owner": "node scripts/seed-owner.js"
   },
   "keywords": [],
   "author": "",
