@@ -55,8 +55,8 @@ class UserManagementService {
       if (target.role === 'super_admin') {
         throw new ForbiddenError('You do not have permission to manage a super admin.');
       }
-      const memberships = (target.workspace_ids || []).map(Number);
-      if (!memberships.includes(Number(workspaceId))) {
+      const memberships = (target.workspace_ids || []).map(String);
+      if (!memberships.includes(String(workspaceId))) {
         throw new NotFoundError('User not found in this workspace.');
       }
     }
@@ -91,9 +91,9 @@ class UserManagementService {
 
       if (existing.length) {
         const user = existing[0];
-        const workspaceIds = (user.workspace_ids || []).map(Number);
+        const workspaceIds = (user.workspace_ids || []).map(String);
 
-        if (workspaceIds.includes(Number(workspaceId))) {
+        if (workspaceIds.includes(String(workspaceId))) {
           throw new ConflictError('That user is already a member of this workspace.');
         }
         /* Adding an existing super_admin to a workspace is a super_admin act. */
@@ -101,7 +101,7 @@ class UserManagementService {
           throw new ForbiddenError('You do not have permission to manage a super admin.');
         }
 
-        workspaceIds.push(Number(workspaceId));
+        workspaceIds.push(String(workspaceId));
         const { rows } = await client.query(
           `UPDATE users SET workspace_ids = $1, active = true, updated_at = NOW()
             WHERE id = $2
@@ -120,7 +120,7 @@ class UserManagementService {
         `INSERT INTO users (name, email, phone, password_hash, role, workspace_ids, active)
          VALUES ($1,$2,$3,$4,$5,$6,true)
          RETURNING id, name, email, phone, role, workspace_ids, active, created_at`,
-        [name, email, phone, passwordHash, role, [Number(workspaceId)]]
+        [name, email, phone, passwordHash, role, [String(workspaceId)]]
       );
 
       await client.query('COMMIT');
@@ -152,8 +152,8 @@ class UserManagementService {
       const target = found[0];
       this.assertCanManage(actor, target, workspaceId, { newRole });
 
-      const memberships = (target.workspace_ids || []).map(Number);
-      if (!memberships.includes(Number(workspaceId))) {
+      const memberships = (target.workspace_ids || []).map(String);
+      if (!memberships.includes(String(workspaceId))) {
         throw new NotFoundError('User not found in this workspace.');
       }
 
@@ -191,7 +191,7 @@ class UserManagementService {
       const target = found[0];
       this.assertCanManage(actor, target, workspaceId);
 
-      const remaining = (target.workspace_ids || []).map(Number).filter((id) => id !== Number(workspaceId));
+      const remaining = (target.workspace_ids || []).map(String).filter((id) => id !== String(workspaceId));
       const deactivated = remaining.length === 0;
 
       await client.query(

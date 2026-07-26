@@ -29,7 +29,7 @@ ALTER TABLE customers
 
 /* ── appointments: tenant scoping ──────────────────────────────────── */
 ALTER TABLE appointments
-  ADD COLUMN IF NOT EXISTS workspace_id INTEGER REFERENCES workspaces(id) ON DELETE CASCADE;
+  ADD COLUMN IF NOT EXISTS workspace_id VARCHAR(64) REFERENCES workspaces(id) ON DELETE CASCADE;
 
 -- Backfill from the owning customer, then enforce NOT NULL.
 UPDATE appointments a
@@ -45,7 +45,7 @@ ALTER TABLE appointments
 
 /* ── feedback: tenant scoping ──────────────────────────────────────── */
 ALTER TABLE feedback
-  ADD COLUMN IF NOT EXISTS workspace_id INTEGER REFERENCES workspaces(id) ON DELETE CASCADE;
+  ADD COLUMN IF NOT EXISTS workspace_id VARCHAR(64) REFERENCES workspaces(id) ON DELETE CASCADE;
 
 UPDATE feedback f
    SET workspace_id = c.workspace_id

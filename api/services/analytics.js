@@ -19,7 +19,7 @@
  * `paymentsIntegration: 'not_connected'`, and the page renders them as "—".
  */
 
-const { parseId } = require('./errors');
+const { ValidationError } = require('./errors');
 
 /** Revenue is booked on the day the work was completed. */
 const REVENUE_DATE = `COALESCE(ro.actual_completion, ro.updated_at, ro.created_at)`;
@@ -199,7 +199,8 @@ function toDateString(value) {
  * Express handler kept compatible with the previous burnRateHandler export.
  */
 async function burnRateHandler(req, res, pool, workspaceId) {
-  const wsId = workspaceId != null ? workspaceId : parseId(req.query.workspaceId, 'workspaceId');
+  const wsId = workspaceId != null ? workspaceId : String(req.query.workspaceId || '').trim();
+  if (!wsId) throw new ValidationError('workspaceId is required.');
   const data = await getBurnRate(pool, wsId, req.query.days);
   res.json(data);
 }

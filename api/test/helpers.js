@@ -12,6 +12,7 @@
 
 const { Client } = require('pg');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 
@@ -120,9 +121,12 @@ function makeClient(baseUrl) {
 /* ── Seeding ── */
 
 async function seedWorkspace(pool, name) {
+  // workspaces.id is VARCHAR(64) with no default, matching production; the app
+  // generates "ws-<uuid>" ids (see services/signup.js), so seeds must too.
+  const id = `ws-${crypto.randomUUID()}`;
   const { rows } = await pool.query(
-    `INSERT INTO workspaces (name, type, plan, active) VALUES ($1,'mechanic','pro',true) RETURNING *`,
-    [name]
+    `INSERT INTO workspaces (id, name, type, plan, active) VALUES ($1,$2,'mechanic','pro',true) RETURNING *`,
+    [id, name]
   );
   return rows[0];
 }
