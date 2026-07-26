@@ -194,7 +194,32 @@ if ! systemctl is-enabled "pm2-$(id -un)" >/dev/null 2>&1; then
   log "WARNING: restart the app after a reboot. Fix with: pm2 startup"
 fi
 
+# Housekeeping, and deliberately non-fatal: by this point the release is live and
+# verify_local() has confirmed it is serving, so failing here would report a
+# broken deploy for a disk-space problem. Older releases created by hand can be
+# root-owned (preprod carried a `manual_*` directory whose node_modules the
+# deploy user cannot unlink), which under `set -e` failed the whole run.
+#
+# Non-fatal is not silent: name every directory that survives, because the disk
+# keeps growing until someone removes them.
 log "pruning old releases (keeping $KEEP_RELEASES)"
-ls -dt "$RELEASES_DIR"/*/ 2>/dev/null | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -rf
+prune_failed=()
+while IFS= read -r old; do
+  [ -n "$old" ] || continue
+  if rm -rf "$old" 2>/dev/null; then
+    log "removed $(basename "$old")"
+  else
+    prune_failed+=("$old")
+  fi
+done < <(ls -dt "$RELEASES_DIR"/*/ 2>/dev/null | tail -n +$((KEEP_RELEASES + 1)))
+
+if [ ${#prune_failed[@]} -gt 0 ]; then
+  log "WARNING: ${#prune_failed[@]} old release(s) could not be removed as $(id -un),"
+  log "WARNING: most likely because they contain files owned by another user."
+  log "WARNING: Disk usage will keep growing until they are removed as root:"
+  for old in "${prune_failed[@]}"; do
+    log "WARNING:   sudo rm -rf ${old%/}"
+  done
+fi
 
 log "complete: $RELEASE_ID"
