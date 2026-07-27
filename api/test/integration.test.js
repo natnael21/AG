@@ -1375,3 +1375,177 @@ test('security headers are set on responses', async () => {
     'CSP must not block the inline event handlers the pages rely on'
   );
 });
+
+/* ── Invoicing & payments ── */
+
+/** A repair order with one parts line (100) and one labor line (150) = 250. */
+async function makeBillableRO(token = advisorA.token) {
+  const { ro, customer } = await makeRO(token);
+  await api.post(`/api/repair-orders/${ro.id}/parts`,
+    { partNumber: 'BRK-PAD-1', partName: 'Brake pads', quantity: 1, unitPrice: 100 },
+    { token });
+  await api.post(`/api/repair-orders/${ro.id}/labor`,
+    { technicianId: techA.user.id, description: 'Replace pads', hours: 2, hourlyRate: 75 },
+    { token });
+  return { ro, customer };
+}
+
+test('an invoice snapshots the order total and is numbered per workspace', async () => {
+  const { ro } = await makeBillableRO();
+  const res = await api.post('/api/invoices', { repairOrderId: ro.id, taxRate: 0.08 }, { token: advisorA.token });
+
+  assert.equal(res.status, 201, JSON.stringify(res.body));
+  assert.equal(res.body.status, 'draft');
+  assert.equal(res.body.workspace_id, shopA.id);
+  assert.match(res.body.invoice_number, /^INV-\d{4}-\d+$/);
+  assert.equal(Number(res.body.subtotal), 250, 'subtotal is parts + labor');
+  assert.equal(Number(res.body.tax_amount), 20, '250 * 0.08');
+  assert.equal(Number(res.body.total), 270);
+  assert.equal(Number(res.body.amount_paid), 0);
+});
+
+test('one invoice per repair order', async () => {
+  const { ro } = await makeBillableRO();
+  assert.equal((await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token })).status, 201);
+  const dup = await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token });
+  assert.equal(dup.status, 409, 'a second invoice for the same order must conflict');
+});
+
+test('a draft invoice cannot take payment until it is issued', async () => {
+  const { ro } = await makeBillableRO();
+  const inv = (await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token })).body;
+  const res = await api.post(`/api/invoices/${inv.id}/payments`, { amount: 10, method: 'cash' }, { token: advisorA.token });
+  assert.equal(res.status, 409);
+  assert.match(res.body.error, /Issue the invoice/);
+});
+
+test('partial then final payment settles the invoice', async () => {
+  const { ro } = await makeBillableRO();
+  const inv = (await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token })).body;
+  await api.post(`/api/invoices/${inv.id}/issue`, {}, { token: advisorA.token });
+
+  const first = await api.post(`/api/invoices/${inv.id}/payments`,
+    { amount: 100, method: 'card', reference: `AUTH-${Math.random().toString(36).slice(2, 10)}` },
+    { token: advisorA.token });
+  assert.equal(first.status, 201, JSON.stringify(first.body));
+  assert.equal(first.body.invoice.status, 'partially_paid');
+  assert.equal(Number(first.body.invoice.balance_due), 150);
+
+  const second = await api.post(`/api/invoices/${inv.id}/payments`, { amount: 150, method: 'cash' }, { token: advisorA.token });
+  assert.equal(second.body.invoice.status, 'paid');
+  assert.equal(Number(second.body.invoice.balance_due), 0);
+  assert.ok(second.body.invoice.paid_at, 'paid_at should be stamped');
+
+  const full = await api.get(`/api/invoices/${inv.id}`, { token: advisorA.token });
+  assert.equal(full.body.payments.length, 2);
+});
+
+test('a payment may not exceed the outstanding balance', async () => {
+  const { ro } = await makeBillableRO();
+  const inv = (await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token })).body;
+  await api.post(`/api/invoices/${inv.id}/issue`, {}, { token: advisorA.token });
+
+  const res = await api.post(`/api/invoices/${inv.id}/payments`, { amount: 250.01, method: 'cash' }, { token: advisorA.token });
+  assert.equal(res.status, 400);
+  assert.match(res.body.error, /exceeds the outstanding balance/);
+});
+
+test('payment method is constrained', async () => {
+  const { ro } = await makeBillableRO();
+  const inv = (await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token })).body;
+  await api.post(`/api/invoices/${inv.id}/issue`, {}, { token: advisorA.token });
+  const res = await api.post(`/api/invoices/${inv.id}/payments`, { amount: 1, method: 'crypto' }, { token: advisorA.token });
+  assert.equal(res.status, 400);
+});
+
+test('a paid invoice cannot be voided, an unpaid one can', async () => {
+  const paidRO = await makeBillableRO();
+  const paid = (await api.post('/api/invoices', { repairOrderId: paidRO.ro.id }, { token: advisorA.token })).body;
+  await api.post(`/api/invoices/${paid.id}/issue`, {}, { token: advisorA.token });
+  await api.post(`/api/invoices/${paid.id}/payments`, { amount: 250, method: 'cash' }, { token: advisorA.token });
+
+  const refused = await api.post(`/api/invoices/${paid.id}/void`, { reason: 'customer disputed' }, { token: managerA.token });
+  assert.equal(refused.status, 409, 'voiding would erase a recorded payment');
+
+  const cleanRO = await makeBillableRO();
+  const clean = (await api.post('/api/invoices', { repairOrderId: cleanRO.ro.id }, { token: advisorA.token })).body;
+  const voided = await api.post(`/api/invoices/${clean.id}/void`, { reason: 'duplicate entry' }, { token: managerA.token });
+  assert.equal(voided.status, 200);
+  assert.equal(voided.body.status, 'void');
+  assert.equal(voided.body.void_reason, 'duplicate entry');
+});
+
+test('voiding requires a reason and is manager-only', async () => {
+  const { ro } = await makeBillableRO();
+  const inv = (await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token })).body;
+  assert.equal((await api.post(`/api/invoices/${inv.id}/void`, {}, { token: managerA.token })).status, 400);
+  assert.equal((await api.post(`/api/invoices/${inv.id}/void`, { reason: 'x' }, { token: advisorA.token })).status, 403,
+    'a service advisor must not write off a billed amount');
+});
+
+test('technicians have no access to billing at all', async () => {
+  const { ro } = await makeBillableRO();
+  const inv = (await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token })).body;
+
+  for (const call of [
+    api.get('/api/invoices', { token: techA.token }),
+    api.get(`/api/invoices/${inv.id}`, { token: techA.token }),
+    api.get('/api/invoices/receivables', { token: techA.token }),
+    api.post('/api/invoices', { repairOrderId: ro.id }, { token: techA.token }),
+    api.post(`/api/invoices/${inv.id}/issue`, {}, { token: techA.token }),
+    api.post(`/api/invoices/${inv.id}/payments`, { amount: 1, method: 'cash' }, { token: techA.token }),
+  ]) {
+    assert.equal((await call).status, 403);
+  }
+});
+
+test('invoices do not leak across workspaces', async () => {
+  const { ro } = await makeBillableRO();
+  const inv = (await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token })).body;
+
+  const read = await api.get(`/api/invoices/${inv.id}?workspaceId=${shopB.id}`, { token: managerB.token });
+  assert.equal(read.status, 404, "shop B must not read shop A's invoice");
+
+  const pay = await api.post(`/api/invoices/${inv.id}/payments?workspaceId=${shopB.id}`,
+    { amount: 10, method: 'cash' }, { token: managerB.token });
+  assert.equal(pay.status, 404);
+
+  const list = await api.get(`/api/invoices?workspaceId=${shopB.id}`, { token: managerB.token });
+  assert.equal(list.status, 200);
+  assert.equal(list.body.length, 0, "shop B's invoice list must be empty");
+});
+
+test('an order with no customer or a cancelled order cannot be invoiced', async () => {
+  const cancelled = await makeBillableRO();
+  await api.patch(`/api/repair-orders/${cancelled.ro.id}/status`, { status: 'cancelled' }, { token: managerA.token });
+  const res = await api.post('/api/invoices', { repairOrderId: cancelled.ro.id }, { token: advisorA.token });
+  assert.equal(res.status, 400);
+  assert.match(res.body.error, /cancelled/);
+});
+
+test('receivables summary separates billed, collected and outstanding', async () => {
+  const before = (await api.get('/api/invoices/receivables', { token: managerA.token })).body;
+
+  const { ro } = await makeBillableRO();
+  const inv = (await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token })).body;
+  await api.post(`/api/invoices/${inv.id}/issue`, {}, { token: advisorA.token });
+  await api.post(`/api/invoices/${inv.id}/payments`, { amount: 100, method: 'ach' }, { token: advisorA.token });
+
+  const after = (await api.get('/api/invoices/receivables', { token: managerA.token })).body;
+  assert.equal(after.invoice_count, before.invoice_count + 1);
+  assert.equal(after.outstanding_count, before.outstanding_count + 1);
+  assert.equal(Number(after.billed_total) - Number(before.billed_total), 250);
+  assert.equal(Number(after.collected_total) - Number(before.collected_total), 100);
+  assert.equal(Number(after.outstanding_total) - Number(before.outstanding_total), 150);
+});
+
+test('a duplicate payment reference is rejected', async () => {
+  const { ro } = await makeBillableRO();
+  const inv = (await api.post('/api/invoices', { repairOrderId: ro.id }, { token: advisorA.token })).body;
+  await api.post(`/api/invoices/${inv.id}/issue`, {}, { token: advisorA.token });
+
+  const ref = `TXN-${Math.random().toString(36).slice(2, 10)}`;
+  assert.equal((await api.post(`/api/invoices/${inv.id}/payments`, { amount: 50, method: 'card', reference: ref }, { token: advisorA.token })).status, 201);
+  const dup = await api.post(`/api/invoices/${inv.id}/payments`, { amount: 50, method: 'card', reference: ref }, { token: advisorA.token });
+  assert.equal(dup.status, 409, 'the same processor reference twice is a double-post');
+});

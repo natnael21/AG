@@ -1,0 +1,120 @@
+# Vaultwarden — self-hosted Bitwarden-compatible vault for AG Shop Pro credentials.
+#
+#   cd infra/vaultwarden
+#   cp .env.example .env      # then fill it in; .env is gitignored
+#   docker compose up -d
+#   curl -s http://127.0.0.1:8222/alive     # returns a timestamp when healthy
+#
+# Then open http://localhost:8222 in a browser. From WSL there is no `open`; use
+# `explorer.exe "http://localhost:8222"`, or just type the URL into a Windows
+# browser -- the port is published on the Windows loopback too.
+#
+# FIRST RUN: registration is closed by default (SIGNUPS_ALLOWED=false), so the
+# login page will refuse to create an account. Set SIGNUPS_ALLOWED=true in .env,
+# `docker compose up -d` to recreate, register, then set it back to false and
+# recreate again. Closed-by-default is deliberate: an internet-reachable vault
+# with open registration is worse than no vault.
+#
+# WHY 127.0.0.1 ONLY
+#
+# The port is published to the loopback interface, not 0.0.0.0. A vault reachable
+# from the local network over plain HTTP would expose every credential in it to
+# anything that can ARP-spoof or sniff the segment. Loopback keeps it to this
+# machine, which is also the only place it needs to be reachable from.
+#
+# WHY TLS IS MANDATORY EVEN ON LOOPBACK
+#
+# Plain HTTP does not work at all, localhost included. Web vault 2025.12.0 ships a
+# URL validator that rejects every non-HTTPS URL it is handed:
+#
+#   class extends Error { ... `Insecure URL not allowed: ${url}. All URLs must use HTTPS.` }
+#
+# Vaultwarden builds the api/identity/vault URLs it advertises at /api/config from
+# DOMAIN, so a DOMAIN of http://... makes the client throw before it ever tries to
+# unlock. Browsers do treat http://localhost as a secure context, which is enough
+# for the crypto, but the client's own validator refuses first.
+#
+# So Rocket terminates TLS directly using the cert in ./tls -- no second
+# container. Generate it with (from this directory):
+#
+#   mkdir -p tls && cd tls && openssl req -x509 -newkey rsa:2048 -sha256 -days 825 \
+#     -nodes -keyout key.pem -out cert.pem \
+#     -subj "/CN=localhost/O=AG Shop Pro local vault" \
+#     -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+#
+# The cert is self-signed, so the browser warns once; accept the exception and the
+# origin becomes trusted for that browser. To skip the warning entirely, import
+# tls/cert.pem into the Windows "Trusted Root Certification Authorities" store.
+#
+# NOTE ON KEY PERMISSIONS: this directory lives on an NTFS mount (/mnt/c), where
+# chmod is a no-op -- tls/key.pem is world-readable no matter what mode is set. It
+# only protects loopback traffic on this one machine, so the exposure is limited,
+# but do not reuse this key anywhere else, and keep tls/ out of Git (it is
+# gitignored).
+#
+# BACKUPS ARE YOUR RESPONSIBILITY
+#
+# Everything lives in the `vaultwarden-data` volume. On a laptop that is a single
+# point of failure: lose the machine, lose the vault. Back it up with
+#   docker run --rm -v vaultwarden-data:/data -v "$PWD:/backup" alpine \
+#     tar czf /backup/vaultwarden-$(date +%F).tar.gz -C /data .
+# and keep the archive somewhere that is not this machine. Prefer the EC2 host (or
+# managed Bitwarden) if these credentials are shared with anyone else.
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:1.36.0-alpine
+    container_name: agshop-vaultwarden
+    restart: unless-stopped
+
+    environment:
+      # Set once to create your account, then set to false and `docker compose up -d`
+      # again. Leaving registration open on a vault is an open door.
+      SIGNUPS_ALLOWED: "${SIGNUPS_ALLOWED:-false}"
+
+      # Only these addresses may register even while signups are open.
+      SIGNUPS_DOMAINS_WHITELIST: "${SIGNUPS_DOMAINS_WHITELIST:-}"
+
+      # Admin panel. Omit ADMIN_TOKEN entirely to leave /admin disabled, which is
+      # the right default: you do not need it for day-to-day use. If you do set
+      # it, use an argon2 PHC hash, not a plain string --
+      #   docker run --rm -it vaultwarden/server:1.36.0-alpine /vaultwarden hash
+      ADMIN_TOKEN: "${ADMIN_TOKEN:-}"
+
+      # Must be https, and must match the host and port you browse to, because
+      # the client validates the URLs derived from it.
+      DOMAIN: "${DOMAIN:-https://localhost:8222}"
+      ROCKET_PORT: "80"
+      ROCKET_TLS: '{certs="/ssl/cert.pem",key="/ssl/key.pem"}'
+
+      # Password hints leak information about the password to anyone who can
+      # reach the login form.
+      SHOW_PASSWORD_HINT: "false"
+
+      # Vaultwarden's own SMTP is left unconfigured deliberately: this vault does
+      # not need to send mail, and AG's SES credentials should not be duplicated
+      # into another service's environment.
+
+    volumes:
+      - vaultwarden-data:/data
+      - ./tls:/ssl:ro
+
+    # Loopback only. See the note above before changing this.
+    ports:
+      - "127.0.0.1:${VAULTWARDEN_PORT:-8222}:80"
+
+    # Rocket now speaks TLS on this port, and the cert is self-signed, so the
+    # probe has to use https and skip verification.
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--no-check-certificate", "--spider", "https://localhost/alive"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  vaultwarden-data:
+    name: vaultwarden-data

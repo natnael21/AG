@@ -1,5 +1,10 @@
 .env
 .env.*
+# Templates carry only placeholders and must stay in the repo, or a new checkout
+# has nothing to copy from. A trailing `.env.example` rule used to sit below this
+# negation and silently defeat it -- later rules win -- so newly added templates
+# could never be committed. api/.env.example survived only because it was already
+# tracked, and ignore rules do not apply to tracked files.
 !.env.example
 node_modules/
 releases/
@@ -13,3 +18,13 @@ coverage/
 # settings.local.json — never commit it. 
 .claude/settings.local.json
 github-workflows.yml.backup
+
+# Vaultwarden runtime config — contains ADMIN_TOKEN
+infra/vaultwarden/.env
+
+# Credential artifacts emitted by api/scripts/seed-demo.js --out (plaintext secrets)
+*.bw.json
+*.credentials.json
+
+# Self-signed TLS material for the local vault (key is secret)
+infra/vaultwarden/tls/

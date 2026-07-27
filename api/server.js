@@ -126,12 +126,14 @@ const PartsService          = require('./services/parts');
 const UserManagementService = require('./services/user-management');
 const ReportingService      = require('./services/reporting');
 const CustomerPortalService = require('./services/customer-portal');
+const InvoicingService      = require('./services/invoicing');
 
 const repairOrderService    = new RepairOrderService(pool);
 const partsService          = new PartsService(pool);
 const userManagementService = new UserManagementService(pool);
 const reportingService      = new ReportingService(pool);
 const customerPortalService = new CustomerPortalService(pool);
+const invoicingService      = new InvoicingService(pool);
 
 /* ── Health check ── */
 app.get('/api/health', createHealthRoute({ pool, verifySmtp: verifyTransporter }));
@@ -774,6 +776,60 @@ app.post('/api/parts/:id/adjust-inventory', requireAuth(['super_admin', 'manager
   const { adjustment, reason } = req.body || {};
   res.json(await partsService.adjustInventory(
     parseId(req.params.id, 'id'), adjustment, reason, workspaceId, req.session.user_id
+  ));
+}));
+
+/* ── Invoicing Routes ──
+   Technicians are deliberately excluded from every route here, read included.
+   They need labour rates to log work, which the repair order already exposes,
+   but billing, tax and receivables are not part of the job. Everything is
+   workspace-scoped in the service; the id in the path never implies its tenant.
+
+   Declared before /api/invoices/:id so the literal receivables path wins over
+   the parameterised one. */
+app.get('/api/invoices/receivables', requireAuth(['super_admin', 'manager', 'service_advisor']), route('invoices:receivables', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await invoicingService.getReceivablesSummary(workspaceId));
+}));
+
+app.get('/api/invoices', requireAuth(['super_admin', 'manager', 'service_advisor']), route('invoices:list', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  const { status, customerId } = req.query;
+  res.json(await invoicingService.listInvoices(workspaceId, { status, customerId }));
+}));
+
+app.get('/api/invoices/:id', requireAuth(['super_admin', 'manager', 'service_advisor']), route('invoices:get', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await invoicingService.getInvoice(parseId(req.params.id, 'id'), workspaceId));
+}));
+
+app.post('/api/invoices', requireAuth(['super_admin', 'manager', 'service_advisor']), route('invoices:create', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.status(201).json(await invoicingService.createInvoice(req.body || {}, workspaceId, req.session.user_id));
+}));
+
+app.post('/api/invoices/:id/issue', requireAuth(['super_admin', 'manager', 'service_advisor']), route('invoices:issue', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await invoicingService.issueInvoice(parseId(req.params.id, 'id'), workspaceId, req.session.user_id));
+}));
+
+/* Voiding writes off a billed amount, so it stays with managers. */
+app.post('/api/invoices/:id/void', requireAuth(['super_admin', 'manager']), route('invoices:void', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.json(await invoicingService.voidInvoice(parseId(req.params.id, 'id'), req.body || {}, workspaceId, req.session.user_id));
+}));
+
+app.post('/api/invoices/:id/payments', requireAuth(['super_admin', 'manager', 'service_advisor']), route('invoices:pay', async (req, res) => {
+  const workspaceId = resolveWorkspaceId(req, res);
+  if (!workspaceId) return;
+  res.status(201).json(await invoicingService.recordPayment(
+    parseId(req.params.id, 'id'), req.body || {}, workspaceId, req.session.user_id
   ));
 }));
 
